@@ -6,26 +6,12 @@ import { Wire }
 from "./Wire";
 
 
-import { Vector3 }
-from "../../geometry/core/Vector3";
+import { Edge }
+from "./Edge";
 
 
-import { Point }
-from "../../geometry/core/Point";
-
-
-import { Transform }
-from "../../geometry/core/Transform";
-
-
-
-export enum FaceOrientation {
-
-    FORWARD,
-
-    REVERSED
-
-}
+import { HalfEdge }
+from "./HalfEdge";
 
 
 
@@ -37,23 +23,19 @@ export class Face {
 
 
 
-    private static nextId = 1;
+    public innerWires:
+
+    Wire[] = [];
 
 
 
-    public readonly id:number;
 
 
+    public reversed:
 
-    public innerWires:Wire[] = [];
+    boolean = false;
 
 
-
-    public orientation:
-
-    FaceOrientation =
-
-    FaceOrientation.FORWARD;
 
 
 
@@ -61,53 +43,34 @@ export class Face {
 
     constructor(
 
+
         public surface:Surface,
 
+
         public outerWire:Wire
+
 
     ){
 
 
 
-        this.id =
+        if(
 
-        Face.nextId++;
-
-
-
-        this.attach();
-
-    }
-
-
-
-
-
-
-
-    private attach():
-
-    void {
-
-
-
-        for(
-
-            const vertex of
-
-            this.outerWire.getVertices()
+            !outerWire
 
         ){
 
-            vertex.addFace(
+            throw new Error(
 
-                this
+                "Face requires outer wire"
 
             );
 
         }
 
     }
+
+
 
 
 
@@ -139,6 +102,44 @@ export class Face {
 
 
 
+
+
+    getOuterWire():
+
+    Wire {
+
+
+
+        return this.outerWire;
+
+    }
+
+
+
+
+
+
+
+
+
+    getInnerWires():
+
+    Wire[] {
+
+
+
+        return this.innerWires;
+
+    }
+
+
+
+
+
+
+
+
+
     getWires():
 
     Wire[] {
@@ -161,13 +162,19 @@ export class Face {
 
 
 
+
+
     getEdges():
 
-    any[] {
+    Edge[] {
 
 
 
-        const edges:any[]=[];
+        const edges:
+
+        Edge[] = [];
+
+
 
 
 
@@ -183,19 +190,27 @@ export class Face {
 
             for(
 
-                const he of
+                const edge of
 
-                wire.getHalfEdges()
+                wire.getEdges()
 
             ){
 
-                if(he.edge)
 
-                {
+
+                if(
+
+                    !edges.includes(
+
+                        edge
+
+                    )
+
+                ){
 
                     edges.push(
 
-                        he.edge
+                        edge
 
                     );
 
@@ -207,17 +222,61 @@ export class Face {
 
 
 
-        return [
 
-            ...new Set(
 
-                edges
-
-            )
-
-        ];
+        return edges;
 
     }
+
+
+
+
+
+
+
+
+
+    getHalfEdges():
+
+    HalfEdge[] {
+
+
+
+        const result:
+
+        HalfEdge[] = [];
+
+
+
+
+
+        for(
+
+            const wire of
+
+            this.getWires()
+
+        ){
+
+
+
+            result.push(
+
+                ...wire.getHalfEdges()
+
+            );
+
+        }
+
+
+
+
+
+        return result;
+
+    }
+
+
 
 
 
@@ -231,65 +290,37 @@ export class Face {
 
         v:number
 
-    ):
-
-    Vector3 {
-
-
-
-        let normal =
-
-        this.surface
-
-        .derivativeU(
-
-            u,
-
-            v
-
-        )
-
-        .cross(
-
-            this.surface
-
-            .derivativeV(
-
-                u,
-
-                v
-
-            )
-
-        )
-
-        .normalize();
+    ){
 
 
 
         if(
 
-            this.orientation ===
-
-            FaceOrientation.REVERSED
+            !this.surface
 
         ){
 
-            normal =
-
-            normal.multiply(
-
-                -1
-
-            );
+            return null;
 
         }
 
 
 
-        return normal;
+
+
+        return this.surface
+
+        .normal(
+
+            u,
+
+            v
+
+        );
 
     }
+
+
 
 
 
@@ -303,138 +334,27 @@ export class Face {
 
 
 
-        const samples = 20;
+        if(
 
-
-
-        let total = 0;
-
-
-
-        for(
-
-            let i=0;
-
-            i<samples;
-
-            i++
+            !this.surface
 
         ){
 
-
-
-            for(
-
-                let j=0;
-
-                j<samples;
-
-                j++
-
-            ){
-
-
-
-                const u0=i/samples;
-
-                const v0=j/samples;
-
-
-
-                const du=
-
-                1/samples;
-
-
-
-                const dv=
-
-                1/samples;
-
-
-
-                const a=
-
-                this.surface
-
-                .derivativeU(
-
-                    u0,
-
-                    v0
-
-                );
-
-
-                const b=
-
-                this.surface
-
-                .derivativeV(
-
-                    u0,
-
-                    v0
-
-                );
-
-
-
-                total +=
-
-                a.cross(b)
-
-                .length()
-
-                *
-
-                du
-
-                *
-
-                dv;
-
-            }
+            return 0;
 
         }
 
 
 
-        return total;
+
+
+        return this.surface
+
+        .area();
 
     }
 
 
-
-
-
-
-
-    containsPoint(
-
-        point:Point
-
-    ):
-
-    boolean {
-
-
-
-        const box =
-
-        this.surface
-
-        .boundingBox();
-
-
-
-        return box.contains(
-
-            point
-
-        );
-
-    }
 
 
 
@@ -448,35 +368,51 @@ export class Face {
 
 
 
-        const reversed =
+        const face =
 
         new Face(
 
             this.surface,
 
-            this.outerWire.reverse()
+            this.outerWire.clone()
 
         );
 
 
 
-        reversed.orientation =
 
-        this.orientation ===
 
-        FaceOrientation.FORWARD
+        for(
 
-        ?
+            const wire of
 
-        FaceOrientation.REVERSED
+            this.innerWires
 
-        :
-
-        FaceOrientation.FORWARD;
+        ){
 
 
 
-        return reversed;
+            face.addInnerWire(
+
+                wire.clone()
+
+            );
+
+        }
+
+
+
+
+
+        face.reversed =
+
+        !this.reversed;
+
+
+
+
+
+        return face;
 
     }
 
@@ -486,33 +422,85 @@ export class Face {
 
 
 
-    transform(
 
-        transform:Transform
+
+    containsEdge(
+
+        edge:Edge
 
     ):
+
+    boolean {
+
+
+
+        return this.getEdges()
+
+        .includes(
+
+            edge
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    clone():
 
     Face {
 
 
 
-        return new Face(
+        const face =
 
-            this.surface.transform(
+        new Face(
 
-                transform
+            this.surface,
 
-            ),
-
-            this.outerWire.transform(
-
-                transform
-
-            )
+            this.outerWire.clone()
 
         );
 
+
+
+
+
+        for(
+
+            const wire of
+
+            this.innerWires
+
+        ){
+
+
+
+            face.addInnerWire(
+
+                wire.clone()
+
+            );
+
+        }
+
+
+
+
+
+        return face;
+
     }
+
+
+
+
 
 
 
