@@ -18,6 +18,10 @@ import { Vertex }
 from "../core/Vertex";
 
 
+import { Wire }
+from "../core/Wire";
+
+
 
 
 
@@ -145,6 +149,80 @@ export class TopologyExplorer {
 
 
 
+    getWires():
+
+    Wire[] {
+
+
+
+        const wires:
+
+        Wire[] = [];
+
+
+
+
+
+        for(
+
+            const face of
+
+            this.getFaces()
+
+        ){
+
+
+
+            for(
+
+                const wire of
+
+                face.getWires()
+
+            ){
+
+
+
+                if(
+
+                    !wires.includes(
+
+                        wire
+
+                    )
+
+                ){
+
+
+
+                    wires.push(
+
+                        wire
+
+                    );
+
+                }
+
+            }
+
+        }
+
+
+
+
+
+        return wires;
+
+    }
+
+
+
+
+
+
+
+
+
     getEdgesOfFace(
 
         face:Face
@@ -207,6 +285,8 @@ export class TopologyExplorer {
 
             ){
 
+
+
                 vertices.push(
 
                     edge.start
@@ -228,6 +308,8 @@ export class TopologyExplorer {
                 )
 
             ){
+
+
 
                 vertices.push(
 
@@ -345,6 +427,74 @@ export class TopologyExplorer {
 
 
 
+    getFacesOfVertex(
+
+        vertex:Vertex
+
+    ):
+
+    Face[] {
+
+
+
+        const result:
+
+        Face[] = [];
+
+
+
+
+
+        for(
+
+            const face of
+
+            this.getFaces()
+
+        ){
+
+
+
+            if(
+
+                face.getVertices()
+
+                .includes(
+
+                    vertex
+
+                )
+
+            ){
+
+
+
+                result.push(
+
+                    face
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return result;
+
+    }
+
+
+
+
+
+
+
+
+
     getConnectedFaces(
 
         face:Face
@@ -373,23 +523,15 @@ export class TopologyExplorer {
 
 
 
-            const faces =
-
-            this.getFacesOfEdge(
-
-                edge
-
-            );
-
-
-
-
-
             for(
 
                 const neighbour of
 
-                faces
+                this.getFacesOfEdge(
+
+                    edge
+
+                )
 
             ){
 
@@ -439,6 +581,102 @@ export class TopologyExplorer {
 
 
 
+    getAdjacentEdges(
+
+        edge:Edge
+
+    ):
+
+    Edge[] {
+
+
+
+        const result:
+
+        Edge[] = [];
+
+
+
+
+
+        const vertices =
+
+        [
+
+            edge.start,
+
+            edge.end
+
+        ];
+
+
+
+
+
+        for(
+
+            const vertex of
+
+            vertices
+
+        ){
+
+
+
+            for(
+
+                const other of
+
+                vertex.getEdges()
+
+            ){
+
+
+
+                if(
+
+                    other !== edge
+
+                    &&
+
+                    !result.includes(
+
+                        other
+
+                    )
+
+                ){
+
+
+
+                    result.push(
+
+                        other
+
+                    );
+
+                }
+
+            }
+
+        }
+
+
+
+
+
+        return result;
+
+    }
+
+
+
+
+
+
+
+
+
     findFaceByEdge(
 
         edge:Edge
@@ -461,7 +699,7 @@ export class TopologyExplorer {
 
 
 
-        return faces.length > 0
+        return faces.length
 
         ?
 
@@ -481,9 +719,37 @@ export class TopologyExplorer {
 
 
 
-    findVertex(
+    findFacesByEdge(
 
-        vertex:Vertex
+        edge:Edge
+
+    ):
+
+    Face[] {
+
+
+
+        return this.getFacesOfEdge(
+
+            edge
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    findVertexByPosition(
+
+        vertex:Vertex,
+
+        tolerance:number = 1e-6
 
     ):
 
@@ -491,21 +757,41 @@ export class TopologyExplorer {
 
 
 
-        return this.getVertices()
+        for(
 
-        .includes(
+            const v of
 
-            vertex
+            this.getVertices()
 
-        )
+        ){
 
-        ?
 
-        vertex
 
-        :
+            if(
 
-        null;
+                v.equals(
+
+                    vertex,
+
+                    tolerance
+
+                )
+
+            ){
+
+
+
+                return v;
+
+            }
+
+        }
+
+
+
+
+
+        return null;
 
     }
 
@@ -608,6 +894,34 @@ export class TopologyExplorer {
             if(
 
                 faces.length !== 2
+
+            ){
+
+
+
+                return false;
+
+            }
+
+        }
+
+
+
+
+
+        for(
+
+            const shell of
+
+            this.getShells()
+
+        ){
+
+
+
+            if(
+
+                !shell.isClosed()
 
             ){
 
