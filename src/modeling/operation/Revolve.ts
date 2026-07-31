@@ -33,6 +33,8 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface RevolveOptions {
 
 
@@ -40,6 +42,12 @@ export interface RevolveOptions {
 
 
     makeSolid?:boolean;
+
+
+    capStart?:boolean;
+
+
+    capEnd?:boolean;
 
 
 }
@@ -51,6 +59,16 @@ export interface RevolveOptions {
 
 
 export class Revolve {
+
+
+
+    private normalizedAxis:
+
+    Vector3;
+
+
+
+
 
 
 
@@ -75,7 +93,59 @@ export class Revolve {
 
         RevolveOptions = {}
 
-    ){}
+    ){
+
+
+
+        if(
+
+            angle === 0
+
+        ){
+
+            throw new Error(
+
+                "Revolve angle cannot be zero"
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            !profile.isClosed()
+
+        ){
+
+            throw new Error(
+
+                "Revolve profile must be closed"
+
+            );
+
+        }
+
+
+
+
+
+        this.normalizedAxis =
+
+        this.normalize(
+
+            axisDirection
+
+        );
+
+    }
+
+
+
+
 
 
 
@@ -93,11 +163,19 @@ export class Revolve {
 
 
 
+
+
         const segments =
 
-        this.options.segments ??
+        Math.max(
 
-        32;
+            this.options.segments ?? 32,
+
+            3
+
+        );
+
+
 
 
 
@@ -135,6 +213,8 @@ export class Revolve {
 
 
 
+
+
             sections.push(
 
                 this.rotateWire(
@@ -153,13 +233,79 @@ export class Revolve {
 
 
 
-        const faces =
+        const faces:
 
-        this.createFaces(
+        Face[] = [];
 
-            sections
+
+
+
+
+        faces.push(
+
+            ...this.createFaces(
+
+                sections
+
+            )
 
         );
+
+
+
+
+
+        if(
+
+            this.options.capStart !== false
+
+        ){
+
+
+
+            faces.push(
+
+                new Face(
+
+                    null as any,
+
+                    sections[0]
+
+                )
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            this.options.capEnd !== false
+
+        ){
+
+
+
+            faces.push(
+
+                new Face(
+
+                    null as any,
+
+                    sections[
+
+                        sections.length-1
+
+                    ]
+
+                )
+
+            );
+
+        }
 
 
 
@@ -172,6 +318,8 @@ export class Revolve {
             faces
 
         );
+
+
 
 
 
@@ -189,6 +337,8 @@ export class Revolve {
 
 
 
+
+
     private rotatePoint(
 
         point:Point,
@@ -199,16 +349,6 @@ export class Revolve {
     ):
 
     Point {
-
-
-
-        const axis =
-
-        this.normalize(
-
-            this.axisDirection
-
-        );
 
 
 
@@ -231,6 +371,14 @@ export class Revolve {
         point.z -
 
         this.axisPoint.z;
+
+
+
+
+
+        const axis =
+
+        this.normalizedAxis;
 
 
 
@@ -293,69 +441,54 @@ export class Revolve {
 
 
 
-        const x =
-
-        px * cos +
-
-        crossX * sin +
-
-        axis.x *
-
-        dot *
-
-        (1 - cos);
-
-
-
-
-
-        const y =
-
-        py * cos +
-
-        crossY * sin +
-
-        axis.y *
-
-        dot *
-
-        (1 - cos);
-
-
-
-
-
-        const z =
-
-        pz * cos +
-
-        crossZ * sin +
-
-        axis.z *
-
-        dot *
-
-        (1 - cos);
-
-
-
-
-
         return new Point(
 
 
-            this.axisPoint.x + x,
+            this.axisPoint.x +
+
+            px*cos +
+
+            crossX*sin +
+
+            axis.x *
+
+            dot *
+
+            (1-cos),
 
 
-            this.axisPoint.y + y,
+
+            this.axisPoint.y +
+
+            py*cos +
+
+            crossY*sin +
+
+            axis.y *
+
+            dot *
+
+            (1-cos),
 
 
-            this.axisPoint.z + z
 
+            this.axisPoint.z +
+
+            pz*cos +
+
+            crossZ*sin +
+
+            axis.z *
+
+            dot *
+
+            (1-cos)
 
         );
 
     }
+
+
 
 
 
@@ -410,6 +543,8 @@ export class Revolve {
 
 
 
+
+
             const end =
 
             new Vertex(
@@ -423,6 +558,8 @@ export class Revolve {
                 )
 
             );
+
+
 
 
 
@@ -454,6 +591,8 @@ export class Revolve {
 
 
 
+
+
     private createFaces(
 
         sections:Wire[]
@@ -474,9 +613,9 @@ export class Revolve {
 
         for(
 
-            let i = 0;
+            let i=0;
 
-            i < sections.length - 1;
+            i<sections.length-1;
 
             i++
 
@@ -489,17 +628,17 @@ export class Revolve {
             sections[i];
 
 
-
             const next =
 
-            sections[i + 1];
+            sections[i+1];
+
+
 
 
 
             const currentEdges =
 
             current.getEdges();
-
 
 
             const nextEdges =
@@ -526,9 +665,9 @@ export class Revolve {
 
             for(
 
-                let j = 0;
+                let j=0;
 
-                j < count;
+                j<count;
 
                 j++
 
@@ -541,7 +680,6 @@ export class Revolve {
                 currentEdges[j];
 
 
-
                 const b =
 
                 nextEdges[j];
@@ -550,13 +688,15 @@ export class Revolve {
 
 
 
-                const faceWire =
+                const wire =
 
                 new Wire();
 
 
 
-                faceWire.addEdge(
+
+
+                wire.addEdge(
 
                     a
 
@@ -564,7 +704,9 @@ export class Revolve {
 
 
 
-                faceWire.addEdge(
+
+
+                wire.addEdge(
 
                     new Edge(
 
@@ -578,7 +720,9 @@ export class Revolve {
 
 
 
-                faceWire.addEdge(
+
+
+                wire.addEdge(
 
                     new Edge(
 
@@ -592,7 +736,9 @@ export class Revolve {
 
 
 
-                faceWire.addEdge(
+
+
+                wire.addEdge(
 
                     new Edge(
 
@@ -614,7 +760,7 @@ export class Revolve {
 
                         null as any,
 
-                        faceWire
+                        wire
 
                     )
 
@@ -638,6 +784,8 @@ export class Revolve {
 
 
 
+
+
     private normalize(
 
         vector:Vector3
@@ -652,11 +800,17 @@ export class Revolve {
 
         Math.sqrt(
 
-            vector.x * vector.x +
+            vector.x *
 
-            vector.y * vector.y +
+            vector.x +
 
-            vector.z * vector.z
+            vector.y *
+
+            vector.y +
+
+            vector.z *
+
+            vector.z
 
         );
 
@@ -693,8 +847,61 @@ export class Revolve {
 
             vector.z / length
 
-
         );
+
+    }
+
+
+
+
+
+
+
+
+
+    getAxis():
+
+    Vector3 {
+
+
+
+        return this.normalizedAxis;
+
+    }
+
+
+
+
+
+
+
+
+
+    getAngle():
+
+    number {
+
+
+
+        return this.angle;
+
+    }
+
+
+
+
+
+
+
+
+
+    getSegments():
+
+    number {
+
+
+
+        return this.options.segments ?? 32;
 
     }
 
