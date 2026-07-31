@@ -6,8 +6,21 @@ import { FeatureTree }
 from "./FeatureTree";
 
 
-import { Solid }
-from "../../topology/core/Solid";
+
+export interface FeatureManagerResult {
+
+
+    success:boolean;
+
+
+    message?:string;
+
+
+}
+
+
+
+
 
 
 
@@ -15,33 +28,29 @@ export class FeatureManager {
 
 
 
-    constructor(
+    public tree:
 
-        public tree:
-
-        FeatureTree
-
-    ){}
+    FeatureTree;
 
 
 
+    private activeFeature:
 
-
-    add(
-
-        feature:Feature
-
-    ):
-
-    void {
+    Feature|null = null;
 
 
 
-        this.tree.addFeature(
 
-            feature
 
-        );
+
+
+    constructor(){
+
+
+
+        this.tree =
+
+        new FeatureTree();
 
     }
 
@@ -51,75 +60,88 @@ export class FeatureManager {
 
 
 
-    remove(
+    addFeature(
+
+        feature:
+
+        Feature
+
+    ):
+
+    FeatureManagerResult {
+
+
+
+        try {
+
+
+
+            this.tree.add(
+
+                feature
+
+            );
+
+
+
+            this.activeFeature =
+
+            feature;
+
+
+
+            return {
+
+
+                success:true
+
+            };
+
+
+
+        }
+
+        catch(error){
+
+
+
+            return {
+
+
+                success:false,
+
+
+                message:
+
+                String(error)
+
+            };
+
+        }
+
+    }
+
+
+
+
+
+
+
+    removeFeature(
 
         id:string
 
     ):
 
-    void {
-
-
-
-        this.tree.removeFeature(
-
-            id
-
-        );
-
-    }
-
-
-
-
-
-
-
-    activate(
-
-        id:string
-
-    ):
-
-    void {
-
-
-
-        this.tree.setActiveFeature(
-
-            id
-
-        );
-
-    }
-
-
-
-
-
-
-
-    updateParameter(
-
-        featureId:string,
-
-
-        parameterName:string,
-
-
-        value:any
-
-    ):
-
-    void {
+    FeatureManagerResult {
 
 
 
         const feature =
 
-        this.tree.getFeature(
+        this.tree.find(
 
-            featureId
+            id
 
         );
 
@@ -131,23 +153,116 @@ export class FeatureManager {
 
         ){
 
-            throw new Error(
+
+
+            return {
+
+
+                success:false,
+
+
+                message:
 
                 "Feature not found"
 
-            );
+            };
 
         }
 
 
 
-        feature.setParameter(
+        this.tree.remove(
 
-            parameterName,
-
-            value
+            id
 
         );
+
+
+
+        if(
+
+            this.activeFeature?.id === id
+
+        ){
+
+            this.activeFeature =
+
+            null;
+
+        }
+
+
+
+        return {
+
+
+            success:true
+
+        };
+
+    }
+
+
+
+
+
+
+
+    activateFeature(
+
+        id:string
+
+    ):
+
+    boolean {
+
+
+
+        const feature =
+
+        this.tree.find(
+
+            id
+
+        );
+
+
+
+        if(
+
+            !feature
+
+        ){
+
+            return false;
+
+        }
+
+
+
+        this.activeFeature =
+
+        feature;
+
+
+
+        return true;
+
+    }
+
+
+
+
+
+
+
+    getActiveFeature():
+
+    Feature|null {
+
+
+
+        return this.activeFeature;
 
     }
 
@@ -159,11 +274,29 @@ export class FeatureManager {
 
     rebuild():
 
-    Solid | null {
+    void {
 
 
 
-        return this.tree.rebuild();
+        const ordered =
+
+        this.tree.getOrdered();
+
+
+
+        for(
+
+            const feature of
+
+            ordered
+
+        ){
+
+
+
+            feature.evaluate();
+
+        }
 
     }
 
@@ -179,124 +312,13 @@ export class FeatureManager {
 
     ):
 
-    Solid | null {
-
-
-
-        return this.tree.rollback(
-
-            featureId
-
-        );
-
-    }
-
-
-
-
-
-
-
-    suppress(
-
-        featureId:string
-
-    ):
-
     void {
 
 
 
         const feature =
 
-        this.tree.getFeature(
-
-            featureId
-
-        );
-
-
-
-        if(
-
-            feature
-
-        ){
-
-
-
-            feature.suppressed =
-
-            true;
-
-        }
-
-    }
-
-
-
-
-
-
-
-    unsuppress(
-
-        featureId:string
-
-    ):
-
-    void {
-
-
-
-        const feature =
-
-        this.tree.getFeature(
-
-            featureId
-
-        );
-
-
-
-        if(
-
-            feature
-
-        ){
-
-
-
-            feature.suppressed =
-
-            false;
-
-        }
-
-    }
-
-
-
-
-
-
-
-    moveFeature(
-
-        featureId:string,
-
-
-        newIndex:number
-
-    ):
-
-    void {
-
-
-
-        const feature =
-
-        this.tree.getFeature(
+        this.tree.find(
 
             featureId
 
@@ -316,19 +338,9 @@ export class FeatureManager {
 
 
 
-        this.tree.removeFeature(
+        this.tree.setEnd(
 
-            featureId
-
-        );
-
-
-
-        this.tree.insertFeature(
-
-            feature,
-
-            newIndex
+            feature
 
         );
 
@@ -340,41 +352,52 @@ export class FeatureManager {
 
 
 
-    validate():
+    update():
 
-    boolean {
-
-
-
-        let valid =
-
-        true;
+    void {
 
 
 
-        this.tree.traverse(
+        this.rebuild();
 
-            feature => {
-
-
-
-                if(
-
-                    !feature
-
-                ){
-
-                    valid = false;
-
-                }
-
-            }
-
-        );
+    }
 
 
 
-        return valid;
+
+
+
+
+    getFeatures():
+
+    Feature[] {
+
+
+
+        return this.tree
+
+        .getOrdered();
+
+    }
+
+
+
+
+
+
+
+    clear():
+
+    void {
+
+
+
+        this.tree.clear();
+
+
+        this.activeFeature =
+
+        null;
 
     }
 
