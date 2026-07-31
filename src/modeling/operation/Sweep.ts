@@ -1,38 +1,53 @@
-import { Feature }
-from "../feature/Feature";
-
-
-import { SketchProfile }
-from "../sketch/SketchProfile";
-
-
 import { Curve }
 from "../../geometry/curve/Curve";
+
+
+import { Point }
+from "../../geometry/core/Point";
 
 
 import { Vector3 }
 from "../../geometry/core/Vector3";
 
 
+import { Wire }
+from "../../topology/core/Wire";
+
+
+import { Vertex }
+from "../../topology/core/Vertex";
+
+
+import { Edge }
+from "../../topology/core/Edge";
+
+
+import { Face }
+from "../../topology/core/Face";
+
+
 import { Solid }
 from "../../topology/core/Solid";
 
 
+import { BRepBuilder }
+from "../../topology/brep/BRepBuilder";
 
 
 
 
 
-export enum SweepOrientation {
+export interface SweepOptions {
 
 
-    Fixed = "Fixed",
+    sections?:number;
 
 
-    FollowPath = "FollowPath",
+    makeSolid?:boolean;
 
 
-    Corrected = "Corrected"
+    scale?:number;
+
 
 }
 
@@ -42,92 +57,58 @@ export enum SweepOrientation {
 
 
 
-export class Sweep
-
-extends Feature {
+export class Sweep {
 
 
 
     constructor(
 
 
-        id:string,
+        public profile:Wire,
 
 
-        public profile:
-
-        SketchProfile,
+        public path:Curve,
 
 
-        public path:
+        public options:
 
-        Curve,
+        SweepOptions = {}
 
-
-        public orientation:
-
-        SweepOrientation =
-
-        SweepOrientation.FollowPath,
-
-
-        public twist:number = 0
-
-
-
-    ){
-
-
-
-        super(id);
-
-    }
+    ){}
 
 
 
 
 
-
-
-    evaluate():
-
-    void {
-
-
-
-        this.result =
-
-        this.createSolid();
-
-    }
-
-
-
-
-
-
-
-    createSolid():
+    build():
 
     Solid {
 
 
 
-        const solid =
+        const builder =
 
-        new Solid();
+        new BRepBuilder();
 
 
-
-        const samples =
-
-        this.samplePath();
 
 
 
         const sections =
 
-        [];
+        this.options.sections ??
+
+        32;
+
+
+
+
+
+        const profileSections:
+
+        Wire[] = [];
+
+
 
 
 
@@ -135,7 +116,7 @@ extends Feature {
 
             let i = 0;
 
-            i < samples.length;
+            i <= sections;
 
             i++
 
@@ -143,111 +124,268 @@ extends Feature {
 
 
 
-            const section =
+            const t =
 
-            this.transformProfile(
+            i /
 
-                samples[i],
+            sections;
 
-                i /
 
-                samples.length
+
+
+
+            const position =
+
+            this.path.evaluate(
+
+                t
+
+            );
+
+
+
+
+
+            const tangent =
+
+            this.normalize(
+
+                this.path.tangent(
+
+                    t
+
+                )
 
             );
 
 
 
-            sections.push(
-
-                section
-
-            );
-
-        }
 
 
+            profileSections.push(
 
-        for(
+                this.placeProfile(
 
-            const section of
+                    this.profile,
 
-            sections
+                    position,
 
-        ){
+                    tangent,
 
+                    this.getScale(
 
+                        t
 
-            solid.addFace(
-
-                section
-
-            );
-
-        }
-
-
-
-        this.createSideFaces(
-
-            solid,
-
-            sections
-
-        );
-
-
-
-        return solid;
-
-    }
-
-
-
-
-
-
-
-    private samplePath():
-
-    any[] {
-
-
-
-        const result =
-
-        [];
-
-
-
-        const count =
-
-        50;
-
-
-
-        for(
-
-            let i = 0;
-
-            i <= count;
-
-            i++
-
-        ){
-
-
-
-            result.push(
-
-                this.path.evaluate(
-
-                    i/count
+                    )
 
                 )
 
             );
 
         }
+
+
+
+
+
+
+
+        const faces =
+
+        this.createFaces(
+
+            profileSections
+
+        );
+
+
+
+
+
+        const shell =
+
+        builder.createShell(
+
+            faces
+
+        );
+
+
+
+
+
+        return builder.createSolid(
+
+            shell
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    private getScale(
+
+        t:number
+
+    ):
+
+    number {
+
+
+
+        if(
+
+            this.options.scale === undefined
+
+        ){
+
+            return 1;
+
+        }
+
+
+
+        return (
+
+            1 +
+
+            (
+
+                this.options.scale -
+
+                1
+
+            )
+
+            *
+
+            t
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    private placeProfile(
+
+
+        profile:Wire,
+
+
+        position:Point,
+
+
+        tangent:Vector3,
+
+
+        scale:number
+
+
+    ):
+
+    Wire {
+
+
+
+        const result =
+
+        new Wire();
+
+
+
+
+
+        const normal =
+
+        this.createNormal(
+
+            tangent
+
+        );
+
+
+
+
+
+        for(
+
+            const edge of
+
+            profile.getEdges()
+
+        ){
+
+
+
+            const start =
+
+            this.transformPoint(
+
+                edge.start.position,
+
+                position,
+
+                normal,
+
+                tangent,
+
+                scale
+
+            );
+
+
+
+
+
+            const end =
+
+            this.transformPoint(
+
+                edge.end.position,
+
+                position,
+
+                normal,
+
+                tangent,
+
+                scale
+
+            );
+
+
+
+
+
+            result.addEdge(
+
+                new Edge(
+
+                    new Vertex(start),
+
+                    new Vertex(end)
+
+                )
+
+            );
+
+        }
+
+
 
 
 
@@ -261,35 +399,82 @@ extends Feature {
 
 
 
-    private transformProfile(
-
-        position:any,
 
 
-        t:number
+    private transformPoint(
+
+        point:Point,
+
+
+        origin:Point,
+
+
+        normal:Vector3,
+
+
+        tangent:Vector3,
+
+
+        scale:number
+
 
     ):
 
-    any {
+    Point {
 
 
 
-        return {
+        const x =
+
+        point.x *
+
+        scale;
 
 
-            position,
+
+        const y =
+
+        point.y *
+
+        scale;
 
 
-            profile:
 
-            this.profile,
+        const z =
+
+        point.z *
+
+        scale;
 
 
-            twist:
 
-            this.twist*t
 
-        };
+
+        return new Point(
+
+
+            origin.x +
+
+            normal.x * x +
+
+            tangent.x * z,
+
+
+            origin.y +
+
+            normal.y * x +
+
+            tangent.y * z,
+
+
+            origin.z +
+
+            normal.z * y +
+
+            tangent.z * y
+
+
+        );
 
     }
 
@@ -299,24 +484,187 @@ extends Feature {
 
 
 
-    private createSideFaces(
-
-        solid:Solid,
 
 
-        sections:any[]
+    private createFaces(
+
+        sections:Wire[]
 
     ):
 
-    void {
+    Face[] {
 
 
 
-        // Gerçek BRep kernel:
+        const faces:
 
-        // section edge bağlantıları
+        Face[] = [];
 
-        // oluşturulur.
+
+
+
+
+        for(
+
+            let i = 0;
+
+            i < sections.length - 1;
+
+            i++
+
+        ){
+
+
+
+            const current =
+
+            sections[i];
+
+
+
+            const next =
+
+            sections[i + 1];
+
+
+
+
+
+            const currentEdges =
+
+            current.getEdges();
+
+
+
+            const nextEdges =
+
+            next.getEdges();
+
+
+
+
+
+            const count =
+
+            Math.min(
+
+                currentEdges.length,
+
+                nextEdges.length
+
+            );
+
+
+
+
+
+            for(
+
+                let j = 0;
+
+                j < count;
+
+                j++
+
+            ){
+
+
+
+                const a =
+
+                currentEdges[j];
+
+
+
+                const b =
+
+                nextEdges[j];
+
+
+
+
+
+                const wire =
+
+                new Wire();
+
+
+
+
+
+                wire.addEdge(
+
+                    a
+
+                );
+
+
+
+
+
+                wire.addEdge(
+
+                    new Edge(
+
+                        a.end,
+
+                        b.end
+
+                    )
+
+                );
+
+
+
+
+
+                wire.addEdge(
+
+                    b
+
+                );
+
+
+
+
+
+                wire.addEdge(
+
+                    new Edge(
+
+                        b.start,
+
+                        a.start
+
+                    )
+
+                );
+
+
+
+
+
+                faces.push(
+
+                    new Face(
+
+                        null as any,
+
+                        wire
+
+                    )
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return faces;
 
     }
 
@@ -326,13 +674,173 @@ extends Feature {
 
 
 
-    length():
-
-    number {
 
 
+    private createNormal(
 
-        return this.path.length();
+        tangent:Vector3
+
+    ):
+
+    Vector3 {
+
+
+
+        let normal =
+
+        new Vector3(
+
+            0,
+
+            0,
+
+            1
+
+        );
+
+
+
+
+
+        if(
+
+            Math.abs(
+
+                tangent.z
+
+            ) > 0.9
+
+        ){
+
+
+
+            normal =
+
+            new Vector3(
+
+                1,
+
+                0,
+
+                0
+
+            );
+
+        }
+
+
+
+
+
+        return this.normalize(
+
+            new Vector3(
+
+
+                tangent.y *
+
+                normal.z -
+
+                tangent.z *
+
+                normal.y,
+
+
+                tangent.z *
+
+                normal.x -
+
+                tangent.x *
+
+                normal.z,
+
+
+                tangent.x *
+
+                normal.y -
+
+                tangent.y *
+
+                normal.x
+
+
+            )
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    private normalize(
+
+        vector:Vector3
+
+    ):
+
+    Vector3 {
+
+
+
+        const length =
+
+        Math.sqrt(
+
+            vector.x *
+
+            vector.x +
+
+            vector.y *
+
+            vector.y +
+
+            vector.z *
+
+            vector.z
+
+        );
+
+
+
+
+
+        if(
+
+            length === 0
+
+        ){
+
+            throw new Error(
+
+                "Zero vector"
+
+            );
+
+        }
+
+
+
+
+
+        return new Vector3(
+
+
+            vector.x / length,
+
+
+            vector.y / length,
+
+
+            vector.z / length
+
+
+        );
 
     }
 
