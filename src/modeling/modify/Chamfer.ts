@@ -65,8 +65,6 @@ export class Chamfer {
 
 
 
-
-
         if(
 
             distance <= 0
@@ -255,66 +253,6 @@ export class Chamfer {
 
 
 
-    getDistance():
-
-    number {
-
-
-
-        return this.distance;
-
-    }
-
-
-
-
-
-
-
-
-
-    getAngle():
-
-    number {
-
-
-
-        return (
-
-            this.options.angle ??
-
-            45
-
-        );
-
-    }
-
-
-
-
-
-
-
-
-
-    getEdges():
-
-    Edge[] {
-
-
-
-        return this.edges;
-
-    }
-
-
-
-
-
-
-
-
-
     private getAdjacentFaces(
 
         edge:Edge
@@ -376,6 +314,62 @@ export class Chamfer {
 
 
 
+
+
+
+
+
+    getDistance():
+
+    number {
+
+
+
+        return this.distance;
+
+    }
+
+
+
+
+
+
+
+
+
+    getAngle():
+
+    number {
+
+
+
+        return (
+
+            this.options.angle ??
+
+            Math.PI / 4
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    getEdges():
+
+    Edge[] {
+
+
+
+        return this.edges;
+
+    }
 
 
 
