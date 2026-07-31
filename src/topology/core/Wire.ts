@@ -29,9 +29,13 @@ export class Wire {
 
 
 
-    constructor(
+    constructor(){}
 
-    ){}
+
+
+
+
+
 
 
 
@@ -56,8 +60,6 @@ export class Wire {
             edge.end
 
         );
-
-
 
 
 
@@ -87,9 +89,15 @@ export class Wire {
 
 
 
-        const count =
+        const last =
 
-        this.halfEdges.length;
+        this.halfEdges
+
+        [
+
+            this.halfEdges.length - 1
+
+        ];
 
 
 
@@ -97,21 +105,13 @@ export class Wire {
 
         if(
 
-            count > 0
+            last
 
         ){
 
 
 
-            const previous =
-
-            this.halfEdges[count - 1];
-
-
-
-
-
-            previous.setNext(
+            last.setNext(
 
                 halfEdge
 
@@ -121,7 +121,7 @@ export class Wire {
 
             halfEdge.setPrevious(
 
-                previous
+                last
 
             );
 
@@ -153,7 +153,11 @@ export class Wire {
 
 
 
-        return this.halfEdges;
+        return [
+
+            ...this.halfEdges
+
+        ];
 
     }
 
@@ -175,7 +179,9 @@ export class Wire {
 
         .map(
 
-            he => he.edge
+            he =>
+
+            he.edge
 
         );
 
@@ -195,7 +201,7 @@ export class Wire {
 
 
 
-        const vertices:
+        const result:
 
         Vertex[] = [];
 
@@ -205,7 +211,7 @@ export class Wire {
 
         for(
 
-            const halfEdge of
+            const he of
 
             this.halfEdges
 
@@ -215,17 +221,19 @@ export class Wire {
 
             if(
 
-                !vertices.includes(
+                !result.includes(
 
-                    halfEdge.start
+                    he.start
 
                 )
 
             ){
 
-                vertices.push(
 
-                    halfEdge.start
+
+                result.push(
+
+                    he.start
 
                 );
 
@@ -237,7 +245,7 @@ export class Wire {
 
 
 
-        return vertices;
+        return result;
 
     }
 
@@ -333,21 +341,19 @@ export class Wire {
 
         const first =
 
-        this.halfEdges[0]
-
-        .start;
+        this.halfEdges[0];
 
 
 
         const last =
 
-        this.halfEdges[
+        this.halfEdges
+
+        [
 
             this.halfEdges.length - 1
 
-        ]
-
-        .end;
+        ];
 
 
 
@@ -355,9 +361,103 @@ export class Wire {
 
         return (
 
-            first === last
+            last.end ===
+
+            first.start
+
+            &&
+
+            last.next ===
+
+            first
 
         );
+
+    }
+
+
+
+
+
+
+
+
+
+    isValid():
+
+    boolean {
+
+
+
+        if(
+
+            this.halfEdges.length === 0
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+        for(
+
+            let i=0;
+
+            i<this.halfEdges.length;
+
+            i++
+
+        ){
+
+
+
+            const current =
+
+            this.halfEdges[i];
+
+
+
+            const next =
+
+            this.halfEdges
+
+            [
+
+                i + 1
+
+            ];
+
+
+
+
+
+            if(
+
+                next &&
+
+                current.end !==
+
+                next.start
+
+            ){
+
+
+
+                return false;
+
+            }
+
+        }
+
+
+
+
+
+        return true;
 
     }
 
@@ -375,35 +475,25 @@ export class Wire {
 
 
 
-        let total =
+        return this.getEdges()
 
-        0;
+        .reduce(
 
+            (
 
+                sum,
 
+                edge
 
+            ) =>
 
-        for(
+            sum +
 
-            const edge of
+            edge.getLength(),
 
-            this.getEdges()
+            0
 
-        ){
-
-
-
-            total +=
-
-            edge.getLength();
-
-        }
-
-
-
-
-
-        return total;
+        );
 
     }
 
@@ -455,6 +545,72 @@ export class Wire {
 
 
 
+        const target =
+
+        this.halfEdges
+
+        .find(
+
+            he =>
+
+            he.edge === edge
+
+        );
+
+
+
+
+
+        if(
+
+            !target
+
+        ){
+
+            return;
+
+        }
+
+
+
+
+
+        if(
+
+            target.previous
+
+        ){
+
+            target.previous.setNext(
+
+                target.next
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            target.next
+
+        ){
+
+            target.next.setPrevious(
+
+                target.previous
+
+            );
+
+        }
+
+
+
+
+
         this.halfEdges =
 
         this.halfEdges
@@ -463,7 +619,7 @@ export class Wire {
 
             he =>
 
-            he.edge !== edge
+            he !== target
 
         );
 
@@ -511,9 +667,9 @@ export class Wire {
 
         for(
 
-            const halfEdge of
+            const edge of
 
-            this.halfEdges
+            this.getEdges()
 
         ){
 
@@ -521,9 +677,23 @@ export class Wire {
 
             wire.addEdge(
 
-                halfEdge.edge.clone()
+                edge.clone()
 
             );
+
+        }
+
+
+
+
+
+        if(
+
+            this.isClosed()
+
+        ){
+
+            wire.close();
 
         }
 
@@ -534,10 +704,6 @@ export class Wire {
         return wire;
 
     }
-
-
-
-
 
 
 
