@@ -33,19 +33,29 @@ export class Solid {
 
 
 
+
+
     constructor(
 
-        shell:Shell
+        shell?:Shell
 
     ){
 
 
 
-        this.shells.push(
+        if(
 
             shell
 
-        );
+        ){
+
+            this.shells.push(
+
+                shell
+
+            );
+
+        }
 
     }
 
@@ -103,7 +113,7 @@ export class Solid {
 
     ):
 
-    void {
+    boolean {
 
 
 
@@ -121,21 +131,31 @@ export class Solid {
 
         if(
 
-            index !== -1
+            index === -1
 
         ){
 
-
-
-            this.shells.splice(
-
-                index,
-
-                1
-
-            );
+            return false;
 
         }
+
+
+
+
+
+        this.shells.splice(
+
+            index,
+
+            1
+
+        );
+
+
+
+
+
+        return true;
 
     }
 
@@ -153,7 +173,11 @@ export class Solid {
 
 
 
-        return this.shells;
+        return [
+
+            ...this.shells
+
+        ];
 
     }
 
@@ -275,9 +299,15 @@ export class Solid {
 
                 if(
 
-                    !edges.includes(
+                    !edges.some(
 
-                        edge
+                        e =>
+
+                        e.equals(
+
+                            edge
+
+                        )
 
                     )
 
@@ -407,33 +437,19 @@ export class Solid {
 
 
 
-        for(
+        return this.shells
 
-            const shell of
+        .every(
 
-            this.shells
+            shell =>
 
-        ){
+            shell.isValid()
 
+            &&
 
+            shell.isClosed()
 
-            if(
-
-                !shell.isClosed()
-
-            ){
-
-                return false;
-
-            }
-
-        }
-
-
-
-
-
-        return true;
+        );
 
     }
 
@@ -451,23 +467,143 @@ export class Solid {
 
 
 
-        /*
+        let volume =
 
-            Gerçek BRep kernel:
-
-            Signed tetrahedral volume
-
-            hesaplaması burada yapılacak.
+        0;
 
 
 
-            Şimdilik placeholder.
-
-        */
 
 
+        for(
 
-        return 0;
+            const face of
+
+            this.getFaces()
+
+        ){
+
+
+
+            const wire =
+
+            face.getOuterWire();
+
+
+
+            const vertices =
+
+            wire.getVertices();
+
+
+
+
+
+            if(
+
+                vertices.length < 3
+
+            ){
+
+                continue;
+
+            }
+
+
+
+
+
+            const origin =
+
+            vertices[0]
+
+            .position;
+
+
+
+
+
+            for(
+
+                let i = 1;
+
+                i < vertices.length - 1;
+
+                i++
+
+            ){
+
+
+
+                const a =
+
+                vertices[i]
+
+                .position;
+
+
+
+                const b =
+
+                vertices[i+1]
+
+                .position;
+
+
+
+
+
+                volume +=
+
+                (
+
+                    origin.x * (
+
+                        a.y*b.z -
+
+                        a.z*b.y
+
+                    )
+
+                    -
+
+                    origin.y * (
+
+                        a.x*b.z -
+
+                        a.z*b.x
+
+                    )
+
+                    +
+
+                    origin.z * (
+
+                        a.x*b.y -
+
+                        a.y*b.x
+
+                    )
+
+                )
+
+                /
+
+                6;
+
+            }
+
+        }
+
+
+
+
+
+        return Math.abs(
+
+            volume
+
+        );
 
     }
 
@@ -565,11 +701,61 @@ export class Solid {
 
         return this.getEdges()
 
-        .includes(
+        .some(
 
-            edge
+            e =>
+
+            e.equals(
+
+                edge
+
+            )
 
         );
+
+    }
+
+
+
+
+
+
+
+
+
+    containsShell(
+
+        shell:Shell
+
+    ):
+
+    boolean {
+
+
+
+        return this.shells.includes(
+
+            shell
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    shellCount():
+
+    number {
+
+
+
+        return this.shells.length;
 
     }
 
@@ -605,33 +791,39 @@ export class Solid {
 
 
 
-        const clonedShells =
+        const solid =
 
-        this.shells
-
-        .map(
-
-            shell =>
-
-            shell.clone()
-
-        );
+        new Solid();
 
 
 
 
 
-        return new Solid(
+        for(
 
-            clonedShells[0]
+            const shell of
 
-        );
+            this.shells
+
+        ){
+
+
+
+            solid.addShell(
+
+                shell.clone()
+
+            );
+
+        }
+
+
+
+
+
+        return solid;
 
     }
-
-
-
-
 
 
 
