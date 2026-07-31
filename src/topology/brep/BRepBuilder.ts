@@ -6,6 +6,10 @@ import { Edge }
 from "../core/Edge";
 
 
+import { HalfEdge }
+from "../core/HalfEdge";
+
+
 import { Wire }
 from "../core/Wire";
 
@@ -68,7 +72,10 @@ export class BRepBuilder {
         start:Vertex,
 
 
-        end:Vertex
+        end:Vertex,
+
+
+        curve:any = null
 
     ):
 
@@ -80,7 +87,9 @@ export class BRepBuilder {
 
             start,
 
-            end
+            end,
+
+            curve
 
         );
 
@@ -101,6 +110,24 @@ export class BRepBuilder {
     ):
 
     Wire {
+
+
+
+        if(
+
+            edges.length === 0
+
+        ){
+
+            throw new Error(
+
+                "Cannot create empty wire"
+
+            );
+
+        }
+
+
 
 
 
@@ -154,7 +181,9 @@ export class BRepBuilder {
 
     createFace(
 
-        surface:Surface,
+        surface:
+
+        Surface | null,
 
 
         wire:Wire
@@ -222,31 +251,31 @@ export class BRepBuilder {
 
 
 
-        const shell =
+        if(
 
-        new Shell();
-
-
-
-
-
-        for(
-
-            const face of
-
-            faces
+            faces.length === 0
 
         ){
 
+            throw new Error(
 
-
-            shell.addFace(
-
-                face
+                "Shell requires faces"
 
             );
 
         }
+
+
+
+
+
+        const shell =
+
+        new Shell(
+
+            faces
+
+        );
 
 
 
@@ -337,7 +366,13 @@ export class BRepBuilder {
 
     ):
 
-    void {
+    [
+
+        HalfEdge,
+
+        HalfEdge
+
+    ] {
 
 
 
@@ -352,6 +387,8 @@ export class BRepBuilder {
             edgeA.end
 
         );
+
+
 
 
 
@@ -376,6 +413,94 @@ export class BRepBuilder {
             halfB
 
         );
+
+
+
+
+
+        return [
+
+            halfA,
+
+            halfB
+
+        ];
+
+    }
+
+
+
+
+
+
+
+
+
+    validateWire(
+
+        wire:Wire
+
+    ):
+
+    boolean {
+
+
+
+        return (
+
+            wire.getEdges()
+
+            .length > 0
+
+            &&
+
+            wire.isClosed()
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    validateFace(
+
+        face:Face
+
+    ):
+
+    boolean {
+
+
+
+        return face.isValid();
+
+    }
+
+
+
+
+
+
+
+
+
+    validateShell(
+
+        shell:Shell
+
+    ):
+
+    boolean {
+
+
+
+        return shell.isValid();
 
     }
 
