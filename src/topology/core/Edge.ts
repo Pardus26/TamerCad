@@ -21,11 +21,15 @@ export class Edge {
 
 
 
-
-
     public reversed:
 
     boolean = false;
+
+
+
+    private valid:
+
+    boolean = true;
 
 
 
@@ -59,6 +63,7 @@ export class Edge {
             this
 
         );
+
 
 
         this.end.addEdge(
@@ -135,9 +140,7 @@ export class Edge {
 
 
 
-        return this.start
-
-        .position
+        return this.start.position
 
         .distanceTo(
 
@@ -187,6 +190,10 @@ export class Edge {
 
         curve;
 
+
+
+        this.invalidate();
+
     }
 
 
@@ -199,31 +206,37 @@ export class Edge {
 
     reverse():
 
-    Edge {
+    void {
 
 
 
-        const edge =
+        const temp =
 
-        new Edge(
-
-            this.end,
-
-            this.start,
-
-            this.curve
-
-        );
+        this.start;
 
 
 
-        edge.reversed =
+        this.start =
+
+        this.end;
+
+
+
+        this.end =
+
+        temp;
+
+
+
+        this.reversed =
 
         !this.reversed;
 
 
 
-        return edge;
+
+
+        this.invalidate();
 
     }
 
@@ -279,11 +292,11 @@ export class Edge {
 
         Math.sqrt(
 
-            dx*dx +
+            dx * dx +
 
-            dy*dy +
+            dy * dy +
 
-            dz*dz
+            dz * dz
 
         );
 
@@ -298,7 +311,6 @@ export class Edge {
         ){
 
             return {
-
 
                 x:0,
 
@@ -316,14 +328,19 @@ export class Edge {
 
         return {
 
+            x:
 
-            x:dx / length,
-
-
-            y:dy / length,
+            dx / length,
 
 
-            z:dz / length
+            y:
+
+            dy / length,
+
+
+            z:
+
+            dz / length
 
         };
 
@@ -431,45 +448,49 @@ export class Edge {
 
         return (
 
-            this.start.equals(
+            (
 
-                edge.start,
+                this.start.equals(
 
-                tolerance
+                    edge.start,
 
-            )
+                    tolerance
 
-            &&
+                )
 
-            this.end.equals(
+                &&
 
-                edge.end,
+                this.end.equals(
 
-                tolerance
+                    edge.end,
 
-            )
+                    tolerance
 
-        )
-
-        ||
-
-        (
-
-            this.start.equals(
-
-                edge.end,
-
-                tolerance
+                )
 
             )
 
-            &&
+            ||
 
-            this.end.equals(
+            (
 
-                edge.start,
+                this.start.equals(
 
-                tolerance
+                    edge.end,
+
+                    tolerance
+
+                )
+
+                &&
+
+                this.end.equals(
+
+                    edge.start,
+
+                    tolerance
+
+                )
 
             )
 
@@ -506,6 +527,76 @@ export class Edge {
 
 
 
+
+
+
+
+
+    invalidate():
+
+    void {
+
+
+
+        this.valid =
+
+        false;
+
+    }
+
+
+
+
+
+
+
+
+
+    isValid():
+
+    boolean {
+
+
+
+        return this.valid;
+
+    }
+
+
+
+
+
+
+
+
+
+    remove():
+
+    void {
+
+
+
+        this.start.removeEdge(
+
+            this
+
+        );
+
+
+
+        this.end.removeEdge(
+
+            this
+
+        );
+
+
+
+        this.valid =
+
+        false;
+
+    }
 
 
 
