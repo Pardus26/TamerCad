@@ -21,6 +21,8 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface DraftOptions {
 
 
@@ -39,6 +41,16 @@ export interface DraftOptions {
 
 
 export class Draft {
+
+
+
+    private draftDirection:
+
+    Vector3 | undefined;
+
+
+
+
 
 
 
@@ -79,7 +91,69 @@ export class Draft {
 
         }
 
+
+
+
+
+        if(
+
+            angle <= -Math.PI ||
+
+            angle >= Math.PI
+
+        ){
+
+            throw new Error(
+
+                "Draft angle must be between -PI and PI"
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            faces.length === 0
+
+        ){
+
+            throw new Error(
+
+                "Draft requires at least one face"
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            options.direction
+
+        ){
+
+
+
+            this.draftDirection =
+
+            this.normalize(
+
+                options.direction
+
+            );
+
+        }
+
     }
+
+
 
 
 
@@ -161,6 +235,10 @@ export class Draft {
 
 
 
+
+
+
+
         const shell =
 
         builder.createShell(
@@ -229,19 +307,30 @@ export class Draft {
 
         /*
 
+
             Gerçek CAD kernel aşaması:
+
 
             1- Face surface alınır
 
-            2- Neutral plane belirlenir
 
-            3- Direction vector hesaplanır
+            2- Neutral plane referansı hesaplanır
+
+
+            3- Draft direction belirlenir
+
 
             4- Angle kadar taper uygulanır
 
+
             5- Yeni surface oluşturulur
 
-            6- Face yeniden oluşturulur
+
+            6- Face trim edilir
+
+
+            7- Topology yeniden bağlanır
+
 
 
             Şimdilik topology korunur.
@@ -251,7 +340,83 @@ export class Draft {
 
 
 
+
+
         return face;
+
+    }
+
+
+
+
+
+
+
+
+
+    private normalize(
+
+        vector:Vector3
+
+    ):
+
+    Vector3 {
+
+
+
+        const length =
+
+        Math.sqrt(
+
+            vector.x * vector.x +
+
+            vector.y * vector.y +
+
+            vector.z * vector.z
+
+        );
+
+
+
+
+
+        if(
+
+            length === 0
+
+        ){
+
+            throw new Error(
+
+                "Draft direction cannot be zero"
+
+            );
+
+        }
+
+
+
+
+
+        return new Vector3(
+
+
+            vector.x /
+
+            length,
+
+
+            vector.y /
+
+            length,
+
+
+            vector.z /
+
+            length
+
+
+        );
 
     }
 
@@ -323,7 +488,29 @@ export class Draft {
 
 
 
-        return this.options.direction;
+        return this.draftDirection;
+
+    }
+
+
+
+
+
+
+
+
+
+    preserveTopology():
+
+    boolean {
+
+
+
+        return (
+
+            this.options.preserveTopology !== false
+
+        );
 
     }
 
