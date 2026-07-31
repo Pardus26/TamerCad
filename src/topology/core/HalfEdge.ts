@@ -55,11 +55,11 @@ export class HalfEdge {
 
         if(
 
-            start !== edge.start
+            !edge.containsVertex(
 
-            &&
+                start
 
-            start !== edge.end
+            )
 
         ){
 
@@ -77,17 +77,35 @@ export class HalfEdge {
 
         if(
 
-            end !== edge.start
+            !edge.containsVertex(
 
-            &&
+                end
 
-            end !== edge.end
+            )
 
         ){
 
             throw new Error(
 
                 "HalfEdge end vertex does not belong to edge"
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            start === end
+
+        ){
+
+            throw new Error(
+
+                "HalfEdge cannot have same start and end vertex"
 
             );
 
@@ -105,7 +123,7 @@ export class HalfEdge {
 
     setNext(
 
-        halfEdge:HalfEdge
+        halfEdge:HalfEdge|null
 
     ):
 
@@ -129,7 +147,7 @@ export class HalfEdge {
 
     setPrevious(
 
-        halfEdge:HalfEdge
+        halfEdge:HalfEdge|null
 
     ):
 
@@ -153,7 +171,7 @@ export class HalfEdge {
 
     setTwin(
 
-        halfEdge:HalfEdge
+        halfEdge:HalfEdge|null
 
     ):
 
@@ -167,9 +185,19 @@ export class HalfEdge {
 
 
 
-        halfEdge.twin =
+        if(
 
-        this;
+            halfEdge
+
+        ){
+
+
+
+            halfEdge.twin =
+
+            this;
+
+        }
 
     }
 
@@ -295,17 +323,17 @@ export class HalfEdge {
 
 
 
+        this.edge.reverse();
+
+
+
         return new HalfEdge(
 
-
-            this.edge.reverse(),
-
+            this.edge,
 
             this.end,
 
-
             this.start
-
 
         );
 
@@ -399,17 +427,15 @@ export class HalfEdge {
 
         new HalfEdge(
 
-
             this.edge.clone(),
-
 
             this.start.clone(),
 
-
             this.end.clone()
 
-
         );
+
+
 
 
 
@@ -420,6 +446,42 @@ export class HalfEdge {
 
 
 
+
+
+
+
+
+    hasTwin():
+
+    boolean {
+
+
+
+        return this.twin !== null;
+
+    }
+
+
+
+
+
+
+
+
+
+    hasLoop():
+
+    boolean {
+
+
+
+        return (
+
+            this.next === this
+
+        );
+
+    }
 
 
 
