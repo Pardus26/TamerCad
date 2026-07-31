@@ -7,6 +7,8 @@ from "./FeatureTree";
 
 
 
+
+
 export interface FeatureManagerResult {
 
 
@@ -62,9 +64,7 @@ export class FeatureManager {
 
     addFeature(
 
-        feature:
-
-        Feature
+        feature:Feature
 
     ):
 
@@ -97,8 +97,6 @@ export class FeatureManager {
 
             };
 
-
-
         }
 
         catch(error){
@@ -127,6 +125,8 @@ export class FeatureManager {
 
 
 
+
+
     removeFeature(
 
         id:string
@@ -144,6 +144,8 @@ export class FeatureManager {
             id
 
         );
+
+
 
 
 
@@ -171,6 +173,8 @@ export class FeatureManager {
 
 
 
+
+
         this.tree.remove(
 
             id
@@ -179,17 +183,25 @@ export class FeatureManager {
 
 
 
+
+
         if(
 
-            this.activeFeature?.id === id
+            this.activeFeature &&
+
+            this.activeFeature.id === id
 
         ){
+
+
 
             this.activeFeature =
 
             null;
 
         }
+
+
 
 
 
@@ -201,6 +213,8 @@ export class FeatureManager {
         };
 
     }
+
+
 
 
 
@@ -228,6 +242,8 @@ export class FeatureManager {
 
 
 
+
+
         if(
 
             !feature
@@ -240,6 +256,8 @@ export class FeatureManager {
 
 
 
+
+
         this.activeFeature =
 
         feature;
@@ -249,6 +267,8 @@ export class FeatureManager {
         return true;
 
     }
+
+
 
 
 
@@ -272,15 +292,19 @@ export class FeatureManager {
 
 
 
+
+
     rebuild():
 
     void {
 
 
 
-        const ordered =
+        const features =
 
         this.tree.getOrdered();
+
+
 
 
 
@@ -288,7 +312,7 @@ export class FeatureManager {
 
             const feature of
 
-            ordered
+            features
 
         ){
 
@@ -299,6 +323,26 @@ export class FeatureManager {
         }
 
     }
+
+
+
+
+
+
+
+
+
+    update():
+
+    void {
+
+
+
+        this.rebuild();
+
+    }
+
+
 
 
 
@@ -326,6 +370,8 @@ export class FeatureManager {
 
 
 
+
+
         if(
 
             !feature
@@ -338,6 +384,8 @@ export class FeatureManager {
 
 
 
+
+
         this.tree.setEnd(
 
             feature
@@ -347,20 +395,6 @@ export class FeatureManager {
     }
 
 
-
-
-
-
-
-    update():
-
-    void {
-
-
-
-        this.rebuild();
-
-    }
 
 
 
@@ -386,6 +420,30 @@ export class FeatureManager {
 
 
 
+
+
+    getFeatureCount():
+
+    number {
+
+
+
+        return this.tree
+
+        .getOrdered()
+
+        .length;
+
+    }
+
+
+
+
+
+
+
+
+
     clear():
 
     void {
@@ -395,11 +453,16 @@ export class FeatureManager {
         this.tree.clear();
 
 
+
         this.activeFeature =
 
         null;
 
     }
+
+
+
+
 
 
 
