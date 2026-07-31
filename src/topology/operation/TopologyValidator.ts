@@ -1,25 +1,25 @@
-import { Vertex }
-from "../core/Vertex";
-
-
-import { Edge }
-from "../core/Edge";
-
-
-import { Wire }
-from "../core/Wire";
+import { Solid }
+from "../core/Solid";
 
 
 import { Face }
 from "../core/Face";
 
 
+import { Edge }
+from "../core/Edge";
+
+
+import { Vertex }
+from "../core/Vertex";
+
+
 import { Shell }
 from "../core/Shell";
 
 
-import { Solid }
-from "../core/Solid";
+
+
 
 
 
@@ -44,394 +44,15 @@ export class TopologyValidator {
 
 
 
-    static validateVertex(
+    
 
-        vertex:Vertex
 
-    ):
 
-    ValidationResult {
 
 
 
-        const errors:string[]=[];
 
-
-
-        if(!vertex.position){
-
-            errors.push(
-
-                "Vertex has no position"
-
-            );
-
-        }
-
-
-
-        if(
-
-            Number.isNaN(
-
-                vertex.position.x
-
-            )
-
-        ){
-
-            errors.push(
-
-                "Invalid X coordinate"
-
-            );
-
-        }
-
-
-
-        return {
-
-            valid:
-
-            errors.length===0,
-
-
-            errors
-
-        };
-
-    }
-
-
-
-
-
-
-
-    static validateEdge(
-
-        edge:Edge
-
-    ):
-
-    ValidationResult {
-
-
-
-        const errors:string[]=[];
-
-
-
-        if(
-
-            !edge.start ||
-
-            !edge.end
-
-        ){
-
-            errors.push(
-
-                "Edge missing vertices"
-
-            );
-
-        }
-
-
-
-        if(
-
-            edge.isDegenerate()
-
-        ){
-
-            errors.push(
-
-                "Degenerate edge"
-
-            );
-
-        }
-
-
-
-        return {
-
-            valid:
-
-            errors.length===0,
-
-
-            errors
-
-        };
-
-    }
-
-
-
-
-
-
-
-    static validateWire(
-
-        wire:Wire
-
-    ):
-
-    ValidationResult {
-
-
-
-        const errors:string[]=[];
-
-
-
-        if(
-
-            !wire.isClosed()
-
-        ){
-
-            errors.push(
-
-                "Wire is open"
-
-            );
-
-        }
-
-
-
-        const halfEdges =
-
-        wire.getHalfEdges();
-
-
-
-        if(
-
-            halfEdges.length===0
-
-        ){
-
-            errors.push(
-
-                "Empty wire"
-
-            );
-
-        }
-
-
-
-        for(
-
-            const he of halfEdges
-
-        ){
-
-
-
-            if(!he.next){
-
-                errors.push(
-
-                    "Broken half edge chain"
-
-                );
-
-            }
-
-        }
-
-
-
-        return {
-
-            valid:
-
-            errors.length===0,
-
-
-            errors
-
-        };
-
-    }
-
-
-
-
-
-
-
-    static validateFace(
-
-        face:Face
-
-    ):
-
-    ValidationResult {
-
-
-
-        const errors:string[]=[];
-
-
-
-        if(
-
-            !face.surface
-
-        ){
-
-            errors.push(
-
-                "Face has no surface"
-
-            );
-
-        }
-
-
-
-        const wireResult =
-
-        this.validateWire(
-
-            face.outerWire
-
-        );
-
-
-
-        if(
-
-            !wireResult.valid
-
-        ){
-
-            errors.push(
-
-                ...wireResult.errors
-
-            );
-
-        }
-
-
-
-        return {
-
-            valid:
-
-            errors.length===0,
-
-
-            errors
-
-        };
-
-    }
-
-
-
-
-
-
-
-    static validateShell(
-
-        shell:Shell
-
-    ):
-
-    ValidationResult {
-
-
-
-        const errors:string[]=[];
-
-
-
-        for(
-
-            const face of
-
-            shell.faces
-
-        ){
-
-
-
-            const result =
-
-            this.validateFace(
-
-                face
-
-            );
-
-
-
-            if(
-
-                !result.valid
-
-            ){
-
-                errors.push(
-
-                    ...result.errors
-
-                );
-
-            }
-
-        }
-
-
-
-        if(
-
-            !shell.isClosed()
-
-        ){
-
-            errors.push(
-
-                "Shell is not closed"
-
-            );
-
-        }
-
-
-
-        return {
-
-            valid:
-
-            errors.length===0,
-
-
-            errors
-
-        };
-
-    }
-
-
-
-
-
-
-
-    static validateSolid(
+    validate(
 
         solid:Solid
 
@@ -441,109 +62,68 @@ export class TopologyValidator {
 
 
 
-        const errors:string[]=[];
+        const errors:
+
+        string[] = [];
 
 
 
-        for(
-
-            const shell of
-
-            solid.shells
-
-        ){
 
 
+        this.validateShells(
 
-            const result =
+            solid,
 
-            this.validateShell(
+            errors
 
-                shell
-
-            );
+        );
 
 
 
-            if(
 
-                !result.valid
 
-            ){
+        this.validateFaces(
 
-                errors.push(
+            solid,
 
-                    ...result.errors
+            errors
 
-                );
-
-            }
-
-        }
+        );
 
 
 
-        if(
 
-            !solid.isClosed()
 
-        ){
+        this.validateEdges(
 
-            errors.push(
+            solid,
 
-                "Solid is open"
+            errors
 
-            );
-
-        }
+        );
 
 
 
-        const V =
-
-        solid.getVertices()
-
-        .length;
 
 
+        this.validateVertices(
 
-        const E =
+            solid,
 
-        solid.getEdges()
+            errors
 
-        .length;
-
-
-
-        const F =
-
-        solid.getFaces()
-
-        .length;
+        );
 
 
-
-        if(
-
-            V-E+F!==2
-
-        ){
-
-            errors.push(
-
-                "Euler characteristic violation"
-
-            );
-
-        }
 
 
 
         return {
 
+
             valid:
 
-            errors.length===0,
+            errors.length === 0,
 
 
             errors
@@ -558,7 +138,332 @@ export class TopologyValidator {
 
 
 
-    static checkManifold(
+
+
+    private validateShells(
+
+        solid:Solid,
+
+
+        errors:string[]
+
+    ):
+
+    void {
+
+
+
+        const shells =
+
+        solid.getShells();
+
+
+
+
+
+        if(
+
+            shells.length === 0
+
+        ){
+
+
+
+            errors.push(
+
+                "Solid has no shell"
+
+            );
+
+
+            return;
+
+        }
+
+
+
+
+
+        for(
+
+            const shell of
+
+            shells
+
+        ){
+
+
+
+            if(
+
+                !shell.isClosed()
+
+            ){
+
+
+
+                errors.push(
+
+                    "Shell is not closed"
+
+                );
+
+            }
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    private validateFaces(
+
+        solid:Solid,
+
+
+        errors:string[]
+
+    ):
+
+    void {
+
+
+
+        for(
+
+            const face of
+
+            solid.getFaces()
+
+        ){
+
+
+
+            const wire =
+
+            face.getOuterWire();
+
+
+
+
+
+            if(
+
+                !wire.isClosed()
+
+            ){
+
+
+
+                errors.push(
+
+                    "Face outer wire is open"
+
+                );
+
+            }
+
+
+
+
+
+            if(
+
+                face.getEdges()
+
+                .length === 0
+
+            ){
+
+
+
+                errors.push(
+
+                    "Face contains no edges"
+
+                );
+
+            }
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    private validateEdges(
+
+        solid:Solid,
+
+
+        errors:string[]
+
+    ):
+
+    void {
+
+
+
+        const edges =
+
+        solid.getEdges();
+
+
+
+
+
+        for(
+
+            const edge of
+
+            edges
+
+        ){
+
+
+
+            if(
+
+                !edge.start
+
+                ||
+
+                !edge.end
+
+            ){
+
+
+
+                errors.push(
+
+                    "Edge has invalid vertices"
+
+                );
+
+                continue;
+
+            }
+
+
+
+
+
+            if(
+
+                edge.start ===
+
+                edge.end
+
+            ){
+
+
+
+                errors.push(
+
+                    "Edge has identical start and end vertex"
+
+                );
+
+            }
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    private validateVertices(
+
+        solid:Solid,
+
+
+        errors:string[]
+
+    ):
+
+    void {
+
+
+
+        for(
+
+            const vertex of
+
+            solid.getVertices()
+
+        ){
+
+
+
+            if(
+
+                !vertex.position
+
+            ){
+
+
+
+                errors.push(
+
+                    "Vertex has no position"
+
+                );
+
+            }
+
+
+
+
+
+            if(
+
+                vertex.getEdges()
+
+                .length === 0
+
+            ){
+
+
+
+                errors.push(
+
+                    "Dangling vertex detected"
+
+                );
+
+            }
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    isManifold(
 
         solid:Solid
 
@@ -578,25 +483,53 @@ export class TopologyValidator {
 
 
 
-            const h1 =
+            let usage =
 
-            edge.halfEdge1;
+            0;
 
 
 
-            const h2 =
 
-            edge.halfEdge2;
+
+            for(
+
+                const face of
+
+                solid.getFaces()
+
+            ){
+
+
+
+                if(
+
+                    face.containsEdge(
+
+                        edge
+
+                    )
+
+                ){
+
+
+
+                    usage++;
+
+                }
+
+            }
+
+
 
 
 
             if(
 
-                !h1 ||
-
-                !h2
+                usage !== 2
 
             ){
+
+
 
                 return false;
 
@@ -606,9 +539,105 @@ export class TopologyValidator {
 
 
 
+
+
         return true;
 
     }
+
+
+
+
+
+
+
+
+
+    hasOpenEdges(
+
+        solid:Solid
+
+    ):
+
+    boolean {
+
+
+
+        for(
+
+            const edge of
+
+            solid.getEdges()
+
+        ){
+
+
+
+            let count =
+
+            0;
+
+
+
+
+
+            for(
+
+                const face of
+
+                solid.getFaces()
+
+            ){
+
+
+
+                if(
+
+                    face.containsEdge(
+
+                        edge
+
+                    )
+
+                ){
+
+
+
+                    count++;
+
+                }
+
+            }
+
+
+
+
+
+            if(
+
+                count < 2
+
+            ){
+
+
+
+                return true;
+
+            }
+
+        }
+
+
+
+
+
+        return false;
+
+    }
+
+
+
+
 
 
 
