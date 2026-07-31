@@ -4,6 +4,9 @@ from "../core/Edge";
 import { Vertex }
 from "../core/Vertex";
 
+import { Point }
+from "../../geometry/core/Point";
+
 
 
 
@@ -86,9 +89,9 @@ export class EdgeMatcher {
 
 
 
-        const same =
+        const distance =
 
-        this.sameGeometry(
+        this.edgeDistance(
 
             edgeA,
 
@@ -102,7 +105,49 @@ export class EdgeMatcher {
 
         if(
 
-            same
+            distance >
+
+            this.tolerance
+
+        ){
+
+
+
+            return {
+
+
+                matched:false,
+
+
+                type:
+
+                EdgeMatchType.None,
+
+
+                distance
+
+
+            };
+
+        }
+
+
+
+
+
+
+
+
+
+        if(
+
+            this.sameGeometry(
+
+                edgeA,
+
+                edgeB
+
+            )
 
         ){
 
@@ -119,15 +164,7 @@ export class EdgeMatcher {
                 EdgeMatchType.SameDirection,
 
 
-                distance:
-
-                this.edgeDistance(
-
-                    edgeA,
-
-                    edgeB
-
-                )
+                distance
 
 
             };
@@ -142,23 +179,15 @@ export class EdgeMatcher {
 
 
 
-        const opposite =
-
-        this.oppositeGeometry(
-
-            edgeA,
-
-            edgeB
-
-        );
-
-
-
-
-
         if(
 
-            opposite
+            this.oppositeGeometry(
+
+                edgeA,
+
+                edgeB
+
+            )
 
         ){
 
@@ -175,15 +204,7 @@ export class EdgeMatcher {
                 EdgeMatchType.OppositeDirection,
 
 
-                distance:
-
-                this.edgeDistance(
-
-                    edgeA,
-
-                    edgeB
-
-                )
+                distance
 
 
             };
@@ -209,9 +230,7 @@ export class EdgeMatcher {
             EdgeMatchType.None,
 
 
-            distance:
-
-            Infinity
+            distance
 
 
         };
@@ -228,9 +247,9 @@ export class EdgeMatcher {
 
     equals(
 
-        edgeA:Edge,
+        a:Edge,
 
-        edgeB:Edge
+        b:Edge
 
     ):
 
@@ -240,9 +259,9 @@ export class EdgeMatcher {
 
         return this.match(
 
-            edgeA,
+            a,
 
-            edgeB
+            b
 
         )
 
@@ -260,9 +279,9 @@ export class EdgeMatcher {
 
     sameDirection(
 
-        edgeA:Edge,
+        a:Edge,
 
-        edgeB:Edge
+        b:Edge
 
     ):
 
@@ -274,13 +293,15 @@ export class EdgeMatcher {
 
             this.match(
 
-                edgeA,
+                a,
 
-                edgeB
+                b
 
             )
 
-            .type ===
+            .type
+
+            ===
 
             EdgeMatchType.SameDirection
 
@@ -298,9 +319,9 @@ export class EdgeMatcher {
 
     oppositeDirection(
 
-        edgeA:Edge,
+        a:Edge,
 
-        edgeB:Edge
+        b:Edge
 
     ):
 
@@ -312,13 +333,15 @@ export class EdgeMatcher {
 
             this.match(
 
-                edgeA,
+                a,
 
-                edgeB
+                b
 
             )
 
-            .type ===
+            .type
+
+            ===
 
             EdgeMatchType.OppositeDirection
 
@@ -336,9 +359,9 @@ export class EdgeMatcher {
 
     private sameGeometry(
 
-        edgeA:Edge,
+        a:Edge,
 
-        edgeB:Edge
+        b:Edge
 
     ):
 
@@ -350,9 +373,9 @@ export class EdgeMatcher {
 
             this.sameVertex(
 
-                edgeA.start,
+                a.start,
 
-                edgeB.start
+                b.start
 
             )
 
@@ -360,21 +383,21 @@ export class EdgeMatcher {
 
             this.sameVertex(
 
-                edgeA.end,
+                a.end,
 
-                edgeB.end
+                b.end
 
             )
 
-        )
+            &&
 
-        &&
+            this.sameCurve(
 
-        this.sameCurve(
+                a,
 
-            edgeA,
+                b
 
-            edgeB
+            )
 
         );
 
@@ -390,9 +413,9 @@ export class EdgeMatcher {
 
     private oppositeGeometry(
 
-        edgeA:Edge,
+        a:Edge,
 
-        edgeB:Edge
+        b:Edge
 
     ):
 
@@ -404,9 +427,9 @@ export class EdgeMatcher {
 
             this.sameVertex(
 
-                edgeA.start,
+                a.start,
 
-                edgeB.end
+                b.end
 
             )
 
@@ -414,21 +437,21 @@ export class EdgeMatcher {
 
             this.sameVertex(
 
-                edgeA.end,
+                a.end,
 
-                edgeB.start
+                b.start
 
             )
 
-        )
+            &&
 
-        &&
+            this.sameCurve(
 
-        this.sameCurve(
+                a,
 
-            edgeA,
+                b
 
-            edgeB
+            )
 
         );
 
@@ -454,15 +477,21 @@ export class EdgeMatcher {
 
 
 
-        return (
+        if(
 
             a === b
 
-        )
+        ){
 
-        ||
+            return true;
 
-        (
+        }
+
+
+
+
+
+        return (
 
             a.position.distanceTo(
 
@@ -498,13 +527,13 @@ export class EdgeMatcher {
 
 
 
-        const curveA =
+        const ca =
 
         a.getCurve();
 
 
 
-        const curveB =
+        const cb =
 
         b.getCurve();
 
@@ -514,11 +543,7 @@ export class EdgeMatcher {
 
         if(
 
-            !curveA
-
-            &&
-
-            !curveB
+            !ca && !cb
 
         ){
 
@@ -532,11 +557,7 @@ export class EdgeMatcher {
 
         if(
 
-            !curveA
-
-            ||
-
-            !curveB
+            !ca || !cb
 
         ){
 
@@ -548,28 +569,43 @@ export class EdgeMatcher {
 
 
 
+        if(
+
+            ca === cb
+
+        ){
+
+            return true;
+
+        }
+
+
+
+
+
         /*
 
-            Gerçek CAD kernel:
+            Curve karşılaştırma
 
-            curve type kontrolü
+            ileride:
 
-            NURBS knot
+            - LineCurve
 
-            control points
+            - CircleCurve
 
-            radius
+            - ArcCurve
 
-            parameter range
+            - NurbsCurve
 
-            tolerans analizi
-
+            karşılaştırmaları eklenebilir.
 
         */
 
 
 
-        return curveA === curveB;
+
+
+        return false;
 
     }
 
@@ -593,19 +629,15 @@ export class EdgeMatcher {
 
 
 
-        const d1 =
+        const direct =
 
         a.start.position.distanceTo(
 
             b.start.position
 
-        );
+        )
 
-
-
-
-
-        const d2 =
+        +
 
         a.end.position.distanceTo(
 
@@ -617,19 +649,15 @@ export class EdgeMatcher {
 
 
 
-        const d3 =
+        const reverse =
 
         a.start.position.distanceTo(
 
             b.end.position
 
-        );
+        )
 
-
-
-
-
-        const d4 =
+        +
 
         a.end.position.distanceTo(
 
@@ -643,9 +671,9 @@ export class EdgeMatcher {
 
         return Math.min(
 
-            d1 + d2,
+            direct,
 
-            d3 + d4
+            reverse
 
         );
 
@@ -663,7 +691,7 @@ export class EdgeMatcher {
 
         edge:Edge,
 
-        candidates:Edge[]
+        edges:Edge[]
 
     ):
 
@@ -671,17 +699,15 @@ export class EdgeMatcher {
 
 
 
-        return candidates
+        return edges.filter(
 
-        .filter(
-
-            candidate =>
+            e =>
 
             this.equals(
 
                 edge,
 
-                candidate
+                e
 
             )
 
@@ -719,29 +745,73 @@ export class EdgeMatcher {
 
 
 
-            const result =
+            if(
 
-            this.match(
+                this.oppositeDirection(
 
-                edge,
+                    edge,
 
-                candidate
+                    candidate
 
-            );
+                )
+
+            ){
+
+                return candidate;
+
+            }
+
+        }
 
 
+
+
+
+        return null;
+
+    }
+
+
+
+
+
+
+
+
+
+    findSameDirection(
+
+        edge:Edge,
+
+        candidates:Edge[]
+
+    ):
+
+    Edge|null {
+
+
+
+        for(
+
+            const candidate of
+
+            candidates
+
+        ){
 
 
 
             if(
 
-                result.type ===
+                this.sameDirection(
 
-                EdgeMatchType.OppositeDirection
+                    edge,
+
+                    candidate
+
+                )
 
             ){
-
-
 
                 return candidate;
 
