@@ -2,16 +2,12 @@ import { Vertex }
 from "./Vertex";
 
 
-import { HalfEdge }
-from "./HalfEdge";
-
-
 import { Curve }
 from "../../geometry/curve/Curve";
 
 
-import { Transform }
-from "../../geometry/core/Transform";
+
+
 
 
 
@@ -19,23 +15,19 @@ export class Edge {
 
 
 
-    private static nextId = 1;
+    public curve:
+
+    Curve|null = null;
 
 
 
-    public readonly id:number;
 
 
+    public reversed:
 
-    public halfEdge1:HalfEdge|null = null;
-
-
-
-    public halfEdge2:HalfEdge|null = null;
+    boolean = false;
 
 
-
-    public tolerance:number;
 
 
 
@@ -43,83 +35,22 @@ export class Edge {
 
     constructor(
 
+
         public start:Vertex,
+
 
         public end:Vertex,
 
-        public curve:Curve|null = null,
 
-        tolerance:number = 1e-6
+        curve:Curve|null = null
 
     ){
 
 
 
-        this.id =
+        this.curve =
 
-        Edge.nextId++;
-
-
-
-        this.tolerance =
-
-        tolerance;
-
-
-
-        this.createHalfEdges();
-
-    }
-
-
-
-
-
-
-
-    private createHalfEdges():
-
-    void {
-
-
-
-        this.halfEdge1 =
-
-        new HalfEdge(
-
-            this.start
-
-        );
-
-
-
-        this.halfEdge2 =
-
-        new HalfEdge(
-
-            this.end
-
-        );
-
-
-
-        this.halfEdge1.setTwin(
-
-            this.halfEdge2
-
-        );
-
-
-
-        this.halfEdge1.edge =
-
-        this;
-
-
-
-        this.halfEdge2.edge =
-
-        this;
+        curve;
 
 
 
@@ -144,19 +75,15 @@ export class Edge {
 
 
 
-    getVertices():
-
-    Vertex[] {
 
 
+    getStartVertex():
 
-        return [
+    Vertex {
 
-            this.start,
 
-            this.end
 
-        ];
+        return this.start;
 
     }
 
@@ -166,13 +93,38 @@ export class Edge {
 
 
 
-    length():
+
+
+    getEndVertex():
+
+    Vertex {
+
+
+
+        return this.end;
+
+    }
+
+
+
+
+
+
+
+
+
+    getLength():
 
     number {
 
 
 
-        if(this.curve){
+        if(
+
+            this.curve
+
+        ){
+
 
 
             return this.curve.length();
@@ -181,33 +133,15 @@ export class Edge {
 
 
 
-        return this.start.distanceTo(
-
-            this.end
-
-        );
-
-    }
 
 
+        return this.start
 
+        .position
 
+        .distanceTo(
 
-
-
-    isDegenerate():
-
-    boolean {
-
-
-
-        return (
-
-            this.length()
-
-            <
-
-            this.tolerance
+            this.end.position
 
         );
 
@@ -219,43 +153,183 @@ export class Edge {
 
 
 
-    otherVertex(
 
-        vertex:Vertex
+
+    getCurve():
+
+    Curve|null {
+
+
+
+        return this.curve;
+
+    }
+
+
+
+
+
+
+
+
+
+    setCurve(
+
+        curve:Curve
 
     ):
 
-    Vertex|null {
+    void {
 
 
 
-        if(
+        this.curve =
 
-            vertex === this.start
-
-        ){
-
-            return this.end;
-
-        }
-
-
-
-        if(
-
-            vertex === this.end
-
-        ){
-
-            return this.start;
-
-        }
-
-
-
-        return null;
+        curve;
 
     }
+
+
+
+
+
+
+
+
+
+    reverse():
+
+    Edge {
+
+
+
+        const edge =
+
+        new Edge(
+
+            this.end,
+
+            this.start,
+
+            this.curve
+
+        );
+
+
+
+        edge.reversed =
+
+        !this.reversed;
+
+
+
+        return edge;
+
+    }
+
+
+
+
+
+
+
+
+
+    getDirection():
+
+    {
+
+        x:number,
+
+        y:number,
+
+        z:number
+
+    } {
+
+
+
+        const dx =
+
+        this.end.position.x -
+
+        this.start.position.x;
+
+
+
+        const dy =
+
+        this.end.position.y -
+
+        this.start.position.y;
+
+
+
+        const dz =
+
+        this.end.position.z -
+
+        this.start.position.z;
+
+
+
+
+
+        const length =
+
+        Math.sqrt(
+
+            dx*dx +
+
+            dy*dy +
+
+            dz*dz
+
+        );
+
+
+
+
+
+        if(
+
+            length === 0
+
+        ){
+
+            return {
+
+
+                x:0,
+
+                y:0,
+
+                z:0
+
+            };
+
+        }
+
+
+
+
+
+        return {
+
+
+            x:dx / length,
+
+
+            y:dy / length,
+
+
+            z:dz / length
+
+        };
+
+    }
+
+
 
 
 
@@ -275,9 +349,11 @@ export class Edge {
 
         return (
 
-            vertex===this.start ||
+            this.start === vertex
 
-            vertex===this.end
+            ||
+
+            this.end === vertex
 
         );
 
@@ -289,43 +365,47 @@ export class Edge {
 
 
 
-    replaceVertex(
 
-        oldVertex:Vertex,
 
-        newVertex:Vertex
+    otherVertex(
+
+        vertex:Vertex
 
     ):
 
-    void {
+    Vertex|null {
 
 
 
         if(
 
-            this.start===oldVertex
+            this.start === vertex
 
         ){
 
-            this.start=
-
-            newVertex;
+            return this.end;
 
         }
+
+
 
 
 
         if(
 
-            this.end===oldVertex
+            this.end === vertex
 
         ){
 
-            this.end=
-
-            newVertex;
+            return this.start;
 
         }
+
+
+
+
+
+        return null;
 
     }
 
@@ -335,29 +415,15 @@ export class Edge {
 
 
 
-    setCurve(
 
-        curve:Curve
+
+    equals(
+
+        edge:Edge,
+
+        tolerance:number = 1e-6
 
     ):
-
-    void {
-
-
-
-        this.curve=
-
-        curve;
-
-    }
-
-
-
-
-
-
-
-    isBoundary():
 
     boolean {
 
@@ -365,51 +431,53 @@ export class Edge {
 
         return (
 
-            this.halfEdge1?.face===null ||
+            this.start.equals(
 
-            this.halfEdge2?.face===null
+                edge.start,
+
+                tolerance
+
+            )
+
+            &&
+
+            this.end.equals(
+
+                edge.end,
+
+                tolerance
+
+            )
+
+        )
+
+        ||
+
+        (
+
+            this.start.equals(
+
+                edge.end,
+
+                tolerance
+
+            )
+
+            &&
+
+            this.end.equals(
+
+                edge.start,
+
+                tolerance
+
+            )
 
         );
 
     }
 
 
-
-
-
-
-
-    transform(
-
-        transform:Transform
-
-    ):
-
-    Edge {
-
-
-
-        return new Edge(
-
-            transform.applyToVertex(
-
-                this.start
-
-            ),
-
-            transform.applyToVertex(
-
-                this.end
-
-            ),
-
-            this.curve,
-
-            this.tolerance
-
-        );
-
-    }
 
 
 
@@ -429,13 +497,15 @@ export class Edge {
 
             this.end.clone(),
 
-            this.curve,
-
-            this.tolerance
+            this.curve
 
         );
 
     }
+
+
+
+
 
 
 
