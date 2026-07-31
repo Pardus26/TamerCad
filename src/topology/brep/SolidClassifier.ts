@@ -1,14 +1,22 @@
 import { Solid }
 from "../core/Solid";
 
+
 import { Face }
 from "../core/Face";
+
 
 import { Point }
 from "../../geometry/core/Point";
 
+
+import { Vector3 }
+from "../../geometry/core/Vector3";
+
+
 import { BoundingBox }
 from "../../geometry/core/BoundingBox";
+
 
 import { FaceClassifier }
 from "./FaceClassifier";
@@ -52,6 +60,7 @@ export interface SolidClassificationResult {
 
 
     details?:string[];
+
 
 }
 
@@ -117,23 +126,15 @@ export class SolidClassifier {
 
 
 
-        const boundary =
-
-        this.isPointOnBoundary(
-
-            point,
-
-            solid
-
-        );
-
-
-
-
-
         if(
 
-            boundary
+            this.isPointOnBoundary(
+
+                point,
+
+                solid
+
+            )
 
         ){
 
@@ -170,6 +171,10 @@ export class SolidClassifier {
             solid
 
         );
+
+
+
+
 
 
 
@@ -327,7 +332,9 @@ export class SolidClassifier {
 
                 case SolidClassification.INSIDE:
 
+
                     insideCount++;
+
 
                     break;
 
@@ -337,7 +344,9 @@ export class SolidClassifier {
 
                 case SolidClassification.OUTSIDE:
 
+
                     outsideCount++;
+
 
                     break;
 
@@ -347,7 +356,9 @@ export class SolidClassifier {
 
                 case SolidClassification.ON_BOUNDARY:
 
+
                     boundaryCount++;
+
 
                     break;
 
@@ -455,6 +466,40 @@ export class SolidClassifier {
 
 
 
+        if(
+
+            boundaryCount ===
+
+            source.getVertices()
+
+            .length
+
+        ){
+
+
+
+            return {
+
+
+                classification:
+
+                SolidClassification.ON_BOUNDARY,
+
+
+                details
+
+            };
+
+        }
+
+
+
+
+
+
+
+
+
         return {
 
 
@@ -539,21 +584,31 @@ export class SolidClassifier {
 
 
 
+        const result =
+
+        this.classifySolid(
+
+            a,
+
+            b
+
+        );
+
+
+
+
+
         return (
 
-            this.classifySolid(
-
-                a,
-
-                b
-
-            )
-
-            .classification
-
-            ===
+            result.classification ===
 
             SolidClassification.INTERSECTING
+
+            ||
+
+            result.classification ===
+
+            SolidClassification.ON_BOUNDARY
 
         );
 
@@ -582,6 +637,10 @@ export class SolidClassifier {
         let intersections =
 
         0;
+
+
+
+
 
 
 
@@ -616,6 +675,10 @@ export class SolidClassifier {
             }
 
         }
+
+
+
+
 
 
 
@@ -739,31 +802,371 @@ export class SolidClassifier {
 
 
 
-        /*
-
-            Gerçek kernel:
-
-            
-            Ray:
-
-            P + tD
-
-
-            Surface intersection:
-
-            Plane
-            Cylinder
-            Sphere
-            NURBS
-
-
-            burada uygulanır.
-
-        */
 
 
 
-        return false;
+
+        const normal =
+
+        face.normalAt(
+
+            0,
+
+            0
+
+        );
+
+
+
+
+
+        if(
+
+            !normal
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+
+
+
+
+        const direction =
+
+        new Vector3(
+
+            1,
+
+            0,
+
+            0
+
+        );
+
+
+
+
+
+
+
+
+
+        const edges =
+
+        face.getEdges();
+
+
+
+
+
+        if(
+
+            edges.length === 0
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+
+
+
+
+        const planePoint =
+
+        edges[0]
+
+        .start
+
+        .position;
+
+
+
+
+
+
+
+
+
+        const denominator =
+
+        normal.dot(
+
+            direction
+
+        );
+
+
+
+
+
+
+
+
+
+        if(
+
+            Math.abs(
+
+                denominator
+
+            )
+
+            <
+
+            this.tolerance
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+
+
+
+
+        const t =
+
+        normal.dot(
+
+            planePoint.subtract(
+
+                point
+
+            )
+
+        )
+
+        /
+
+        denominator;
+
+
+
+
+
+
+
+
+
+        if(
+
+            t < 0
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+
+
+
+
+        const hitPoint =
+
+        new Point(
+
+            point.x + t,
+
+            point.y,
+
+            point.z
+
+        );
+
+
+
+
+
+
+
+
+
+        return this.pointInsideFaceBoundary(
+
+            hitPoint,
+
+            face
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    private pointInsideFaceBoundary(
+
+        point:Point,
+
+        face:Face
+
+    ):
+
+    boolean {
+
+
+
+        const edges =
+
+        face.getEdges();
+
+
+
+
+
+        let crossings =
+
+        0;
+
+
+
+
+
+
+
+
+
+        for(
+
+            const edge of
+
+            edges
+
+        ){
+
+
+
+            const a =
+
+            edge.start.position;
+
+
+
+            const b =
+
+            edge.end.position;
+
+
+
+
+
+
+
+
+
+            if(
+
+                (
+
+                    a.y > point.y
+
+                )
+
+                !==
+
+                (
+
+                    b.y > point.y
+
+                )
+
+            ){
+
+
+
+                const x =
+
+                (
+
+                    b.x-a.x
+
+                )
+
+                *
+
+                (
+
+                    point.y-a.y
+
+                )
+
+                /
+
+                (
+
+                    b.y-a.y
+
+                )
+
+                +
+
+                a.x;
+
+
+
+
+
+                if(
+
+                    point.x < x
+
+                ){
+
+                    crossings++;
+
+                }
+
+            }
+
+        }
+
+
+
+
+
+
+
+
+
+        return (
+
+            crossings %
+
+            2
+
+        )
+
+        ===
+
+        1;
 
     }
 
@@ -809,6 +1212,10 @@ export class SolidClassifier {
 
 
 
+
+
+
+
         if(
 
             !boxA
@@ -822,6 +1229,10 @@ export class SolidClassifier {
             return true;
 
         }
+
+
+
+
 
 
 
@@ -849,254 +1260,4 @@ export class SolidClassifier {
 
     ):
 
-    BoundingBox|null {
-
-
-
-        const vertices =
-
-        solid.getVertices();
-
-
-
-
-
-        if(
-
-            vertices.length === 0
-
-        ){
-
-            return null;
-
-        }
-
-
-
-
-
-        let minX =
-
-        vertices[0].position.x;
-
-
-
-        let minY =
-
-        vertices[0].position.y;
-
-
-
-        let minZ =
-
-        vertices[0].position.z;
-
-
-
-        let maxX =
-
-        minX;
-
-
-
-        let maxY =
-
-        minY;
-
-
-
-        let maxZ =
-
-        minZ;
-
-
-
-
-
-
-
-
-
-        for(
-
-            const vertex of
-
-            vertices
-
-        ){
-
-
-
-            const p =
-
-            vertex.position;
-
-
-
-
-
-            minX =
-
-            Math.min(
-
-                minX,
-
-                p.x
-
-            );
-
-
-
-            minY =
-
-            Math.min(
-
-                minY,
-
-                p.y
-
-            );
-
-
-
-            minZ =
-
-            Math.min(
-
-                minZ,
-
-                p.z
-
-            );
-
-
-
-
-
-            maxX =
-
-            Math.max(
-
-                maxX,
-
-                p.x
-
-            );
-
-
-
-            maxY =
-
-            Math.max(
-
-                maxY,
-
-                p.y
-
-            );
-
-
-
-            maxZ =
-
-            Math.max(
-
-                maxZ,
-
-                p.z
-
-            );
-
-        }
-
-
-
-
-
-        return new BoundingBox(
-
-            new Point(
-
-                minX,
-
-                minY,
-
-                minZ
-
-            ),
-
-            new Point(
-
-                maxX,
-
-                maxY,
-
-                maxZ
-
-            )
-
-        );
-
-    }
-
-
-
-
-
-
-
-
-
-    sameSolid(
-
-        a:Solid,
-
-        b:Solid
-
-    ):
-
-    boolean {
-
-
-
-        const av =
-
-        a.getVertices();
-
-
-
-        const bv =
-
-        b.getVertices();
-
-
-
-
-
-        if(
-
-            av.length !==
-
-            bv.length
-
-        ){
-
-            return false;
-
-        }
-
-
-
-
-
-        return true;
-
-    }
-
-
-
-
-
-
-
-}
+   
