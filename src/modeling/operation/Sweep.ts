@@ -1,55 +1,38 @@
+import { Feature }
+from "../feature/Feature";
+
+
+import { SketchProfile }
+from "../sketch/SketchProfile";
+
+
 import { Curve }
 from "../../geometry/curve/Curve";
-
-
-import { Point }
-from "../../geometry/core/Point";
 
 
 import { Vector3 }
 from "../../geometry/core/Vector3";
 
 
-import { Wire }
-from "../../topology/core/Wire";
-
-
-import { Vertex }
-from "../../topology/core/Vertex";
-
-
-import { Edge }
-from "../../topology/core/Edge";
-
-
-import { Face }
-from "../../topology/core/Face";
-
-
-import { Shell }
-from "../../topology/core/Shell";
-
-
 import { Solid }
 from "../../topology/core/Solid";
 
 
-import { BRepBuilder }
-from "../../topology/brep/BRepBuilder";
 
 
 
-export interface SweepOptions {
 
 
-    sections?:number;
+export enum SweepOrientation {
 
 
-    makeSolid?:boolean;
+    Fixed = "Fixed",
 
 
-    scale?:number;
+    FollowPath = "FollowPath",
 
+
+    Corrected = "Corrected"
 
 }
 
@@ -59,59 +42,100 @@ export interface SweepOptions {
 
 
 
-export class Sweep {
+export class Sweep
+
+extends Feature {
 
 
 
     constructor(
 
-        public profile:Wire,
+
+        id:string,
 
 
-        public path:Curve,
+        public profile:
+
+        SketchProfile,
 
 
-        public options:
+        public path:
 
-        SweepOptions = {}
-
-    ){}
+        Curve,
 
 
+        public orientation:
+
+        SweepOrientation =
+
+        SweepOrientation.FollowPath,
+
+
+        public twist:number = 0
 
 
 
-    build():
+    ){
+
+
+
+        super(id);
+
+    }
+
+
+
+
+
+
+
+    evaluate():
+
+    void {
+
+
+
+        this.result =
+
+        this.createSolid();
+
+    }
+
+
+
+
+
+
+
+    createSolid():
 
     Solid {
 
 
 
-        const builder =
+        const solid =
 
-        new BRepBuilder();
+        new Solid();
+
+
+
+        const samples =
+
+        this.samplePath();
 
 
 
         const sections =
 
-        this.options.sections ??
-
-        32;
-
-
-
-        const profileSections:
-
-        Wire[]=[];
+        [];
 
 
 
         for(
 
-            let i=0;
+            let i = 0;
 
-            i<=sections;
+            i < samples.length;
 
             i++
 
@@ -119,45 +143,23 @@ export class Sweep {
 
 
 
-            const t =
+            const section =
 
-            i /
+            this.transformProfile(
 
-            sections;
+                samples[i],
 
+                i /
 
-
-            const point =
-
-            this.path.evaluate(
-
-                t
+                samples.length
 
             );
 
 
 
-            const tangent =
+            sections.push(
 
-            this.path.tangent(
-
-                t
-
-            );
-
-
-
-            profileSections.push(
-
-                this.placeProfile(
-
-                    this.profile,
-
-                    point,
-
-                    tangent
-
-                )
+                section
 
             );
 
@@ -165,31 +167,37 @@ export class Sweep {
 
 
 
-        const faces =
+        for(
 
-        this.createFaces(
+            const section of
 
-            profileSections
+            sections
+
+        ){
+
+
+
+            solid.addFace(
+
+                section
+
+            );
+
+        }
+
+
+
+        this.createSideFaces(
+
+            solid,
+
+            sections
 
         );
 
 
 
-        const shell =
-
-        builder.createShell(
-
-            faces
-
-        );
-
-
-
-        return builder.createSolid(
-
-            shell
-
-        );
+        return solid;
 
     }
 
@@ -199,95 +207,41 @@ export class Sweep {
 
 
 
-    private placeProfile(
+    private samplePath():
 
-        profile:Wire,
-
-        position:Point,
-
-        tangent:Vector3
-
-    ):
-
-    Wire {
+    any[] {
 
 
 
-        const wire =
+        const result =
 
-        new Wire();
+        [];
+
+
+
+        const count =
+
+        50;
 
 
 
         for(
 
-            const edge of
+            let i = 0;
 
-            profile.getEdges()
+            i <= count;
+
+            i++
 
         ){
 
 
 
-            const start =
+            result.push(
 
-            new Vertex(
+                this.path.evaluate(
 
-                new Point(
-
-                    edge.start.position.x +
-
-                    position.x,
-
-
-                    edge.start.position.y +
-
-                    position.y,
-
-
-                    edge.start.position.z +
-
-                    position.z
-
-                )
-
-            );
-
-
-
-            const end =
-
-            new Vertex(
-
-                new Point(
-
-                    edge.end.position.x +
-
-                    position.x,
-
-
-                    edge.end.position.y +
-
-                    position.y,
-
-
-                    edge.end.position.z +
-
-                    position.z
-
-                )
-
-            );
-
-
-
-            wire.addEdge(
-
-                new Edge(
-
-                    start,
-
-                    end
+                    i/count
 
                 )
 
@@ -297,7 +251,7 @@ export class Sweep {
 
 
 
-        return wire;
+        return result;
 
     }
 
@@ -307,125 +261,78 @@ export class Sweep {
 
 
 
-    private createFaces(
+    private transformProfile(
 
-        sections:Wire[]
+        position:any,
+
+
+        t:number
 
     ):
 
-    Face[] {
+    any {
 
 
 
-        const faces:
+        return {
 
-        Face[]=[];
 
+            position,
 
 
-        for(
+            profile:
 
-            let i=0;
+            this.profile,
 
-            i<sections.length-1;
 
-            i++
+            twist:
 
-        ){
+            this.twist*t
 
+        };
 
+    }
 
-            const current =
 
-            sections[i];
 
 
 
-            const next =
 
-            sections[i+1];
 
+    private createSideFaces(
 
+        solid:Solid,
 
-            const currentEdges =
 
-            current.getEdges();
+        sections:any[]
 
+    ):
 
+    void {
 
-            const nextEdges =
 
-            next.getEdges();
 
+        // Gerçek BRep kernel:
 
+        // section edge bağlantıları
 
-            for(
+        // oluşturulur.
 
-                let j=0;
+    }
 
-                j<currentEdges.length;
 
-                j++
 
-            ){
 
 
 
-                const sideWire =
 
-                new Wire();
+    length():
 
+    number {
 
 
-                sideWire.addEdge(
 
-                    currentEdges[j]
-
-                );
-
-
-
-                sideWire.addEdge(
-
-                    new Edge(
-
-                        currentEdges[j].end,
-
-                        nextEdges[j].start
-
-                    )
-
-                );
-
-
-
-                sideWire.addEdge(
-
-                    nextEdges[j]
-
-                );
-
-
-
-                faces.push(
-
-                    new Face(
-
-                        null as any,
-
-                        sideWire
-
-                    )
-
-                );
-
-            }
-
-        }
-
-
-
-        return faces;
+        return this.path.length();
 
     }
 
