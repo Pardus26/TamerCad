@@ -41,7 +41,6 @@ export class Face {
 
     constructor(
 
-
         public surface:
 
         Surface | null,
@@ -125,7 +124,7 @@ export class Face {
 
     ):
 
-    void {
+    boolean {
 
 
 
@@ -143,21 +142,31 @@ export class Face {
 
         if(
 
-            index !== -1
+            index === -1
 
         ){
 
-
-
-            this.innerWires.splice(
-
-                index,
-
-                1
-
-            );
+            return false;
 
         }
+
+
+
+
+
+        this.innerWires.splice(
+
+            index,
+
+            1
+
+        );
+
+
+
+
+
+        return true;
 
     }
 
@@ -269,9 +278,15 @@ export class Face {
 
                 if(
 
-                    !result.includes(
+                    !result.some(
 
-                        edge
+                        e =>
+
+                        e.equals(
+
+                            edge
+
+                        )
 
                     )
 
@@ -363,8 +378,6 @@ export class Face {
 
     ):
 
-
-
     any {
 
 
@@ -405,11 +418,19 @@ export class Face {
 
 
 
-            return normal.negate
+            return new (
 
-            ? normal.negate()
+                normal.constructor as any
 
-            : normal;
+            )(
+
+                -normal.x,
+
+                -normal.y,
+
+                -normal.z
+
+            );
 
         }
 
@@ -435,9 +456,45 @@ export class Face {
 
 
 
+        /*
+
+            Face alanı surface alanı değildir.
+
+            Trim edilmiş boundary alanıdır.
+
+
+
+            Gerçek kernel:
+
+            1- Wire triangulation
+
+            2- Surface mapping
+
+            3- Hole subtraction
+
+
+
+            Şimdilik polygon yaklaşımı.
+
+        */
+
+
+
+
+
+        const vertices =
+
+        this.outerWire
+
+        .getVertices();
+
+
+
+
+
         if(
 
-            !this.surface
+            vertices.length < 3
 
         ){
 
@@ -449,7 +506,213 @@ export class Face {
 
 
 
-        return this.surface.area();
+        let area =
+
+        0;
+
+
+
+
+
+        for(
+
+            let i = 0;
+
+            i < vertices.length;
+
+            i++
+
+        ){
+
+
+
+            const p1 =
+
+            vertices[i]
+
+            .position;
+
+
+
+            const p2 =
+
+            vertices[
+
+                (
+
+                    i + 1
+
+                )
+
+                %
+
+                vertices.length
+
+            ]
+
+            .position;
+
+
+
+
+
+            area +=
+
+            (
+
+                p1.x *
+
+                p2.y
+
+            )
+
+            -
+
+            (
+
+                p2.x *
+
+                p1.y
+
+            );
+
+        }
+
+
+
+
+
+        area =
+
+        Math.abs(
+
+            area
+
+            /
+
+            2
+
+        );
+
+
+
+
+
+
+
+
+
+        // Hole alanlarını çıkar
+
+        for(
+
+            const hole of
+
+            this.innerWires
+
+        ){
+
+
+
+            const holeVertices =
+
+            hole.getVertices();
+
+
+
+
+
+            let holeArea =
+
+            0;
+
+
+
+
+
+            for(
+
+                let i = 0;
+
+                i < holeVertices.length;
+
+                i++
+
+            ){
+
+
+
+                const p1 =
+
+                holeVertices[i]
+
+                .position;
+
+
+
+                const p2 =
+
+                holeVertices[
+
+                    (
+
+                        i+1
+
+                    )
+
+                    %
+
+                    holeVertices.length
+
+                ]
+
+                .position;
+
+
+
+
+
+                holeArea +=
+
+                (
+
+                    p1.x *
+
+                    p2.y
+
+                )
+
+                -
+
+                (
+
+                    p2.x *
+
+                    p1.y
+
+                );
+
+            }
+
+
+
+
+
+            area -=
+
+            Math.abs(
+
+                holeArea / 2
+
+            );
+
+        }
+
+
+
+
+
+        return area;
 
     }
 
@@ -467,11 +730,27 @@ export class Face {
 
 
 
+        const reversedSurface =
+
+        this.surface
+
+        ?
+
+        this.surface.reverse()
+
+        :
+
+        null;
+
+
+
+
+
         const face =
 
         new Face(
 
-            this.surface,
+            reversedSurface,
 
             this.outerWire.clone()
 
@@ -555,7 +834,11 @@ export class Face {
 
             e =>
 
-            e === edge
+            e.equals(
+
+                edge
+
+            )
 
         );
 
@@ -639,11 +922,17 @@ export class Face {
 
         return (
 
-            this.outerWire.isValid()
+            this.outerWire
+
+            .getEdges()
+
+            .length > 0
 
             &&
 
-            this.outerWire.isClosed()
+            this.outerWire
+
+            .isClosed()
 
         );
 
