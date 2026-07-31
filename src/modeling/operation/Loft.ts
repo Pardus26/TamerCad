@@ -1,9 +1,5 @@
-import { Feature }
-from "../feature/Feature";
-
-
-import { Solid }
-from "../../topology/core/Solid";
+import { Wire }
+from "../../topology/core/Wire";
 
 
 import { Edge }
@@ -14,18 +10,28 @@ import { Face }
 from "../../topology/core/Face";
 
 
+import { Solid }
+from "../../topology/core/Solid";
+
+
+import { BRepBuilder }
+from "../../topology/brep/BRepBuilder";
 
 
 
 
 
-export interface FilletEdge {
+export interface LoftOptions {
 
 
-    edge:Edge;
+    closed?:boolean;
 
 
-    radius:number;
+    solid?:boolean;
+
+
+    smooth?:boolean;
+
 
 }
 
@@ -35,34 +41,37 @@ export interface FilletEdge {
 
 
 
-export class Fillet
-
-extends Feature {
+export class Loft {
 
 
 
     constructor(
 
 
-        id:string,
+        public profiles:Wire[],
 
 
-        public inputSolid:
+        public options:
 
-        Solid,
-
-
-        public edges:
-
-        FilletEdge[]
-
-
+        LoftOptions = {}
 
     ){
 
 
 
-        super(id);
+        if(
+
+            profiles.length < 2
+
+        ){
+
+            throw new Error(
+
+                "Loft requires at least two profiles"
+
+            );
+
+        }
 
     }
 
@@ -72,55 +81,398 @@ extends Feature {
 
 
 
-    evaluate():
-
-    void {
-
-
-
-        this.result =
-
-        this.createFillet();
-
-    }
-
-
-
-
-
-
-
-    createFillet():
+    build():
 
     Solid {
 
 
 
-        const result =
+        const builder =
 
-        this.cloneSolid(
+        new BRepBuilder();
 
-            this.inputSolid
+
+
+
+
+        const faces =
+
+        this.createFaces();
+
+
+
+
+
+        let finalFaces =
+
+        faces;
+
+
+
+
+
+        if(
+
+            this.options.closed
+
+        ){
+
+            finalFaces =
+
+            [
+
+                ...faces,
+
+                ...this.createClosingFaces()
+
+            ];
+
+        }
+
+
+
+
+
+        const shell =
+
+        builder.createShell(
+
+            finalFaces
 
         );
 
 
 
+
+
+        return builder.createSolid(
+
+            shell
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    private createFaces():
+
+    Face[] {
+
+
+
+        const faces:
+
+        Face[] = [];
+
+
+
+
+
         for(
 
-            const filletEdge of
+            let i = 0;
 
-            this.edges
+            i < this.profiles.length - 1;
+
+            i++
 
         ){
 
 
 
-            this.applyEdgeFillet(
+            const current =
 
-                result,
+            this.profiles[i];
 
-                filletEdge
+
+
+            const next =
+
+            this.profiles[i + 1];
+
+
+
+
+
+            const currentEdges =
+
+            current.getEdges();
+
+
+
+            const nextEdges =
+
+            next.getEdges();
+
+
+
+
+
+            const count =
+
+            Math.min(
+
+                currentEdges.length,
+
+                nextEdges.length
+
+            );
+
+
+
+
+
+            for(
+
+                let j = 0;
+
+                j < count;
+
+                j++
+
+            ){
+
+
+
+                const edgeA =
+
+                currentEdges[j];
+
+
+
+                const edgeB =
+
+                nextEdges[j];
+
+
+
+
+
+                faces.push(
+
+                    this.createLoftFace(
+
+                        edgeA,
+
+                        edgeB
+
+                    )
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return faces;
+
+    }
+
+
+
+
+
+
+
+
+
+    private createLoftFace(
+
+        edgeA:Edge,
+
+
+        edgeB:Edge
+
+    ):
+
+    Face {
+
+
+
+        const wire =
+
+        new Wire();
+
+
+
+
+
+        wire.addEdge(
+
+            edgeA
+
+        );
+
+
+
+
+
+        wire.addEdge(
+
+            new Edge(
+
+                edgeA.end,
+
+                edgeB.end
+
+            )
+
+        );
+
+
+
+
+
+        wire.addEdge(
+
+            edgeB
+
+        );
+
+
+
+
+
+        wire.addEdge(
+
+            new Edge(
+
+                edgeB.start,
+
+                edgeA.start
+
+            )
+
+        );
+
+
+
+
+
+        return new Face(
+
+            null as any,
+
+            wire
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    private createClosingFaces():
+
+    Face[] {
+
+
+
+        const faces:
+
+        Face[] = [];
+
+
+
+
+
+        if(
+
+            this.profiles.length < 2
+
+        ){
+
+            return faces;
+
+        }
+
+
+
+
+
+        const first =
+
+        this.profiles[0];
+
+
+
+        const last =
+
+        this.profiles[
+
+            this.profiles.length - 1
+
+        ];
+
+
+
+
+
+        const firstEdges =
+
+        first.getEdges();
+
+
+
+        const lastEdges =
+
+        last.getEdges();
+
+
+
+
+
+        const count =
+
+        Math.min(
+
+            firstEdges.length,
+
+            lastEdges.length
+
+        );
+
+
+
+
+
+        for(
+
+            let i = 0;
+
+            i < count;
+
+            i++
+
+        ){
+
+
+
+            faces.push(
+
+                this.createLoftFace(
+
+                    lastEdges[i],
+
+                    firstEdges[i]
+
+                )
 
             );
 
@@ -128,170 +480,15 @@ extends Feature {
 
 
 
-        return result;
+
+
+        return faces;
 
     }
 
 
 
 
-
-
-
-    private applyEdgeFillet(
-
-        solid:
-
-        Solid,
-
-
-        data:
-
-        FilletEdge
-
-    ):
-
-    void {
-
-
-
-        const edge =
-
-        data.edge;
-
-
-
-        const radius =
-
-        data.radius;
-
-
-
-        // Gerçek kernel:
-
-        //
-
-        // 1. Edge komşu yüzleri bul
-
-        // 2. Offset yüzeyleri oluştur
-
-        // 3. Blend surface üret
-
-        // 4. Topolojiyi yeniden bağla
-
-    }
-
-
-
-
-
-
-
-    private cloneSolid(
-
-        solid:
-
-        Solid
-
-    ):
-
-    Solid {
-
-
-
-        return solid.clone();
-
-    }
-
-
-
-
-
-
-
-    validateRadius(
-
-        edge:
-
-        Edge,
-
-
-        radius:number
-
-    ):
-
-    boolean {
-
-
-
-        if(
-
-            radius <= 0
-
-        ){
-
-            return false;
-
-        }
-
-
-
-        // Gerçek kernel:
-
-        // maksimum izin verilen radius
-
-        // face distance ile hesaplanır.
-
-
-
-        return true;
-
-    }
-
-
-
-
-
-
-
-    setRadius(
-
-        edge:
-
-        Edge,
-
-
-        radius:number
-
-    ):
-
-    void {
-
-
-
-        const item =
-
-        this.edges.find(
-
-            e =>
-
-            e.edge === edge
-
-        );
-
-
-
-        if(item)
-
-        {
-
-            item.radius =
-
-            radius;
-
-        }
-
-    }
 
 
 
