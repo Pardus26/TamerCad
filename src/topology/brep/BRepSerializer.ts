@@ -2,6 +2,10 @@ import { BRepModel }
 from "./BRepModel";
 
 
+import { BRepBuilder }
+from "./BRepBuilder";
+
+
 import { Solid }
 from "../core/Solid";
 
@@ -20,6 +24,14 @@ from "../core/Edge";
 
 import { Vertex }
 from "../core/Vertex";
+
+
+import { Wire }
+from "../core/Wire";
+
+
+import { Point }
+from "../../geometry/core/Point";
 
 
 
@@ -122,19 +134,29 @@ export interface SerializedSolid {
 export interface SerializedBRep {
 
 
-    vertices:SerializedVertex[];
+    vertices:
+
+    SerializedVertex[];
 
 
-    edges:SerializedEdge[];
+    edges:
+
+    SerializedEdge[];
 
 
-    faces:SerializedFace[];
+    faces:
+
+    SerializedFace[];
 
 
-    shells:SerializedShell[];
+    shells:
+
+    SerializedShell[];
 
 
-    solids:SerializedSolid[];
+    solids:
+
+    SerializedSolid[];
 
 }
 
@@ -145,6 +167,8 @@ export interface SerializedBRep {
 
 
 export class BRepSerializer {
+
+
 
 
 
@@ -164,31 +188,27 @@ export class BRepSerializer {
 
         const vertices:
 
-        SerializedVertex[] = [];
-
+        SerializedVertex[]=[];
 
 
         const edges:
 
-        SerializedEdge[] = [];
-
+        SerializedEdge[]=[];
 
 
         const faces:
 
-        SerializedFace[] = [];
-
+        SerializedFace[]=[];
 
 
         const shells:
 
-        SerializedShell[] = [];
-
+        SerializedShell[]=[];
 
 
         const solids:
 
-        SerializedSolid[] = [];
+        SerializedSolid[]=[];
 
 
 
@@ -199,17 +219,14 @@ export class BRepSerializer {
         new Map<Vertex,string>();
 
 
-
         const edgeIds =
 
         new Map<Edge,string>();
 
 
-
         const faceIds =
 
         new Map<Face,string>();
-
 
 
         const shellIds =
@@ -220,30 +237,17 @@ export class BRepSerializer {
 
 
 
-
-
-
-
-        let counter =
-
-        0;
+        let counter = 0;
 
 
 
 
 
-        const createId =
+        const id =
 
-        (prefix:string)=>{
+        (prefix:string)=>
 
-
-            counter++;
-
-
-            return prefix + counter;
-
-
-        };
+        prefix + (++counter);
 
 
 
@@ -263,13 +267,9 @@ export class BRepSerializer {
 
 
 
-            const id =
+            const vid =
 
-            createId(
-
-                "v"
-
-            );
+            id("v");
 
 
 
@@ -277,7 +277,7 @@ export class BRepSerializer {
 
                 vertex,
 
-                id
+                vid
 
             );
 
@@ -288,22 +288,16 @@ export class BRepSerializer {
             vertices.push({
 
 
-                id,
+                id:vid,
 
 
-                x:
-
-                vertex.position.x,
+                x:vertex.position.x,
 
 
-                y:
-
-                vertex.position.y,
+                y:vertex.position.y,
 
 
-                z:
-
-                vertex.position.z
+                z:vertex.position.z
 
 
             });
@@ -328,13 +322,9 @@ export class BRepSerializer {
 
 
 
-            const id =
+            const eid =
 
-            createId(
-
-                "e"
-
-            );
+            id("e");
 
 
 
@@ -342,7 +332,7 @@ export class BRepSerializer {
 
                 edge,
 
-                id
+                eid
 
             );
 
@@ -353,7 +343,7 @@ export class BRepSerializer {
             edges.push({
 
 
-                id,
+                id:eid,
 
 
                 start:
@@ -396,13 +386,9 @@ export class BRepSerializer {
 
 
 
-            const id =
+            const fid =
 
-            createId(
-
-                "f"
-
-            );
+            id("f");
 
 
 
@@ -410,7 +396,7 @@ export class BRepSerializer {
 
                 face,
 
-                id
+                fid
 
             );
 
@@ -421,7 +407,7 @@ export class BRepSerializer {
             faces.push({
 
 
-                id,
+                id:fid,
 
 
                 edges:
@@ -430,11 +416,11 @@ export class BRepSerializer {
 
                 .map(
 
-                    edge =>
+                    e =>
 
                     edgeIds.get(
 
-                        edge
+                        e
 
                     )!
 
@@ -473,13 +459,9 @@ export class BRepSerializer {
 
 
 
-                const id =
+                const sid =
 
-                createId(
-
-                    "sh"
-
-                );
+                id("sh");
 
 
 
@@ -487,7 +469,7 @@ export class BRepSerializer {
 
                     shell,
 
-                    id
+                    sid
 
                 );
 
@@ -498,7 +480,7 @@ export class BRepSerializer {
                 shells.push({
 
 
-                    id,
+                    id:sid,
 
 
                     faces:
@@ -507,11 +489,11 @@ export class BRepSerializer {
 
                     .map(
 
-                        face =>
+                        f =>
 
                         faceIds.get(
 
-                            face
+                            f
 
                         )!
 
@@ -545,13 +527,7 @@ export class BRepSerializer {
             solids.push({
 
 
-                id:
-
-                createId(
-
-                    "so"
-
-                ),
+                id:id("so"),
 
 
                 shells:
@@ -560,11 +536,11 @@ export class BRepSerializer {
 
                 .map(
 
-                    shell =>
+                    sh =>
 
                     shellIds.get(
 
-                        shell
+                        sh
 
                     )!
 
@@ -613,6 +589,380 @@ export class BRepSerializer {
 
 
 
+    deserialize(
+
+        data:SerializedBRep
+
+    ):
+
+    BRepModel {
+
+
+
+        const model =
+
+        new BRepModel();
+
+
+
+
+
+        const vertexMap =
+
+        new Map<string,Vertex>();
+
+
+
+
+
+        const edgeMap =
+
+        new Map<string,Edge>();
+
+
+
+
+
+        const faceMap =
+
+        new Map<string,Face>();
+
+
+
+
+
+        const shellMap =
+
+        new Map<string,Shell>();
+
+
+
+
+
+
+
+
+
+        for(
+
+            const v of
+
+            data.vertices
+
+        ){
+
+
+
+            vertexMap.set(
+
+                v.id,
+
+
+                new Vertex(
+
+                    new Point(
+
+                        v.x,
+
+                        v.y,
+
+                        v.z
+
+                    )
+
+                )
+
+            );
+
+        }
+
+
+
+
+
+
+
+
+
+        for(
+
+            const e of
+
+            data.edges
+
+        ){
+
+
+
+            const edge =
+
+            new Edge(
+
+
+                vertexMap.get(
+
+                    e.start
+
+                )!,
+
+
+                vertexMap.get(
+
+                    e.end
+
+                )!
+
+
+            );
+
+
+
+
+
+            edgeMap.set(
+
+                e.id,
+
+                edge
+
+            );
+
+        }
+
+
+
+
+
+
+
+
+
+        for(
+
+            const f of
+
+            data.faces
+
+        ){
+
+
+
+            const wire =
+
+            new Wire();
+
+
+
+
+
+            for(
+
+                const eid of
+
+                f.edges
+
+            ){
+
+
+
+                wire.addEdge(
+
+                    edgeMap.get(
+
+                        eid
+
+                    )!
+
+                );
+
+            }
+
+
+
+
+
+            wire.close();
+
+
+
+
+
+            const face =
+
+            new Face(
+
+                null,
+
+                wire
+
+            );
+
+
+
+
+
+            faceMap.set(
+
+                f.id,
+
+                face
+
+            );
+
+        }
+
+
+
+
+
+
+
+
+
+        for(
+
+            const sh of
+
+            data.shells
+
+        ){
+
+
+
+            const shell =
+
+            new Shell();
+
+
+
+
+
+            for(
+
+                const fid of
+
+                sh.faces
+
+            ){
+
+
+
+                shell.addFace(
+
+                    faceMap.get(
+
+                        fid
+
+                    )!
+
+                );
+
+            }
+
+
+
+
+
+            shellMap.set(
+
+                sh.id,
+
+                shell
+
+            );
+
+        }
+
+
+
+
+
+
+
+
+
+        for(
+
+            const so of
+
+            data.solids
+
+        ){
+
+
+
+            const solid =
+
+            new Solid(
+
+                shellMap.get(
+
+                    so.shells[0]
+
+                )!
+
+            );
+
+
+
+
+
+            for(
+
+                let i = 1;
+
+                i < so.shells.length;
+
+                i++
+
+            ){
+
+
+
+                solid.addShell(
+
+                    shellMap.get(
+
+                        so.shells[i]
+
+                    )!
+
+                );
+
+            }
+
+
+
+
+
+            model.addSolid(
+
+                solid
+
+            );
+
+        }
+
+
+
+
+
+
+
+
+
+        return model;
+
+    }
+
+
+
+
+
+
+
+
+
     toJSON(
 
         model:BRepModel
@@ -642,6 +992,32 @@ export class BRepSerializer {
 
 
 
+
+
+
+
+
+    fromJSON(
+
+        json:string
+
+    ):
+
+    BRepModel {
+
+
+
+        return this.deserialize(
+
+            JSON.parse(
+
+                json
+
+            )
+
+        );
+
+    }
 
 
 
