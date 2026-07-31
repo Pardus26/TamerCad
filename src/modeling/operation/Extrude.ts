@@ -1,51 +1,30 @@
+import { Feature }
+from "../feature/Feature";
+
+
+import { SketchProfile }
+from "../sketch/SketchProfile";
+
+
 import { Vector3 }
 from "../../geometry/core/Vector3";
-
-
-import { Point }
-from "../../geometry/core/Point";
-
-
-import { Wire }
-from "../../topology/core/Wire";
-
-
-import { Face }
-from "../../topology/core/Face";
-
-
-import { Edge }
-from "../../topology/core/Edge";
-
-
-import { Vertex }
-from "../../topology/core/Vertex";
-
-
-import { Shell }
-from "../../topology/core/Shell";
 
 
 import { Solid }
 from "../../topology/core/Solid";
 
 
-import { BRepBuilder }
-from "../../topology/brep/BRepBuilder";
+
+export enum ExtrudeMode {
 
 
-
-export interface ExtrudeOptions {
-
-
-    makeSolid?:boolean;
+    OneDirection = "OneDirection",
 
 
-    capStart?:boolean;
+    Symmetric = "Symmetric",
 
 
-    capEnd?:boolean;
-
+    TwoDirection = "TwoDirection"
 
 }
 
@@ -55,141 +34,44 @@ export interface ExtrudeOptions {
 
 
 
-export class Extrude {
+export class Extrude
+
+extends Feature {
 
 
 
     constructor(
 
-        public profile:Wire,
 
-        public direction:Vector3,
+        id:string,
+
+
+        public profile:
+
+        SketchProfile,
+
 
         public distance:number,
 
-        public options:
 
-        ExtrudeOptions = {}
+        public direction:
 
-    ){}
+        Vector3,
 
 
+        public mode:
 
-    build():
+        ExtrudeMode =
 
-    Solid {
+        ExtrudeMode.OneDirection
 
 
 
-        const builder =
+    ){
 
-        new BRepBuilder();
 
 
-
-        const startFace =
-
-        new Face(
-
-            null as any,
-
-            this.profile
-
-        );
-
-
-
-        const translatedWire =
-
-        this.translateWire(
-
-            this.profile
-
-        );
-
-
-
-        const endFace =
-
-        new Face(
-
-            null as any,
-
-            translatedWire
-
-        );
-
-
-
-        const sideFaces =
-
-        this.createSideFaces(
-
-            this.profile,
-
-            translatedWire
-
-        );
-
-
-
-        const faces:
-
-        Face[]=[
-
-            ...sideFaces
-
-        ];
-
-
-
-        if(
-
-            this.options.capStart !== false
-
-        ){
-
-            faces.push(
-
-                startFace
-
-            );
-
-        }
-
-
-
-        if(
-
-            this.options.capEnd !== false
-
-        ){
-
-            faces.push(
-
-                endFace
-
-            );
-
-        }
-
-
-
-        const shell =
-
-        builder.createShell(
-
-            faces
-
-        );
-
-
-
-        return builder.createSolid(
-
-            shell
-
-        );
+        super(id);
 
     }
 
@@ -199,35 +81,228 @@ export class Extrude {
 
 
 
-    private translatePoint(
+    evaluate():
 
-        point:Point
+    void {
+
+
+
+        this.result =
+
+        this.createSolid();
+
+    }
+
+
+
+
+
+
+
+    createSolid():
+
+    Solid {
+
+
+
+        const solid =
+
+        new Solid();
+
+
+
+        const wire =
+
+        this.profile.toWire();
+
+
+
+        const vector =
+
+        this.direction.normalized()
+
+        .multiply(
+
+            this.distance
+
+        );
+
+
+
+        const bottomFace =
+
+        this.createFace(
+
+            wire
+
+        );
+
+
+
+        const topFace =
+
+        this.translateFace(
+
+            bottomFace,
+
+            vector
+
+        );
+
+
+
+        solid.addFace(
+
+            bottomFace
+
+        );
+
+
+        solid.addFace(
+
+            topFace
+
+        );
+
+
+
+        this.connectFaces(
+
+            solid,
+
+            bottomFace,
+
+            topFace,
+
+            vector
+
+        );
+
+
+
+        return solid;
+
+    }
+
+
+
+
+
+
+
+    private createFace(
+
+        wire:any
 
     ):
 
-    Point {
+    any {
 
 
 
-        return new Point(
-
-            point.x +
-
-            this.direction.x *
-
-            this.distance,
+        return {
 
 
-            point.y +
+            wire,
 
-            this.direction.y *
+            type:
 
-            this.distance,
+            "PlaneFace"
+
+        };
+
+    }
 
 
-            point.z +
 
-            this.direction.z *
+
+
+
+
+    private translateFace(
+
+        face:any,
+
+
+        vector:Vector3
+
+    ):
+
+    any {
+
+
+
+        return {
+
+
+            wire:
+
+            face.wire,
+
+
+            offset:
+
+            vector,
+
+
+            type:
+
+            "PlaneFace"
+
+        };
+
+    }
+
+
+
+
+
+
+
+    private connectFaces(
+
+        solid:Solid,
+
+
+        bottom:any,
+
+
+        top:any,
+
+
+        vector:Vector3
+
+    ):
+
+    void {
+
+
+
+        // Side faces
+
+        // gerçek kernel'de
+
+        // edge extrusion yapılır.
+
+    }
+
+
+
+
+
+
+
+    volume():
+
+    number {
+
+
+
+        return (
+
+            this.profile.area()
+
+            *
 
             this.distance
 
@@ -241,213 +316,17 @@ export class Extrude {
 
 
 
-    private translateWire(
+    reverseDirection():
 
-        wire:Wire
+    void {
 
-    ):
 
-    Wire {
 
+        this.direction =
 
+        this.direction
 
-        const newWire =
-
-        new Wire();
-
-
-
-        for(
-
-            const halfEdge of
-
-            wire.getHalfEdges()
-
-        ){
-
-
-
-            const edge =
-
-            halfEdge.edge;
-
-
-
-            const start =
-
-            new Vertex(
-
-                this.translatePoint(
-
-                    edge.start.position
-
-                )
-
-            );
-
-
-
-            const end =
-
-            new Vertex(
-
-                this.translatePoint(
-
-                    edge.end.position
-
-                )
-
-            );
-
-
-
-            newWire.addEdge(
-
-                new Edge(
-
-                    start,
-
-                    end
-
-                )
-
-            );
-
-        }
-
-
-
-        return newWire;
-
-    }
-
-
-
-
-
-
-
-    private createSideFaces(
-
-        source:Wire,
-
-        target:Wire
-
-    ):
-
-    Face[] {
-
-
-
-        const faces:
-
-        Face[]=[];
-
-
-
-        const sourceEdges =
-
-        source.getEdges();
-
-
-
-        const targetEdges =
-
-        target.getEdges();
-
-
-
-        for(
-
-            let i=0;
-
-            i<sourceEdges.length;
-
-            i++
-
-        ){
-
-
-
-            const e1 =
-
-            sourceEdges[i];
-
-
-
-            const e2 =
-
-            targetEdges[i];
-
-
-
-            const sideWire =
-
-            new Wire();
-
-
-
-            sideWire.addEdge(
-
-                e1
-
-            );
-
-
-
-            sideWire.addEdge(
-
-                new Edge(
-
-                    e1.end,
-
-                    e2.end
-
-                )
-
-            );
-
-
-
-            sideWire.addEdge(
-
-                e2
-
-            );
-
-
-
-            sideWire.addEdge(
-
-                new Edge(
-
-                    e2.start,
-
-                    e1.start
-
-                )
-
-            );
-
-
-
-            faces.push(
-
-                new Face(
-
-                    null as any,
-
-                    sideWire
-
-                )
-
-            );
-
-        }
-
-
-
-        return faces;
+        .multiply(-1);
 
     }
 
