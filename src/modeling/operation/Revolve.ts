@@ -1,48 +1,35 @@
-import { Point }
-from "../../geometry/core/Point";
+import { Feature }
+from "../feature/Feature";
+
+
+import { SketchProfile }
+from "../sketch/SketchProfile";
 
 
 import { Vector3 }
 from "../../geometry/core/Vector3";
 
 
-import { Wire }
-from "../../topology/core/Wire";
-
-
-import { Edge }
-from "../../topology/core/Edge";
-
-
-import { Vertex }
-from "../../topology/core/Vertex";
-
-
-import { Face }
-from "../../topology/core/Face";
-
-
-import { Shell }
-from "../../topology/core/Shell";
+import { Point }
+from "../../geometry/core/Point";
 
 
 import { Solid }
 from "../../topology/core/Solid";
 
 
-import { BRepBuilder }
-from "../../topology/brep/BRepBuilder";
 
 
 
-export interface RevolveOptions {
 
 
-    segments?:number;
+export enum RevolveMode {
 
 
-    makeSolid?:boolean;
+    Full = "Full",
 
+
+    Partial = "Partial"
 
 }
 
@@ -52,13 +39,21 @@ export interface RevolveOptions {
 
 
 
-export class Revolve {
+export class Revolve
+
+extends Feature {
 
 
 
     constructor(
 
-        public profile:Wire,
+
+        id:string,
+
+
+        public profile:
+
+        SketchProfile,
 
 
         public axisPoint:
@@ -76,45 +71,75 @@ export class Revolve {
         Math.PI * 2,
 
 
-        public options:
+        public mode:
 
-        RevolveOptions = {}
+        RevolveMode =
 
-    ){}
+        RevolveMode.Full
 
 
 
-    build():
+    ){
+
+
+
+        super(id);
+
+    }
+
+
+
+
+
+
+
+    evaluate():
+
+    void {
+
+
+
+        this.result =
+
+        this.createSolid();
+
+    }
+
+
+
+
+
+
+
+    createSolid():
 
     Solid {
 
 
 
-        const builder =
+        const solid =
 
-        new BRepBuilder();
-
-
-
-        const segments =
-
-        this.options.segments ??
-
-        32;
+        new Solid();
 
 
 
-        const wires:
+        const steps =
 
-        Wire[]=[];
+        this.calculateSteps();
+
+
+
+        const faces =
+
+        [];
 
 
 
         for(
 
-            let i=0;
+            let i = 0;
 
-            i<=segments;
+            i < steps;
 
             i++
 
@@ -124,27 +149,35 @@ export class Revolve {
 
             const theta =
 
-            this.angle *
-
             (
 
-                i /
+                this.angle /
 
-                segments
+                steps
+
+            )
+
+            *
+
+            i;
+
+
+
+            const rotatedProfile =
+
+            this.rotateProfile(
+
+                this.profile,
+
+                theta
 
             );
 
 
 
-            wires.push(
+            faces.push(
 
-                this.rotateWire(
-
-                    this.profile,
-
-                    theta
-
-                )
+                rotatedProfile
 
             );
 
@@ -152,29 +185,63 @@ export class Revolve {
 
 
 
-        const faces =
+        for(
 
-        this.createFaces(
-
-            wires
-
-        );
-
-
-
-        const shell =
-
-        builder.createShell(
+            const face of
 
             faces
 
-        );
+        ){
 
 
 
-        return builder.createSolid(
+            solid.addFace(
 
-            shell
+                face
+
+            );
+
+        }
+
+
+
+        return solid;
+
+    }
+
+
+
+
+
+
+
+    private calculateSteps():
+
+    number {
+
+
+
+        return Math.max(
+
+            8,
+
+            Math.ceil(
+
+                Math.abs(
+
+                    this.angle
+
+                )
+
+                /
+
+                (
+
+                    Math.PI / 12
+
+                )
+
+            )
 
         );
 
@@ -186,150 +253,44 @@ export class Revolve {
 
 
 
-    private rotatePoint(
+    private rotateProfile(
 
-        point:Point,
+        profile:
+
+        SketchProfile,
+
 
         angle:number
 
     ):
 
-    Point {
+    any {
 
 
 
-        const x =
+        const transformed =
 
-        point.x -
-
-        this.axisPoint.x;
-
-
-
-        const y =
-
-        point.y -
-
-        this.axisPoint.y;
-
-
-
-        const cos =
-
-        Math.cos(
-
-            angle
-
-        );
-
-
-
-        const sin =
-
-        Math.sin(
-
-            angle
-
-        );
-
-
-
-        return new Point(
-
-
-            this.axisPoint.x +
-
-            x*cos -
-
-            y*sin,
-
-
-            this.axisPoint.y +
-
-            x*sin +
-
-            y*cos,
-
-
-            point.z
-
-        );
-
-    }
-
-
-
-
-
-
-
-    private rotateWire(
-
-        wire:Wire,
-
-        angle:number
-
-    ):
-
-    Wire {
-
-
-
-        const result =
-
-        new Wire();
+        [];
 
 
 
         for(
 
-            const edge of
+            const entity of
 
-            wire.getEdges()
+            profile.outerLoop
 
         ){
 
 
 
-            const start =
+            transformed.push(
 
-            new Vertex(
+                this.rotateEntity(
 
-                this.rotatePoint(
-
-                    edge.start.position,
+                    entity,
 
                     angle
-
-                )
-
-            );
-
-
-
-            const end =
-
-            new Vertex(
-
-                this.rotatePoint(
-
-                    edge.end.position,
-
-                    angle
-
-                )
-
-            );
-
-
-
-            result.addEdge(
-
-                new Edge(
-
-                    start,
-
-                    end
 
                 )
 
@@ -339,7 +300,17 @@ export class Revolve {
 
 
 
-        return result;
+        return {
+
+
+            entities:
+
+            transformed,
+
+
+            angle
+
+        };
 
     }
 
@@ -349,89 +320,76 @@ export class Revolve {
 
 
 
-    private createFaces(
+    private rotateEntity(
 
-        wires:Wire[]
+        entity:any,
+
+
+        angle:number
 
     ):
 
-    Face[] {
+    any {
 
 
 
-        const faces:
+        // Gerçek kernel seviyesinde:
 
-        Face[]=[];
-
-
-
-        for(
-
-            let i=0;
-
-            i<wires.length-1;
-
-            i++
-
-        ){
+        // curve revolution yapılır.
 
 
 
-            const current =
-
-            wires[i];
+        return {
 
 
+            source:
 
-            const next =
-
-            wires[i+1];
-
+            entity,
 
 
-            for(
+            rotation:
 
-                const edge of
+            angle
 
-                current.getEdges()
+        };
 
-            ){
+    }
 
 
 
-                const sideWire =
-
-                new Wire();
 
 
 
-                sideWire.addEdge(
 
-                    edge
+    volume():
 
-                );
-
-
-
-                faces.push(
-
-                    new Face(
-
-                        null as any,
-
-                        sideWire
-
-                    )
-
-                );
-
-            }
-
-        }
+    number {
 
 
 
-        return faces;
+        // Basit Pappus yaklaşımı
+
+        return 0;
+
+    }
+
+
+
+
+
+
+
+    reverseDirection():
+
+    void {
+
+
+
+        this.axisDirection =
+
+        this.axisDirection
+
+        .multiply(-1);
 
     }
 
