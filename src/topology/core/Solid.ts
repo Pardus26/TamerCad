@@ -14,24 +14,6 @@ import { Vertex }
 from "./Vertex";
 
 
-import { BoundingBox }
-from "../../geometry/core/BoundingBox";
-
-
-import { Transform }
-from "../../geometry/core/Transform";
-
-
-
-export enum SolidOrientation {
-
-    OUTWARD,
-
-    INWARD
-
-}
-
-
 
 
 
@@ -41,23 +23,11 @@ export class Solid {
 
 
 
-    private static nextId = 1;
+    private shells:
+
+    Shell[] = [];
 
 
-
-    public readonly id:number;
-
-
-
-    public shells:Shell[];
-
-
-
-    public orientation:
-
-    SolidOrientation =
-
-    SolidOrientation.OUTWARD;
 
 
 
@@ -65,22 +35,21 @@ export class Solid {
 
     constructor(
 
-        shells:Shell[] = []
+        shell:Shell
 
     ){
 
 
-        this.id =
 
-        Solid.nextId++;
+        this.shells.push(
 
+            shell
 
-
-        this.shells =
-
-        shells;
+        );
 
     }
+
+
 
 
 
@@ -98,13 +67,29 @@ export class Solid {
 
 
 
-        this.shells.push(
+        if(
 
-            shell
+            !this.shells.includes(
 
-        );
+                shell
+
+            )
+
+        ){
+
+
+
+            this.shells.push(
+
+                shell
+
+            );
+
+        }
 
     }
+
+
 
 
 
@@ -132,7 +117,13 @@ export class Solid {
 
 
 
-        if(index>=0){
+
+
+        if(
+
+            index !== -1
+
+        ){
 
 
 
@@ -154,19 +145,19 @@ export class Solid {
 
 
 
+
+
     getShells():
 
     Shell[] {
 
 
 
-        return [
-
-            ...this.shells
-
-        ];
+        return this.shells;
 
     }
+
+
 
 
 
@@ -182,7 +173,9 @@ export class Solid {
 
         const faces:
 
-        Face[]=[];
+        Face[] = [];
+
+
 
 
 
@@ -196,27 +189,49 @@ export class Solid {
 
 
 
-            faces.push(
+            for(
 
-                ...shell.getFaces()
+                const face of
 
-            );
+                shell.getFaces()
+
+            ){
+
+
+
+                if(
+
+                    !faces.includes(
+
+                        face
+
+                    )
+
+                ){
+
+
+
+                    faces.push(
+
+                        face
+
+                    );
+
+                }
+
+            }
 
         }
 
 
 
-        return [
 
-            ...new Set(
 
-                faces
-
-            )
-
-        ];
+        return faces;
 
     }
+
+
 
 
 
@@ -232,7 +247,9 @@ export class Solid {
 
         const edges:
 
-        Edge[]=[];
+        Edge[] = [];
+
+
 
 
 
@@ -246,27 +263,49 @@ export class Solid {
 
 
 
-            edges.push(
+            for(
 
-                ...shell.getEdges()
+                const edge of
 
-            );
+                shell.getEdges()
+
+            ){
+
+
+
+                if(
+
+                    !edges.includes(
+
+                        edge
+
+                    )
+
+                ){
+
+
+
+                    edges.push(
+
+                        edge
+
+                    );
+
+                }
+
+            }
 
         }
 
 
 
-        return [
 
-            ...new Set(
 
-                edges
-
-            )
-
-        ];
+        return edges;
 
     }
+
+
 
 
 
@@ -282,7 +321,9 @@ export class Solid {
 
         const vertices:
 
-        Vertex[]=[];
+        Vertex[] = [];
+
+
 
 
 
@@ -296,25 +337,45 @@ export class Solid {
 
 
 
-            vertices.push(
+            for(
 
-                ...shell.getVertices()
+                const vertex of
 
-            );
+                shell.getVertices()
+
+            ){
+
+
+
+                if(
+
+                    !vertices.includes(
+
+                        vertex
+
+                    )
+
+                ){
+
+
+
+                    vertices.push(
+
+                        vertex
+
+                    );
+
+                }
+
+            }
 
         }
 
 
 
-        return [
 
-            ...new Set(
 
-                vertices
-
-            )
-
-        ];
+        return vertices;
 
     }
 
@@ -324,21 +385,59 @@ export class Solid {
 
 
 
-    isClosed():
+
+
+    isValid():
 
     boolean {
 
 
 
-        return this.shells.every(
+        if(
 
-            shell =>
+            this.shells.length === 0
 
-            shell.isClosed()
+        ){
 
-        );
+            return false;
+
+        }
+
+
+
+
+
+        for(
+
+            const shell of
+
+            this.shells
+
+        ){
+
+
+
+            if(
+
+                !shell.isClosed()
+
+            ){
+
+                return false;
+
+            }
+
+        }
+
+
+
+
+
+        return true;
 
     }
+
+
 
 
 
@@ -352,9 +451,45 @@ export class Solid {
 
 
 
-        let volume =
+        /*
+
+            Gerçek BRep kernel:
+
+            Signed tetrahedral volume
+
+            hesaplaması burada yapılacak.
+
+
+
+            Şimdilik placeholder.
+
+        */
+
+
+
+        return 0;
+
+    }
+
+
+
+
+
+
+
+
+
+    surfaceArea():
+
+    number {
+
+
+
+        let area =
 
         0;
+
+
 
 
 
@@ -368,37 +503,17 @@ export class Solid {
 
 
 
-            const box =
+            area +=
 
-            face.surface
-
-            .boundingBox();
-
-
-
-            const size =
-
-            box.size();
-
-
-
-            volume +=
-
-            Math.abs(
-
-                size.x *
-
-                size.y *
-
-                size.z
-
-            );
+            face.area();
 
         }
 
 
 
-        return volume;
+
+
+        return area;
 
     }
 
@@ -408,143 +523,23 @@ export class Solid {
 
 
 
-    boundingBox():
 
-    BoundingBox {
 
+    containsFace(
 
+        face:Face
 
-        const box =
-
-        BoundingBox.empty();
-
-
-
-        for(
-
-            const vertex of
-
-            this.getVertices()
-
-        ){
-
-
-
-            box.expand(
-
-                vertex.position
-
-            );
-
-        }
-
-
-
-        return box;
-
-    }
-
-
-
-
-
-
-
-    centerOfMass():
-
-    Vertex {
-
-
-
-        const vertices =
-
-        this.getVertices();
-
-
-
-        if(
-
-            vertices.length===0
-
-        ){
-
-            throw new Error(
-
-                "Empty solid"
-
-            );
-
-        }
-
-
-
-        let x=0;
-
-        let y=0;
-
-        let z=0;
-
-
-
-        for(
-
-            const v of vertices
-
-        ){
-
-
-
-            x += v.position.x;
-
-            y += v.position.y;
-
-            z += v.position.z;
-
-        }
-
-
-
-        const n =
-
-        vertices.length;
-
-
-
-        return new Vertex(
-
-            new Point(
-
-                x/n,
-
-                y/n,
-
-                z/n
-
-            )
-
-        );
-
-    }
-
-
-
-
-
-
-
-    validate():
+    ):
 
     boolean {
 
 
 
-        return (
+        return this.getFaces()
 
-            this.isClosed()
+        .includes(
 
-            &&
-
-            this.getFaces().length>0
+            face
 
         );
 
@@ -556,81 +551,87 @@ export class Solid {
 
 
 
-    reverse():
-
-    Solid {
 
 
+    containsEdge(
 
-        const reversed =
-
-        new Solid(
-
-            this.shells.map(
-
-                shell =>
-
-                shell.reverse()
-
-            )
-
-        );
-
-
-
-        reversed.orientation =
-
-        this.orientation ===
-
-        SolidOrientation.OUTWARD
-
-        ?
-
-        SolidOrientation.INWARD
-
-        :
-
-        SolidOrientation.OUTWARD;
-
-
-
-        return reversed;
-
-    }
-
-
-
-
-
-
-
-    transform(
-
-        transform:Transform
+        edge:Edge
 
     ):
 
+    boolean {
+
+
+
+        return this.getEdges()
+
+        .includes(
+
+            edge
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    clear():
+
+    void {
+
+
+
+        this.shells = [];
+
+    }
+
+
+
+
+
+
+
+
+
+    clone():
+
     Solid {
+
+
+
+        const clonedShells =
+
+        this.shells
+
+        .map(
+
+            shell =>
+
+            shell.clone()
+
+        );
+
+
 
 
 
         return new Solid(
 
-            this.shells.map(
-
-                shell =>
-
-                shell.transform(
-
-                    transform
-
-                )
-
-            )
+            clonedShells[0]
 
         );
 
     }
+
+
+
+
 
 
 
