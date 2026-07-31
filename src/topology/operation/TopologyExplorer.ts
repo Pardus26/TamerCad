@@ -1,25 +1,25 @@
-import { Vertex }
-from "../core/Vertex";
-
-
-import { Edge }
-from "../core/Edge";
-
-
-import { Face }
-from "../core/Face";
+import { Solid }
+from "../core/Solid";
 
 
 import { Shell }
 from "../core/Shell";
 
 
-import { Solid }
-from "../core/Solid";
+import { Face }
+from "../core/Face";
 
 
-import { Wire }
-from "../core/Wire";
+import { Edge }
+from "../core/Edge";
+
+
+import { Vertex }
+from "../core/Vertex";
+
+
+
+
 
 
 
@@ -35,19 +35,7 @@ export class TopologyExplorer {
 
 
 
-
-
-    vertices():
-
-    Vertex[] {
-
-
-
-        return this.solid
-
-        .getVertices();
-
-    }
+    
 
 
 
@@ -55,15 +43,17 @@ export class TopologyExplorer {
 
 
 
-    edges():
+    getSolids():
 
-    Edge[] {
+    Solid[] {
 
 
 
-        return this.solid
+        return [
 
-        .getEdges();
+            this.solid
+
+        ];
 
     }
 
@@ -73,25 +63,9 @@ export class TopologyExplorer {
 
 
 
-    faces():
-
-    Face[] {
 
 
-
-        return this.solid
-
-        .getFaces();
-
-    }
-
-
-
-
-
-
-
-    shells():
+    getShells():
 
     Shell[] {
 
@@ -109,47 +83,17 @@ export class TopologyExplorer {
 
 
 
-    wires():
-
-    Wire[] {
 
 
+    getFaces():
 
-        const result:
-
-        Wire[]=[];
+    Face[] {
 
 
 
-        for(
+        return this.solid
 
-            const face of
-
-            this.faces()
-
-        ){
-
-
-
-            result.push(
-
-                ...face.getWires()
-
-            );
-
-        }
-
-
-
-        return [
-
-            ...new Set(
-
-                result
-
-            )
-
-        ];
+        .getFaces();
 
     }
 
@@ -159,7 +103,225 @@ export class TopologyExplorer {
 
 
 
-    edgesOfVertex(
+
+
+    getEdges():
+
+    Edge[] {
+
+
+
+        return this.solid
+
+        .getEdges();
+
+    }
+
+
+
+
+
+
+
+
+
+    getVertices():
+
+    Vertex[] {
+
+
+
+        return this.solid
+
+        .getVertices();
+
+    }
+
+
+
+
+
+
+
+
+
+    getEdgesOfFace(
+
+        face:Face
+
+    ):
+
+    Edge[] {
+
+
+
+        return face
+
+        .getEdges();
+
+    }
+
+
+
+
+
+
+
+
+
+    getVerticesOfFace(
+
+        face:Face
+
+    ):
+
+    Vertex[] {
+
+
+
+        const vertices:
+
+        Vertex[] = [];
+
+
+
+
+
+        for(
+
+            const edge of
+
+            face.getEdges()
+
+        ){
+
+
+
+            if(
+
+                !vertices.includes(
+
+                    edge.start
+
+                )
+
+            ){
+
+                vertices.push(
+
+                    edge.start
+
+                );
+
+            }
+
+
+
+
+
+            if(
+
+                !vertices.includes(
+
+                    edge.end
+
+                )
+
+            ){
+
+                vertices.push(
+
+                    edge.end
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return vertices;
+
+    }
+
+
+
+
+
+
+
+
+
+    getFacesOfEdge(
+
+        edge:Edge
+
+    ):
+
+    Face[] {
+
+
+
+        const result:
+
+        Face[] = [];
+
+
+
+
+
+        for(
+
+            const face of
+
+            this.getFaces()
+
+        ){
+
+
+
+            if(
+
+                face.containsEdge(
+
+                    edge
+
+                )
+
+            ){
+
+
+
+                result.push(
+
+                    face
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return result;
+
+    }
+
+
+
+
+
+
+
+
+
+    getEdgesOfVertex(
 
         vertex:Vertex
 
@@ -181,99 +343,9 @@ export class TopologyExplorer {
 
 
 
-    facesOfVertex(
-
-        vertex:Vertex
-
-    ):
-
-    Face[] {
 
 
-
-        return vertex
-
-        .getFaces();
-
-    }
-
-
-
-
-
-
-
-    facesOfEdge(
-
-        edge:Edge
-
-    ):
-
-    Face[] {
-
-
-
-        const faces:
-
-        Face[]=[];
-
-
-
-        if(
-
-            edge.halfEdge1?.face
-
-        ){
-
-
-
-            faces.push(
-
-                edge.halfEdge1.face
-
-            );
-
-        }
-
-
-
-        if(
-
-            edge.halfEdge2?.face
-
-        ){
-
-
-
-            faces.push(
-
-                edge.halfEdge2.face
-
-            );
-
-        }
-
-
-
-        return [
-
-            ...new Set(
-
-                faces
-
-            )
-
-        ];
-
-    }
-
-
-
-
-
-
-
-    adjacentFaces(
+    getConnectedFaces(
 
         face:Face
 
@@ -283,9 +355,11 @@ export class TopologyExplorer {
 
 
 
-        const result:
+        const connected:
 
-        Face[]=[];
+        Face[] = [];
+
+
 
 
 
@@ -299,15 +373,23 @@ export class TopologyExplorer {
 
 
 
+            const faces =
+
+            this.getFacesOfEdge(
+
+                edge
+
+            );
+
+
+
+
+
             for(
 
-                const f of
+                const neighbour of
 
-                this.facesOfEdge(
-
-                    edge
-
-                )
+                faces
 
             ){
 
@@ -315,13 +397,23 @@ export class TopologyExplorer {
 
                 if(
 
-                    f !== face
+                    neighbour !== face
+
+                    &&
+
+                    !connected.includes(
+
+                        neighbour
+
+                    )
 
                 ){
 
-                    result.push(
 
-                        f
+
+                    connected.push(
+
+                        neighbour
 
                     );
 
@@ -333,15 +425,9 @@ export class TopologyExplorer {
 
 
 
-        return [
 
-            ...new Set(
 
-                result
-
-            )
-
-        ];
+        return connected;
 
     }
 
@@ -351,45 +437,75 @@ export class TopologyExplorer {
 
 
 
-    adjacentEdges(
+
+
+    findFaceByEdge(
+
+        edge:Edge
+
+    ):
+
+    Face|null {
+
+
+
+        const faces =
+
+        this.getFacesOfEdge(
+
+            edge
+
+        );
+
+
+
+
+
+        return faces.length > 0
+
+        ?
+
+        faces[0]
+
+        :
+
+        null;
+
+    }
+
+
+
+
+
+
+
+
+
+    findVertex(
 
         vertex:Vertex
 
     ):
 
-    Edge[] {
+    Vertex|null {
 
 
 
-        return [
+        return this.getVertices()
 
-            ...vertex.getEdges()
+        .includes(
 
-        ];
+            vertex
 
-    }
+        )
 
+        ?
 
+        vertex
 
+        :
 
-
-
-
-    boundaryEdges():
-
-    Edge[] {
-
-
-
-        return this.edges()
-
-        .filter(
-
-            edge =>
-
-            edge.isBoundary()
-
-        );
+        null;
 
     }
 
@@ -399,21 +515,17 @@ export class TopologyExplorer {
 
 
 
-    isolatedVertices():
-
-    Vertex[] {
 
 
+    countFaces():
 
-        return this.vertices()
+    number {
 
-        .filter(
 
-            vertex =>
 
-            vertex.isIsolated()
+        return this.getFaces()
 
-        );
+        .length;
 
     }
 
@@ -423,195 +535,101 @@ export class TopologyExplorer {
 
 
 
-    connectedFaces():
-
-    Face[][] {
 
 
+    countEdges():
 
-        const visited =
-
-        new Set<Face>();
+    number {
 
 
 
-        const groups:
+        return this.getEdges()
 
-        Face[][]=[];
+        .length;
+
+    }
+
+
+
+
+
+
+
+
+
+    countVertices():
+
+    number {
+
+
+
+        return this.getVertices()
+
+        .length;
+
+    }
+
+
+
+
+
+
+
+
+
+    isManifold():
+
+    boolean {
 
 
 
         for(
 
-            const face of
+            const edge of
 
-            this.faces()
-
-        ){
-
-
-
-            if(
-
-                visited.has(face)
-
-            ){
-
-                continue;
-
-            }
-
-
-
-            const group:
-
-            Face[]=[];
-
-
-
-            this.walkFaceGraph(
-
-                face,
-
-                visited,
-
-                group
-
-            );
-
-
-
-            groups.push(
-
-                group
-
-            );
-
-        }
-
-
-
-        return groups;
-
-    }
-
-
-
-
-
-
-
-    private walkFaceGraph(
-
-        face:Face,
-
-        visited:Set<Face>,
-
-        group:Face[]
-
-    ):
-
-
-
-    void {
-
-
-
-        visited.add(
-
-            face
-
-        );
-
-
-
-        group.push(
-
-            face
-
-        );
-
-
-
-        for(
-
-            const next of
-
-            this.adjacentFaces(
-
-                face
-
-            )
+            this.getEdges()
 
         ){
 
 
 
+            const faces =
+
+            this.getFacesOfEdge(
+
+                edge
+
+            );
+
+
+
+
+
             if(
 
-                !visited.has(next)
+                faces.length !== 2
 
             ){
 
 
 
-                this.walkFaceGraph(
-
-                    next,
-
-                    visited,
-
-                    group
-
-                );
+                return false;
 
             }
 
         }
 
-    }
 
 
 
 
-
-
-
-    statistics():
-
-    object {
-
-
-
-        return {
-
-            vertices:
-
-            this.vertices().length,
-
-
-            edges:
-
-            this.edges().length,
-
-
-            faces:
-
-            this.faces().length,
-
-
-            shells:
-
-            this.shells().length,
-
-
-            wires:
-
-            this.wires().length
-
-        };
+        return true;
 
     }
+
+
+
+
 
 
 
