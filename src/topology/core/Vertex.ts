@@ -2,6 +2,10 @@ import { Point }
 from "../../geometry/core/Point";
 
 
+import { Vector3 }
+from "../../geometry/core/Vector3";
+
+
 import { Edge }
 from "./Edge";
 
@@ -15,7 +19,7 @@ export class Vertex {
 
 
 
-    public edges:
+    private edges:
 
     Edge[] = [];
 
@@ -32,6 +36,8 @@ export class Vertex {
     ){}
 
 
+
+    
 
 
 
@@ -135,7 +141,29 @@ export class Vertex {
 
 
 
-        return this.edges;
+        return [
+
+            ...this.edges
+
+        ];
+
+    }
+
+
+
+
+
+
+
+
+
+    degree():
+
+    number {
+
+
+
+        return this.edges.length;
 
     }
 
@@ -187,15 +215,17 @@ export class Vertex {
 
 
 
-        return this.position
+        return (
 
-        .distanceTo(
+            this.distanceTo(
 
-            vertex.position
+                vertex
 
-        )
+            )
 
-        <= tolerance;
+            <= tolerance
+
+        );
 
     }
 
@@ -239,17 +269,7 @@ export class Vertex {
 
     translate(
 
-        vector:
-
-        {
-
-            x:number,
-
-            y:number,
-
-            z:number
-
-        }
+        vector:Vector3
 
     ):
 
@@ -278,6 +298,66 @@ export class Vertex {
             )
 
         );
+
+    }
+
+
+
+
+
+
+
+
+
+    setPosition(
+
+        point:Point
+
+    ):
+
+    void {
+
+
+
+        this.position =
+
+        point;
+
+
+
+
+
+        for(
+
+            const edge of
+
+            this.edges
+
+        ){
+
+
+
+            edge.invalidate?.();
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    getPosition():
+
+    Point {
+
+
+
+        return this.position;
 
     }
 
