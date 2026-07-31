@@ -1,29 +1,20 @@
 import { BRepModel }
 from "../BRepModel";
 
-
 import { Solid }
 from "../core/Solid";
-
 
 import { Shell }
 from "../core/Shell";
 
-
 import { Face }
 from "../core/Face";
-
 
 import { Edge }
 from "../core/Edge";
 
-
 import { Vertex }
 from "../core/Vertex";
-
-
-import { Point }
-from "../../geometry/core/Point";
 
 
 
@@ -59,6 +50,8 @@ export class BRepValidator {
         public tolerance:number = 1e-6
 
     ){}
+
+
 
 
 
@@ -148,7 +141,7 @@ export class BRepValidator {
 
 
 
-            this.validateSolid(
+            this.validateSolidInternal(
 
                 solid,
 
@@ -212,6 +205,70 @@ export class BRepValidator {
 
     validateSolid(
 
+        solid:Solid
+
+    ):
+
+    BRepValidationResult {
+
+
+
+        const errors:
+
+        string[] = [];
+
+
+
+        const warnings:
+
+        string[] = [];
+
+
+
+
+
+        this.validateSolidInternal(
+
+            solid,
+
+            errors,
+
+            warnings
+
+        );
+
+
+
+
+
+        return {
+
+
+            valid:
+
+            errors.length === 0,
+
+
+            errors,
+
+
+            warnings
+
+
+        };
+
+    }
+
+
+
+
+
+
+
+
+
+    private validateSolidInternal(
+
         solid:Solid,
 
 
@@ -266,10 +323,6 @@ export class BRepValidator {
 
 
 
-
-
-
-
         this.validateFaces(
 
             solid,
@@ -282,10 +335,6 @@ export class BRepValidator {
 
 
 
-
-
-
-
         this.validateEdges(
 
             solid,
@@ -293,10 +342,6 @@ export class BRepValidator {
             errors
 
         );
-
-
-
-
 
 
 
@@ -412,7 +457,6 @@ export class BRepValidator {
             );
 
 
-
             return;
 
         }
@@ -448,7 +492,6 @@ export class BRepValidator {
                     "Null shell"
 
                 );
-
 
 
                 continue;
@@ -557,7 +600,6 @@ export class BRepValidator {
                 );
 
 
-
                 continue;
 
             }
@@ -617,7 +659,6 @@ export class BRepValidator {
                 );
 
 
-
                 continue;
 
             }
@@ -666,7 +707,7 @@ export class BRepValidator {
 
                 errors.push(
 
-                    "Face has no edges"
+                    "Face contains no edges"
 
                 );
 
@@ -722,7 +763,6 @@ export class BRepValidator {
                 );
 
 
-
                 continue;
 
             }
@@ -754,7 +794,6 @@ export class BRepValidator {
                 );
 
 
-
                 continue;
 
             }
@@ -779,7 +818,7 @@ export class BRepValidator {
 
                 errors.push(
 
-                    "Edge has same start/end vertex"
+                    "Edge has same start and end vertex"
 
                 );
 
@@ -861,7 +900,6 @@ export class BRepValidator {
                     "Null vertex"
 
                 );
-
 
 
                 continue;
@@ -1005,8 +1043,6 @@ export class BRepValidator {
 
                     );
 
-
-
                 }
 
             }
@@ -1108,7 +1144,6 @@ export class BRepValidator {
 
         return (
 
-
             (
 
                 a.start.position.equals(
@@ -1195,10 +1230,6 @@ export class BRepValidator {
 
 
 
-
-
-
-
             for(
 
                 const face of
@@ -1226,10 +1257,6 @@ export class BRepValidator {
                 }
 
             }
-
-
-
-
 
 
 
@@ -1275,7 +1302,7 @@ export class BRepValidator {
 
 
 
-        const V =
+        const vertices =
 
         solid.getVertices()
 
@@ -1283,7 +1310,7 @@ export class BRepValidator {
 
 
 
-        const E =
+        const edges =
 
         solid.getEdges()
 
@@ -1291,7 +1318,7 @@ export class BRepValidator {
 
 
 
-        const F =
+        const faces =
 
         solid.getFaces()
 
@@ -1301,17 +1328,13 @@ export class BRepValidator {
 
 
 
-
-
-
-
         return (
 
-            V -
+            vertices -
 
-            E +
+            edges +
 
-            F
+            faces
 
         )
 
@@ -1357,10 +1380,6 @@ export class BRepValidator {
 
 
 
-
-
-
-
             for(
 
                 const face of
@@ -1393,13 +1412,9 @@ export class BRepValidator {
 
 
 
-
-
-
-
             if(
 
-                usage < 2
+                usage === 1
 
             ){
 
@@ -1449,10 +1464,6 @@ export class BRepValidator {
 
 
 
-
-
-
-
         if(
 
             !result.valid
@@ -1474,10 +1485,6 @@ export class BRepValidator {
         }
 
     }
-
-
-
-
 
 
 
