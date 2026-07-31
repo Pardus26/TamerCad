@@ -1,20 +1,29 @@
 import { BRepModel }
 from "../BRepModel";
 
+
 import { Solid }
 from "../core/Solid";
+
 
 import { Shell }
 from "../core/Shell";
 
+
 import { Face }
 from "../core/Face";
+
 
 import { Edge }
 from "../core/Edge";
 
+
 import { Vertex }
 from "../core/Vertex";
+
+
+import { Point }
+from "../../geometry/core/Point";
 
 
 
@@ -42,10 +51,6 @@ export interface BRepValidationResult {
 
 
 export class BRepValidator {
-
-
-
-
 
 
 
@@ -223,7 +228,7 @@ export class BRepValidator {
 
         if(
 
-            !solid.isValid()
+            !solid
 
         ){
 
@@ -231,9 +236,13 @@ export class BRepValidator {
 
             errors.push(
 
-                "Solid is invalid"
+                "Null solid"
 
             );
+
+
+
+            return;
 
         }
 
@@ -257,6 +266,10 @@ export class BRepValidator {
 
 
 
+
+
+
+
         this.validateFaces(
 
             solid,
@@ -269,6 +282,10 @@ export class BRepValidator {
 
 
 
+
+
+
+
         this.validateEdges(
 
             solid,
@@ -276,6 +293,10 @@ export class BRepValidator {
             errors
 
         );
+
+
+
+
 
 
 
@@ -311,7 +332,7 @@ export class BRepValidator {
 
             errors.push(
 
-                "Solid is non manifold"
+                "Solid is not manifold"
 
             );
 
@@ -391,6 +412,7 @@ export class BRepValidator {
             );
 
 
+
             return;
 
         }
@@ -415,7 +437,7 @@ export class BRepValidator {
 
             if(
 
-                !shell.isClosed()
+                !shell
 
             ){
 
@@ -423,11 +445,19 @@ export class BRepValidator {
 
                 errors.push(
 
-                    "Shell is open"
+                    "Null shell"
 
                 );
 
+
+
+                continue;
+
             }
+
+
+
+
 
 
 
@@ -447,7 +477,31 @@ export class BRepValidator {
 
                 errors.push(
 
-                    "Empty shell"
+                    "Shell has no faces"
+
+                );
+
+            }
+
+
+
+
+
+
+
+
+
+            if(
+
+                !shell.isClosed()
+
+            ){
+
+
+
+                errors.push(
+
+                    "Shell is open"
 
                 );
 
@@ -490,6 +544,34 @@ export class BRepValidator {
 
             if(
 
+                !face
+
+            ){
+
+
+
+                errors.push(
+
+                    "Null face"
+
+                );
+
+
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+
+
+            if(
+
                 !face.isValid()
 
             ){
@@ -508,9 +590,41 @@ export class BRepValidator {
 
 
 
+
+
+
+
             const outer =
 
             face.getOuterWire();
+
+
+
+
+
+            if(
+
+                !outer
+
+            ){
+
+
+
+                errors.push(
+
+                    "Face has no outer wire"
+
+                );
+
+
+
+                continue;
+
+            }
+
+
+
+
 
 
 
@@ -526,11 +640,15 @@ export class BRepValidator {
 
                 errors.push(
 
-                    "Face outer wire open"
+                    "Face outer wire is open"
 
                 );
 
             }
+
+
+
+
 
 
 
@@ -579,21 +697,41 @@ export class BRepValidator {
 
 
 
-        const edges =
-
-        solid.getEdges();
-
-
-
-
-
         for(
 
             const edge of
 
-            edges
+            solid.getEdges()
 
         ){
+
+
+
+            if(
+
+                !edge
+
+            ){
+
+
+
+                errors.push(
+
+                    "Null edge"
+
+                );
+
+
+
+                continue;
+
+            }
+
+
+
+
+
+
 
 
 
@@ -611,14 +749,19 @@ export class BRepValidator {
 
                 errors.push(
 
-                    "Edge missing vertex"
+                    "Edge missing vertices"
 
                 );
+
 
 
                 continue;
 
             }
+
+
+
+
 
 
 
@@ -636,11 +779,15 @@ export class BRepValidator {
 
                 errors.push(
 
-                    "Zero length edge"
+                    "Edge has same start/end vertex"
 
                 );
 
             }
+
+
+
+
 
 
 
@@ -703,6 +850,34 @@ export class BRepValidator {
 
             if(
 
+                !vertex
+
+            ){
+
+
+
+                errors.push(
+
+                    "Null vertex"
+
+                );
+
+
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+
+
+            if(
+
                 !vertex.position
 
             ){
@@ -711,11 +886,15 @@ export class BRepValidator {
 
                 errors.push(
 
-                    "Vertex without point"
+                    "Vertex has no position"
 
                 );
 
             }
+
+
+
+
 
 
 
@@ -772,6 +951,10 @@ export class BRepValidator {
 
 
 
+
+
+
+
         for(
 
             let i = 0;
@@ -800,9 +983,13 @@ export class BRepValidator {
 
                     vertices[i]
 
+                    .position
+
                     .equals(
 
-                        vertices[j],
+                        vertices[j]
+
+                        .position,
 
                         this.tolerance
 
@@ -817,6 +1004,8 @@ export class BRepValidator {
                         "Duplicate vertices detected"
 
                     );
+
+
 
                 }
 
@@ -835,6 +1024,10 @@ export class BRepValidator {
         const edges =
 
         model.getEdges();
+
+
+
+
 
 
 
@@ -866,13 +1059,11 @@ export class BRepValidator {
 
                 if(
 
-                    edges[i]
+                    this.sameEdge(
 
-                    .equals(
+                        edges[i],
 
-                        edges[j],
-
-                        this.tolerance
+                        edges[j]
 
                     )
 
@@ -891,6 +1082,80 @@ export class BRepValidator {
             }
 
         }
+
+    }
+
+
+
+
+
+
+
+
+
+    private sameEdge(
+
+        a:Edge,
+
+
+        b:Edge
+
+    ):
+
+    boolean {
+
+
+
+        return (
+
+
+            (
+
+                a.start.position.equals(
+
+                    b.start.position,
+
+                    this.tolerance
+
+                )
+
+                &&
+
+                a.end.position.equals(
+
+                    b.end.position,
+
+                    this.tolerance
+
+                )
+
+            )
+
+            ||
+
+            (
+
+                a.start.position.equals(
+
+                    b.end.position,
+
+                    this.tolerance
+
+                )
+
+                &&
+
+                a.end.position.equals(
+
+                    b.start.position,
+
+                    this.tolerance
+
+                )
+
+            )
+
+        );
 
     }
 
@@ -922,9 +1187,13 @@ export class BRepValidator {
 
 
 
-            let count =
+            let usage =
 
             0;
+
+
+
+
 
 
 
@@ -952,7 +1221,7 @@ export class BRepValidator {
 
 
 
-                    count++;
+                    usage++;
 
                 }
 
@@ -962,9 +1231,13 @@ export class BRepValidator {
 
 
 
+
+
+
+
             if(
 
-                count !== 2
+                usage !== 2
 
             ){
 
@@ -1028,6 +1301,10 @@ export class BRepValidator {
 
 
 
+
+
+
+
         return (
 
             V -
@@ -1080,6 +1357,10 @@ export class BRepValidator {
 
 
 
+
+
+
+
             for(
 
                 const face of
@@ -1112,9 +1393,13 @@ export class BRepValidator {
 
 
 
+
+
+
+
             if(
 
-                usage === 1
+                usage < 2
 
             ){
 
@@ -1159,6 +1444,10 @@ export class BRepValidator {
             model
 
         );
+
+
+
+
 
 
 
