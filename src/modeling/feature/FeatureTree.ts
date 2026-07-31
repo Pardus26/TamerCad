@@ -7,6 +7,10 @@ from "../../topology/core/Solid";
 
 
 
+
+
+
+
 export class FeatureTree {
 
 
@@ -25,6 +29,8 @@ export class FeatureTree {
 
 
 
+
+
     constructor(
 
         public name:string =
@@ -32,6 +38,12 @@ export class FeatureTree {
         "Model"
 
     ){}
+
+
+
+    
+
+
 
 
 
@@ -53,6 +65,8 @@ export class FeatureTree {
 
 
 
+
+
         if(
 
             previous
@@ -68,6 +82,8 @@ export class FeatureTree {
             );
 
         }
+
+
 
 
 
@@ -91,31 +107,107 @@ export class FeatureTree {
 
 
 
+
+
     removeFeature(
 
         id:string
 
     ):
 
-    void {
+    boolean {
 
 
 
-        const index =
+        const feature =
 
-        this.features.findIndex(
+        this.getFeature(
 
-            f =>
-
-            f.id === id
+            id
 
         );
 
 
 
+
+
         if(
 
-            index >= 0
+            !feature
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+        for(
+
+            const parent of
+
+            feature.getParents()
+
+        ){
+
+
+
+            parent.removeChild(
+
+                feature
+
+            );
+
+        }
+
+
+
+
+
+        for(
+
+            const child of
+
+            feature.getChildren()
+
+        ){
+
+
+
+            child.parents =
+
+            child.parents.filter(
+
+                p =>
+
+                p !== feature
+
+            );
+
+        }
+
+
+
+
+
+        const index =
+
+        this.features.indexOf(
+
+            feature
+
+        );
+
+
+
+
+
+        if(
+
+            index !== -1
 
         ){
 
@@ -131,7 +223,35 @@ export class FeatureTree {
 
         }
 
+
+
+
+
+        if(
+
+            this.activeFeature ===
+
+            feature
+
+        ){
+
+
+
+            this.activeFeature =
+
+            this.getLastFeature();
+
+        }
+
+
+
+
+
+        return true;
+
     }
+
+
 
 
 
@@ -151,13 +271,41 @@ export class FeatureTree {
 
         return this.features.find(
 
-            f =>
+            feature =>
 
-            f.id === id
+            feature.id === id
 
         );
 
     }
+
+
+
+
+
+
+
+
+
+    find(
+
+        id:string
+
+    ):
+
+    Feature | undefined {
+
+
+
+        return this.getFeature(
+
+            id
+
+        );
+
+    }
+
+
 
 
 
@@ -183,13 +331,17 @@ export class FeatureTree {
 
 
 
+
+
         return this.features[
 
-            this.features.length-1
+            this.features.length - 1
 
         ];
 
     }
+
+
 
 
 
@@ -203,7 +355,7 @@ export class FeatureTree {
 
     ):
 
-    void {
+    boolean {
 
 
 
@@ -217,19 +369,33 @@ export class FeatureTree {
 
 
 
+
+
         if(
 
-            feature
+            !feature
 
         ){
 
-            this.activeFeature =
-
-            feature;
+            return false;
 
         }
 
+
+
+
+
+        this.activeFeature =
+
+        feature;
+
+
+
+        return true;
+
     }
+
+
 
 
 
@@ -253,6 +419,8 @@ export class FeatureTree {
 
 
 
+
+
     rebuild():
 
     Solid | null {
@@ -262,6 +430,8 @@ export class FeatureTree {
         let result:
 
         Solid | null = null;
+
+
 
 
 
@@ -277,17 +447,41 @@ export class FeatureTree {
 
             result =
 
-            feature.getResult();
-
-
+            feature.evaluate();
 
         }
+
+
 
 
 
         return result;
 
     }
+
+
+
+
+
+
+
+
+
+    getOrdered():
+
+    Feature[] {
+
+
+
+        return [
+
+            ...this.features
+
+        ];
+
+    }
+
+
 
 
 
@@ -309,11 +503,13 @@ export class FeatureTree {
 
         this.features.findIndex(
 
-            f =>
+            feature =>
 
-            f.id === id
+            feature.id === id
 
         );
+
+
 
 
 
@@ -329,17 +525,21 @@ export class FeatureTree {
 
 
 
+
+
         let result:
 
         Solid | null = null;
 
 
 
+
+
         for(
 
-            let i=0;
+            let i = 0;
 
-            i<=index;
+            i <= index;
 
             i++
 
@@ -351,15 +551,27 @@ export class FeatureTree {
 
             this.features[i]
 
-            .getResult();
+            .evaluate();
 
         }
+
+
+
+
+
+        this.activeFeature =
+
+        this.features[index];
+
+
 
 
 
         return result;
 
     }
+
+
 
 
 
@@ -409,6 +621,8 @@ export class FeatureTree {
 
 
 
+
+
     clear():
 
     void {
@@ -417,11 +631,15 @@ export class FeatureTree {
 
         this.features = [];
 
+
+
         this.activeFeature =
 
         null;
 
     }
+
+
 
 
 
