@@ -2,8 +2,12 @@ import { Point }
 from "../../geometry/core/Point";
 
 
-import { Transform }
-from "../../geometry/core/Transform";
+import { Edge }
+from "./Edge";
+
+
+
+
 
 
 
@@ -11,48 +15,23 @@ export class Vertex {
 
 
 
-    private static nextId = 1;
+    public edges:
+
+    Edge[] = [];
 
 
 
-    public readonly id:number;
 
-
-
-    private edges:Set<any>;
-
-
-
-    private faces:Set<any>;
 
 
 
     constructor(
 
-        public position:Point,
+        public position:Point
 
-        public tolerance:number = 1e-6
-
-    ){
+    ){}
 
 
-        this.id =
-
-        Vertex.nextId++;
-
-
-
-        this.edges =
-
-        new Set();
-
-
-
-        this.faces =
-
-        new Set();
-
-    }
 
 
 
@@ -62,7 +41,7 @@ export class Vertex {
 
     addEdge(
 
-        edge:any
+        edge:Edge
 
     ):
 
@@ -70,13 +49,29 @@ export class Vertex {
 
 
 
-        this.edges.add(
+        if(
 
-            edge
+            !this.edges.includes(
 
-        );
+                edge
+
+            )
+
+        ){
+
+
+
+            this.edges.push(
+
+                edge
+
+            );
+
+        }
 
     }
+
+
 
 
 
@@ -86,7 +81,7 @@ export class Vertex {
 
     removeEdge(
 
-        edge:any
+        edge:Edge
 
     ):
 
@@ -94,13 +89,39 @@ export class Vertex {
 
 
 
-        this.edges.delete(
+        const index =
+
+        this.edges.indexOf(
 
             edge
 
         );
 
+
+
+
+
+        if(
+
+            index !== -1
+
+        ){
+
+
+
+            this.edges.splice(
+
+                index,
+
+                1
+
+            );
+
+        }
+
     }
+
+
 
 
 
@@ -110,85 +131,15 @@ export class Vertex {
 
     getEdges():
 
-    any[] {
+    Edge[] {
 
 
 
-        return Array.from(
-
-            this.edges
-
-        );
+        return this.edges;
 
     }
 
 
-
-
-
-
-
-    addFace(
-
-        face:any
-
-    ):
-
-    void {
-
-
-
-        this.faces.add(
-
-            face
-
-        );
-
-    }
-
-
-
-
-
-
-
-    removeFace(
-
-        face:any
-
-    ):
-
-    void {
-
-
-
-        this.faces.delete(
-
-            face
-
-        );
-
-    }
-
-
-
-
-
-
-
-    getFaces():
-
-    any[] {
-
-
-
-        return Array.from(
-
-            this.faces
-
-        );
-
-    }
 
 
 
@@ -198,7 +149,7 @@ export class Vertex {
 
     distanceTo(
 
-        other:Vertex
+        vertex:Vertex
 
     ):
 
@@ -206,13 +157,17 @@ export class Vertex {
 
 
 
-        return this.position.distanceTo(
+        return this.position
 
-            other.position
+        .distanceTo(
+
+            vertex.position
 
         );
 
     }
+
+
 
 
 
@@ -222,7 +177,9 @@ export class Vertex {
 
     equals(
 
-        other:Vertex
+        vertex:Vertex,
+
+        tolerance:number = 1e-6
 
     ):
 
@@ -230,51 +187,19 @@ export class Vertex {
 
 
 
-        return (
+        return this.position
 
-            this.distanceTo(
+        .distanceTo(
 
-                other
+            vertex.position
 
-            )
+        )
 
-            <=
-
-            this.tolerance
-
-        );
+        <= tolerance;
 
     }
 
 
-
-
-
-
-
-    transform(
-
-        transform:Transform
-
-    ):
-
-    Vertex {
-
-
-
-        return new Vertex(
-
-            transform.applyToPoint(
-
-                this.position
-
-            ),
-
-            this.tolerance
-
-        );
-
-    }
 
 
 
@@ -290,9 +215,67 @@ export class Vertex {
 
         return new Vertex(
 
-            this.position.clone(),
+            new Point(
 
-            this.tolerance
+                this.position.x,
+
+                this.position.y,
+
+                this.position.z
+
+            )
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    translate(
+
+        vector:
+
+        {
+
+            x:number,
+
+            y:number,
+
+            z:number
+
+        }
+
+    ):
+
+    Vertex {
+
+
+
+        return new Vertex(
+
+            new Point(
+
+                this.position.x +
+
+                vector.x,
+
+
+                this.position.y +
+
+                vector.y,
+
+
+                this.position.z +
+
+                vector.z
+
+            )
 
         );
 
@@ -301,22 +284,6 @@ export class Vertex {
 
 
 
-
-
-
-    isIsolated():
-
-    boolean {
-
-
-
-        return (
-
-            this.edges.size===0
-
-        );
-
-    }
 
 
 
