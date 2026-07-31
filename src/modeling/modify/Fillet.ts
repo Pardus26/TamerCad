@@ -10,8 +10,12 @@ import { Face }
 from "../../topology/core/Face";
 
 
-import { CylinderSurface }
-from "../../geometry/surface/CylinderSurface";
+import { Wire }
+from "../../topology/core/Wire";
+
+
+import { PlaneSurface }
+from "../../geometry/surface/PlaneSurface";
 
 
 import { BRepBuilder }
@@ -19,13 +23,18 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface FilletOptions {
 
 
-    smooth?:boolean;
+    segments?:number;
 
 
     preserveTopology?:boolean;
+
+
+    smooth?:boolean;
 
 
 }
@@ -42,12 +51,11 @@ export class Fillet {
 
     constructor(
 
+
         public solid:Solid,
 
 
-        public edges:
-
-        Edge[],
+        public edges:Edge[],
 
 
         public radius:number,
@@ -57,7 +65,29 @@ export class Fillet {
 
         FilletOptions = {}
 
-    ){}
+    ){
+
+
+
+
+
+        if(
+
+            radius <= 0
+
+        ){
+
+            throw new Error(
+
+                "Fillet radius must be positive"
+
+            );
+
+        }
+
+    }
+
+
 
 
 
@@ -75,9 +105,13 @@ export class Fillet {
 
 
 
-        const newFaces:
 
-        Face[]=[];
+
+        const faces:
+
+        Face[] = [];
+
+
 
 
 
@@ -91,17 +125,41 @@ export class Fillet {
 
 
 
-            newFaces.push(
+            if(
 
-                this.processFace(
+                this.isAffected(face)
+
+            ){
+
+
+
+                faces.push(
+
+                    this.createFilletFace(
+
+                        face
+
+                    )
+
+                );
+
+            }
+
+            else {
+
+
+
+                faces.push(
 
                     face
 
-                )
+                );
 
-            );
+            }
 
         }
+
+
 
 
 
@@ -109,9 +167,11 @@ export class Fillet {
 
         builder.createShell(
 
-            newFaces
+            faces
 
         );
+
+
 
 
 
@@ -129,49 +189,33 @@ export class Fillet {
 
 
 
-    private processFace(
+
+
+    private isAffected(
 
         face:Face
 
     ):
 
-    Face {
+    boolean {
 
 
 
-        const affected =
+        return face
 
-        face.getEdges()
+        .getEdges()
 
         .some(
 
-            e =>
+            edge =>
 
-            this.edges.includes(e)
-
-        );
-
-
-
-        if(
-
-            !affected
-
-        ){
-
-            return face;
-
-        }
-
-
-
-        return this.createFilletFace(
-
-            face
+            this.edges.includes(edge)
 
         );
 
     }
+
+
 
 
 
@@ -191,13 +235,9 @@ export class Fillet {
 
         const surface =
 
-        new CylinderSurface(
+        new PlaneSurface();
 
-            this.radius,
 
-            this.radius
-
-        );
 
 
 
@@ -210,6 +250,112 @@ export class Fillet {
         );
 
     }
+
+
+
+
+
+
+
+
+
+    getRadius():
+
+    number {
+
+
+
+        return this.radius;
+
+    }
+
+
+
+
+
+
+
+
+
+    getEdges():
+
+    Edge[] {
+
+
+
+        return this.edges;
+
+    }
+
+
+
+
+
+
+
+
+
+    private getAdjacentFaces(
+
+        edge:Edge
+
+    ):
+
+    Face[] {
+
+
+
+        const result:
+
+        Face[] = [];
+
+
+
+
+
+        for(
+
+            const face of
+
+            this.solid.getFaces()
+
+        ){
+
+
+
+            if(
+
+                face
+
+                .getEdges()
+
+                .includes(edge)
+
+            ){
+
+
+
+                result.push(
+
+                    face
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return result;
+
+    }
+
+
+
+
 
 
 
