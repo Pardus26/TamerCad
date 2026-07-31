@@ -1,3 +1,7 @@
+import { Edge }
+from "./Edge";
+
+
 import { HalfEdge }
 from "./HalfEdge";
 
@@ -6,8 +10,8 @@ import { Vertex }
 from "./Vertex";
 
 
-import { Transform }
-from "../../geometry/core/Transform";
+
+
 
 
 
@@ -15,26 +19,57 @@ export class Wire {
 
 
 
-    private static nextId = 1;
+    private halfEdges:
+
+    HalfEdge[] = [];
 
 
 
-    public readonly id:number;
+
 
 
 
     constructor(
 
-        public start:HalfEdge|null = null
-
-    ){
+    ){}
 
 
-        this.id =
 
-        Wire.nextId++;
+    addEdge(
+
+        edge:Edge
+
+    ):
+
+    void {
+
+
+
+        const halfEdge =
+
+        new HalfEdge(
+
+            edge,
+
+            edge.start,
+
+            edge.end
+
+        );
+
+
+
+
+
+        this.addHalfEdge(
+
+            halfEdge
+
+        );
 
     }
+
+
 
 
 
@@ -52,69 +87,59 @@ export class Wire {
 
 
 
-        if(!this.start){
+        const count =
 
-
-            this.start =
-
-            halfEdge;
-
-
-
-            halfEdge.next =
-
-            halfEdge;
-
-
-
-            halfEdge.previous =
-
-            halfEdge;
-
-
-
-            return;
-
-        }
+        this.halfEdges.length;
 
 
 
 
 
-        const last =
+        if(
 
-        this.start.previous;
+            count > 0
 
-
-
-        if(last){
-
-
-            last.next =
-
-            halfEdge;
+        ){
 
 
 
-            halfEdge.previous =
+            const previous =
 
-            last;
-
-
-
-            halfEdge.next =
-
-            this.start;
+            this.halfEdges[count - 1];
 
 
 
-            this.start.previous =
 
-            halfEdge;
+
+            previous.setNext(
+
+                halfEdge
+
+            );
+
+
+
+            halfEdge.setPrevious(
+
+                previous
+
+            );
 
         }
+
+
+
+
+
+        this.halfEdges.push(
+
+            halfEdge
+
+        );
 
     }
+
+
 
 
 
@@ -128,54 +153,35 @@ export class Wire {
 
 
 
-        const result:
+        return this.halfEdges;
 
-        HalfEdge[] = [];
-
-
-
-        if(!this.start){
-
-            return result;
-
-        }
+    }
 
 
 
-        let current =
-
-        this.start;
 
 
 
-        do{
 
 
-            result.push(
 
-                current
+    getEdges():
 
-            );
-
-
-            current =
-
-            current.next!;
+    Edge[] {
 
 
-        }
 
-        while(
+        return this.halfEdges
 
-            current !== this.start
+        .map(
+
+            he => he.edge
 
         );
 
-
-
-        return result;
-
     }
+
+
 
 
 
@@ -189,17 +195,115 @@ export class Wire {
 
 
 
-        return this
+        const vertices:
 
-        .getHalfEdges()
+        Vertex[] = [];
 
-        .map(
 
-            he => he.origin
+
+
+
+        for(
+
+            const halfEdge of
+
+            this.halfEdges
+
+        ){
+
+
+
+            if(
+
+                !vertices.includes(
+
+                    halfEdge.start
+
+                )
+
+            ){
+
+                vertices.push(
+
+                    halfEdge.start
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return vertices;
+
+    }
+
+
+
+
+
+
+
+
+
+    close():
+
+    void {
+
+
+
+        if(
+
+            this.halfEdges.length < 2
+
+        ){
+
+            return;
+
+        }
+
+
+
+
+
+        const first =
+
+        this.halfEdges[0];
+
+
+
+        const last =
+
+        this.halfEdges[
+
+            this.halfEdges.length - 1
+
+        ];
+
+
+
+
+
+        last.setNext(
+
+            first
+
+        );
+
+
+
+        first.setPrevious(
+
+            last
 
         );
 
     }
+
+
 
 
 
@@ -213,7 +317,11 @@ export class Wire {
 
 
 
-        if(!this.start){
+        if(
+
+            this.halfEdges.length === 0
+
+        ){
 
             return false;
 
@@ -221,17 +329,39 @@ export class Wire {
 
 
 
+
+
+        const first =
+
+        this.halfEdges[0]
+
+        .start;
+
+
+
+        const last =
+
+        this.halfEdges[
+
+            this.halfEdges.length - 1
+
+        ]
+
+        .end;
+
+
+
+
+
         return (
 
-            this.start.previous !== null &&
-
-            this.start.next !== null &&
-
-            this.start.previous.next === this.start
+            first === last
 
         );
 
     }
+
+
 
 
 
@@ -245,23 +375,63 @@ export class Wire {
 
 
 
-        return this
+        let total =
 
-        .getHalfEdges()
+        0;
 
-        .reduce(
 
-            (
 
-                total,
 
-                he
 
-            ) =>
+        for(
 
-                total + he.length(),
+            const edge of
 
-            0
+            this.getEdges()
+
+        ){
+
+
+
+            total +=
+
+            edge.getLength();
+
+        }
+
+
+
+
+
+        return total;
+
+    }
+
+
+
+
+
+
+
+
+
+    containsEdge(
+
+        edge:Edge
+
+    ):
+
+    boolean {
+
+
+
+        return this.halfEdges
+
+        .some(
+
+            he =>
+
+            he.edge === edge
 
         );
 
@@ -273,99 +443,85 @@ export class Wire {
 
 
 
-    reverse():
-
-    Wire {
 
 
+    removeEdge(
 
-        const reversed =
-
-        new Wire();
-
-
-
-        const edges =
-
-        this
-
-        .getHalfEdges()
-
-        .map(
-
-            he => he.twin
-
-        )
-
-        .filter(
-
-            he => he!==null
-
-        ) as HalfEdge[];
-
-
-
-        for(
-
-            const he of edges
-
-        ){
-
-            reversed.addHalfEdge(
-
-                he
-
-            );
-
-        }
-
-
-
-        return reversed;
-
-    }
-
-
-
-
-
-
-
-    transform(
-
-        transform:Transform
+        edge:Edge
 
     ):
 
+    void {
+
+
+
+        this.halfEdges =
+
+        this.halfEdges
+
+        .filter(
+
+            he =>
+
+            he.edge !== edge
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    clear():
+
+    void {
+
+
+
+        this.halfEdges = [];
+
+    }
+
+
+
+
+
+
+
+
+
+    clone():
+
     Wire {
 
 
 
-        const edges =
-
-        this
-
-        .getHalfEdges();
-
-
-
-        const newWire =
+        const wire =
 
         new Wire();
 
 
 
+
+
         for(
 
-            const he of edges
+            const halfEdge of
+
+            this.halfEdges
 
         ){
 
 
 
-            newWire.addHalfEdge(
+            wire.addEdge(
 
-                he
+                halfEdge.edge.clone()
 
             );
 
@@ -373,9 +529,15 @@ export class Wire {
 
 
 
-        return newWire;
+
+
+        return wire;
 
     }
+
+
+
+
 
 
 
