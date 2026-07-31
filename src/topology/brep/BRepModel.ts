@@ -18,32 +18,29 @@ import { Vertex }
 from "../core/Vertex";
 
 
-import { TopologyExplorer }
-from "../operation/TopologyExplorer";
 
 
-import { TopologyValidator }
-from "../operation/TopologyValidator";
 
 
-import { Transform }
-from "../../geometry/core/Transform";
+
+export interface BRepModelInfo {
 
 
-import { BoundingBox }
-from "../../geometry/core/BoundingBox";
+    name?:string;
+
+
+    createdAt?:Date;
+
+
+}
+
+
+
+
 
 
 
 export class BRepModel {
-
-
-
-    private static nextId = 1;
-
-
-
-    public readonly id:number;
 
 
 
@@ -55,13 +52,47 @@ export class BRepModel {
 
 
 
-    constructor(){
+    private activeSolid:
 
-        this.id =
+    Solid|null = null;
 
-        BRepModel.nextId++;
+
+
+
+
+    public info:
+
+    BRepModelInfo;
+
+
+
+
+
+
+
+    constructor(
+
+        info:BRepModelInfo = {}
+
+    ){
+
+
+
+        this.info = {
+
+
+            createdAt:
+
+            new Date(),
+
+
+            ...info
+
+        };
 
     }
+
+
 
 
 
@@ -79,13 +110,35 @@ export class BRepModel {
 
 
 
-        this.solids.push(
+        if(
 
-            solid
+            !this.solids.includes(
 
-        );
+                solid
+
+            )
+
+        ){
+
+
+
+            this.solids.push(
+
+                solid
+
+            );
+
+
+
+            this.activeSolid =
+
+            solid;
+
+        }
 
     }
+
+
 
 
 
@@ -113,7 +166,13 @@ export class BRepModel {
 
 
 
-        if(index>=0){
+
+
+        if(
+
+            index !== -1
+
+        ){
 
 
 
@@ -127,7 +186,35 @@ export class BRepModel {
 
         }
 
+
+
+
+
+        if(
+
+            this.activeSolid === solid
+
+        ){
+
+
+
+            this.activeSolid =
+
+            this.solids.length > 0
+
+            ?
+
+            this.solids[0]
+
+            :
+
+            null;
+
+        }
+
     }
+
+
 
 
 
@@ -141,11 +228,7 @@ export class BRepModel {
 
 
 
-        return [
-
-            ...this.solids
-
-        ];
+        return this.solids;
 
     }
 
@@ -155,47 +238,15 @@ export class BRepModel {
 
 
 
-    vertices():
-
-    Vertex[] {
 
 
+    getActiveSolid():
 
-        const result:
-
-        Vertex[]=[];
+    Solid|null {
 
 
 
-        for(
-
-            const solid of
-
-            this.solids
-
-        ){
-
-
-
-            result.push(
-
-                ...solid.getVertices()
-
-            );
-
-        }
-
-
-
-        return [
-
-            ...new Set(
-
-                result
-
-            )
-
-        ];
+        return this.activeSolid;
 
     }
 
@@ -205,145 +256,39 @@ export class BRepModel {
 
 
 
-    edges():
 
-    Edge[] {
 
+    setActiveSolid(
 
+        solid:Solid
 
-        const result:
-
-        Edge[]=[];
-
-
-
-        for(
-
-            const solid of
-
-            this.solids
-
-        ){
-
-
-
-            result.push(
-
-                ...solid.getEdges()
-
-            );
-
-        }
-
-
-
-        return [
-
-            ...new Set(
-
-                result
-
-            )
-
-        ];
-
-    }
-
-
-
-
-
-
-
-    faces():
-
-    Face[] {
-
-
-
-        const result:
-
-        Face[]=[];
-
-
-
-        for(
-
-            const solid of
-
-            this.solids
-
-        ){
-
-
-
-            result.push(
-
-                ...solid.getFaces()
-
-            );
-
-        }
-
-
-
-        return [
-
-            ...new Set(
-
-                result
-
-            )
-
-        ];
-
-    }
-
-
-
-
-
-
-
-    validate():
+    ):
 
     boolean {
 
 
 
-        for(
+        if(
 
-            const solid of
-
-            this.solids
-
-        ){
-
-
-
-            const result =
-
-            TopologyValidator
-
-            .validateSolid(
+            !this.solids.includes(
 
                 solid
 
-            );
+            )
 
+        ){
 
-
-            if(
-
-                !result.valid
-
-            ){
-
-                return false;
-
-            }
+            return false;
 
         }
+
+
+
+
+
+        this.activeSolid =
+
+        solid;
 
 
 
@@ -357,15 +302,19 @@ export class BRepModel {
 
 
 
-    validationReport():
-
-    object[] {
 
 
+    getFaces():
 
-        const report:
+    Face[] {
 
-        object[]=[];
+
+
+        const faces:
+
+        Face[] = [];
+
+
 
 
 
@@ -379,15 +328,9 @@ export class BRepModel {
 
 
 
-            report.push(
+            faces.push(
 
-                TopologyValidator
-
-                .validateSolid(
-
-                    solid
-
-                )
+                ...solid.getFaces()
 
             );
 
@@ -395,7 +338,9 @@ export class BRepModel {
 
 
 
-        return report;
+
+
+        return faces;
 
     }
 
@@ -405,85 +350,19 @@ export class BRepModel {
 
 
 
-    explorer(
 
-        solid:Solid
 
-    ):
+    getEdges():
 
-    TopologyExplorer {
+    Edge[] {
 
 
 
-        return new TopologyExplorer(
+        const edges:
 
-            solid
-
-        );
-
-    }
+        Edge[] = [];
 
 
-
-
-
-
-
-    boundingBox():
-
-    BoundingBox {
-
-
-
-        const box =
-
-        BoundingBox.empty();
-
-
-
-        for(
-
-            const vertex of
-
-            this.vertices()
-
-        ){
-
-
-
-            box.expand(
-
-                vertex.position
-
-            );
-
-        }
-
-
-
-        return box;
-
-    }
-
-
-
-
-
-
-
-    transform(
-
-        transform:Transform
-
-    ):
-
-    BRepModel {
-
-
-
-        const model =
-
-        new BRepModel();
 
 
 
@@ -497,23 +376,182 @@ export class BRepModel {
 
 
 
-            model.addSolid(
+            for(
 
-                solid.transform(
+                const edge of
 
-                    transform
+                solid.getEdges()
 
-                )
+            ){
 
-            );
+
+
+                if(
+
+                    !edges.includes(
+
+                        edge
+
+                    )
+
+                ){
+
+
+
+                    edges.push(
+
+                        edge
+
+                    );
+
+                }
+
+            }
 
         }
 
 
 
-        return model;
+
+
+        return edges;
 
     }
+
+
+
+
+
+
+
+
+
+    getVertices():
+
+    Vertex[] {
+
+
+
+        const vertices:
+
+        Vertex[] = [];
+
+
+
+
+
+        for(
+
+            const solid of
+
+            this.solids
+
+        ){
+
+
+
+            for(
+
+                const vertex of
+
+                solid.getVertices()
+
+            ){
+
+
+
+                if(
+
+                    !vertices.includes(
+
+                        vertex
+
+                    )
+
+                ){
+
+
+
+                    vertices.push(
+
+                        vertex
+
+                    );
+
+                }
+
+            }
+
+        }
+
+
+
+
+
+        return vertices;
+
+    }
+
+
+
+
+
+
+
+
+
+    clear():
+
+    void {
+
+
+
+        this.solids = [];
+
+
+        this.activeSolid =
+
+        null;
+
+    }
+
+
+
+
+
+
+
+
+
+    isEmpty():
+
+    boolean {
+
+
+
+        return this.solids.length === 0;
+
+    }
+
+
+
+
+
+
+
+
+
+    solidCount():
+
+    number {
+
+
+
+        return this.solids.length;
+
+    }
+
+
 
 
 
@@ -529,7 +567,17 @@ export class BRepModel {
 
         const model =
 
-        new BRepModel();
+        new BRepModel(
+
+            {
+
+                ...this.info
+
+            }
+
+        );
+
+
 
 
 
@@ -545,17 +593,13 @@ export class BRepModel {
 
             model.addSolid(
 
-                solid
-
-                .transform(
-
-                    new Transform()
-
-                )
+                solid.clone()
 
             );
 
         }
+
+
 
 
 
@@ -569,41 +613,43 @@ export class BRepModel {
 
 
 
-    statistics():
-
-    object {
 
 
+    validate():
 
-        return {
-
-            solids:
-
-            this.solids.length,
+    boolean {
 
 
-            vertices:
 
-            this.vertices().length,
+        if(
 
+            this.solids.length === 0
 
-            edges:
+        ){
 
-            this.edges().length,
+            return false;
 
-
-            faces:
-
-            this.faces().length,
+        }
 
 
-            valid:
 
-            this.validate()
 
-        };
+
+        return this.solids
+
+        .every(
+
+            solid =>
+
+            solid.isValid()
+
+        );
 
     }
+
+
+
+
 
 
 
