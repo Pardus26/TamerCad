@@ -3,6 +3,10 @@ from "../../topology/core/Solid";
 
 
 
+
+
+
+
 export enum FeatureType {
 
 
@@ -42,6 +46,23 @@ export interface FeatureParameter {
 
 
 
+export interface FeatureState {
+
+
+    dirty:boolean;
+
+
+    visible:boolean;
+
+
+}
+
+
+
+
+
+
+
 export abstract class Feature {
 
 
@@ -64,6 +85,23 @@ export abstract class Feature {
 
 
 
+    protected state:
+
+    FeatureState = {
+
+
+        dirty:true,
+
+
+        visible:true
+
+
+    };
+
+
+
+
+
 
 
     constructor(
@@ -74,9 +112,7 @@ export abstract class Feature {
         public name:string,
 
 
-        public type:
-
-        FeatureType,
+        public type:FeatureType,
 
 
         public parameters:
@@ -84,6 +120,12 @@ export abstract class Feature {
         FeatureParameter[] = []
 
     ){}
+
+
+
+    
+
+
 
 
 
@@ -99,13 +141,19 @@ export abstract class Feature {
 
 
 
-    getResult():
+
+
+    evaluate():
 
     Solid {
 
 
 
         if(
+
+            this.state.dirty
+
+            ||
 
             !this.result
 
@@ -117,13 +165,41 @@ export abstract class Feature {
 
             this.rebuild();
 
+
+
+            this.state.dirty =
+
+            false;
+
         }
+
+
 
 
 
         return this.result;
 
     }
+
+
+
+
+
+
+
+
+
+    getResult():
+
+    Solid {
+
+
+
+        return this.evaluate();
+
+    }
+
+
 
 
 
@@ -139,8 +215,6 @@ export abstract class Feature {
 
     ):
 
-
-
     void {
 
 
@@ -154,6 +228,8 @@ export abstract class Feature {
             p.name === name
 
         );
+
+
 
 
 
@@ -175,7 +251,30 @@ export abstract class Feature {
 
         }
 
+        else {
+
+
+
+            this.parameters.push({
+
+
+                name,
+
+
+                value
+
+
+            });
+
+
+
+            this.invalidate();
+
+        }
+
     }
+
+
 
 
 
@@ -213,6 +312,8 @@ export abstract class Feature {
 
 
 
+
+
     addChild(
 
         feature:Feature
@@ -223,7 +324,71 @@ export abstract class Feature {
 
 
 
-        this.children.push(
+        if(
+
+            !this.children.includes(
+
+                feature
+
+            )
+
+        ){
+
+
+
+            this.children.push(
+
+                feature
+
+            );
+
+
+
+            if(
+
+                !feature.parents.includes(
+
+                    this
+
+                )
+
+            ){
+
+
+
+                feature.parents.push(
+
+                    this
+
+                );
+
+            }
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    removeChild(
+
+        feature:Feature
+
+    ):
+
+    void {
+
+
+
+        const index =
+
+        this.children.indexOf(
 
             feature
 
@@ -231,13 +396,63 @@ export abstract class Feature {
 
 
 
-        feature.parents.push(
+
+
+        if(
+
+            index !== -1
+
+        ){
+
+
+
+            this.children.splice(
+
+                index,
+
+                1
+
+            );
+
+        }
+
+
+
+
+
+        const parentIndex =
+
+        feature.parents.indexOf(
 
             this
 
         );
 
+
+
+
+
+        if(
+
+            parentIndex !== -1
+
+        ){
+
+
+
+            feature.parents.splice(
+
+                parentIndex,
+
+                1
+
+            );
+
+        }
+
     }
+
+
 
 
 
@@ -257,6 +472,14 @@ export abstract class Feature {
 
 
 
+        this.state.dirty =
+
+        true;
+
+
+
+
+
         for(
 
             const child of
@@ -270,6 +493,84 @@ export abstract class Feature {
             child.invalidate();
 
         }
+
+    }
+
+
+
+
+
+
+
+
+
+    setVisible(
+
+        value:boolean
+
+    ):
+
+    void {
+
+
+
+        this.state.visible =
+
+        value;
+
+    }
+
+
+
+
+
+
+
+
+
+    isVisible():
+
+    boolean {
+
+
+
+        return this.state.visible;
+
+    }
+
+
+
+
+
+
+
+
+
+    getParents():
+
+    Feature[] {
+
+
+
+        return this.parents;
+
+    }
+
+
+
+
+
+
+
+
+
+    getChildren():
+
+    Feature[] {
+
+
+
+        return this.children;
 
     }
 
