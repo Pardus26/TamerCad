@@ -22,6 +22,10 @@ import { Vertex }
 from "../core/Vertex";
 
 
+import { Point }
+from "../../geometry/core/Point";
+
+
 import { BRepBuilder }
 from "../brep/BRepBuilder";
 
@@ -79,7 +83,7 @@ export class EulerOperators {
 
             new Vertex(
 
-                {
+                new Point(
 
                     x,
 
@@ -87,7 +91,7 @@ export class EulerOperators {
 
                     z
 
-                } as any
+                )
 
             )
 
@@ -267,7 +271,9 @@ export class EulerOperators {
 
             edge.start,
 
-            vertex
+            vertex,
+
+            edge.curve
 
         );
 
@@ -281,7 +287,9 @@ export class EulerOperators {
 
             vertex,
 
-            edge.end
+            edge.end,
+
+            edge.curve
 
         );
 
@@ -327,6 +335,8 @@ export class EulerOperators {
 
         ){
 
+
+
             return null;
 
         }
@@ -339,7 +349,9 @@ export class EulerOperators {
 
             edgeA.start,
 
-            edgeB.end
+            edgeB.end,
+
+            edgeA.curve
 
         );
 
@@ -389,13 +401,13 @@ export class EulerOperators {
 
     ):
 
-    void {
+    boolean {
 
 
 
         const holes =
 
-        face.innerWires;
+        face.getInnerWires();
 
 
 
@@ -415,21 +427,31 @@ export class EulerOperators {
 
         if(
 
-            index !== -1
+            index === -1
 
         ){
 
-
-
-            holes.splice(
-
-                index,
-
-                1
-
-            );
+            return false;
 
         }
+
+
+
+
+
+        holes.splice(
+
+            index,
+
+            1
+
+        );
+
+
+
+
+
+        return true;
 
     }
 
@@ -453,13 +475,66 @@ export class EulerOperators {
 
 
 
+        const shared =
+
+        faceA.getEdges()
+
+        .find(
+
+            edge =>
+
+            faceB.containsEdge(
+
+                edge
+
+            )
+
+        );
+
+
+
+
+
+        if(
+
+            !shared
+
+        ){
+
+
+
+            return null;
+
+        }
+
+
+
+
+
         const edges =
 
         [
 
-            ...faceA.getEdges(),
+            ...faceA.getEdges()
+
+            .filter(
+
+                e =>
+
+                e !== shared
+
+            ),
+
 
             ...faceB.getEdges()
+
+            .filter(
+
+                e =>
+
+                e !== shared
+
+            )
 
         ];
 
@@ -519,7 +594,7 @@ export class EulerOperators {
 
 
 
-        const vertices =
+        const V =
 
         solid.getVertices()
 
@@ -527,7 +602,7 @@ export class EulerOperators {
 
 
 
-        const edges =
+        const E =
 
         solid.getEdges()
 
@@ -535,7 +610,7 @@ export class EulerOperators {
 
 
 
-        const faces =
+        const F =
 
         solid.getFaces()
 
@@ -547,17 +622,35 @@ export class EulerOperators {
 
         return (
 
-            vertices -
+            V -
 
-            edges +
+            E +
 
-            faces
+            F
 
         )
 
         ===
 
         2;
+
+    }
+
+
+
+
+
+
+
+
+
+    getBuilder():
+
+    BRepBuilder {
+
+
+
+        return this.builder;
 
     }
 
