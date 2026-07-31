@@ -14,16 +14,10 @@ import { PlaneSurface }
 from "../../geometry/surface/PlaneSurface";
 
 
-import { Point }
-from "../../geometry/core/Point";
-
-
-import { Vector3 }
-from "../../geometry/core/Vector3";
-
-
 import { BRepBuilder }
 from "../../topology/brep/BRepBuilder";
+
+
 
 
 
@@ -34,6 +28,9 @@ export interface ChamferOptions {
 
 
     preserveTopology?:boolean;
+
+
+    segments?:number;
 
 
 }
@@ -50,6 +47,7 @@ export class Chamfer {
 
     constructor(
 
+
         public solid:Solid,
 
 
@@ -63,7 +61,31 @@ export class Chamfer {
 
         ChamferOptions = {}
 
-    ){}
+    ){
+
+
+
+
+
+        if(
+
+            distance <= 0
+
+        ){
+
+            throw new Error(
+
+                "Chamfer distance must be positive"
+
+            );
+
+        }
+
+    }
+
+
+
+
 
 
 
@@ -79,9 +101,13 @@ export class Chamfer {
 
 
 
+
+
         const faces:
 
-        Face[]=[];
+        Face[] = [];
+
+
 
 
 
@@ -113,8 +139,6 @@ export class Chamfer {
 
                 );
 
-
-
             }
 
             else {
@@ -133,6 +157,8 @@ export class Chamfer {
 
 
 
+
+
         const shell =
 
         builder.createShell(
@@ -143,6 +169,8 @@ export class Chamfer {
 
 
 
+
+
         return builder.createSolid(
 
             shell
@@ -150,6 +178,8 @@ export class Chamfer {
         );
 
     }
+
+
 
 
 
@@ -187,6 +217,8 @@ export class Chamfer {
 
 
 
+
+
     private createChamferFace(
 
         face:Face
@@ -203,6 +235,8 @@ export class Chamfer {
 
 
 
+
+
         return new Face(
 
             surface,
@@ -212,6 +246,136 @@ export class Chamfer {
         );
 
     }
+
+
+
+
+
+
+
+
+
+    getDistance():
+
+    number {
+
+
+
+        return this.distance;
+
+    }
+
+
+
+
+
+
+
+
+
+    getAngle():
+
+    number {
+
+
+
+        return (
+
+            this.options.angle ??
+
+            45
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    getEdges():
+
+    Edge[] {
+
+
+
+        return this.edges;
+
+    }
+
+
+
+
+
+
+
+
+
+    private getAdjacentFaces(
+
+        edge:Edge
+
+    ):
+
+    Face[] {
+
+
+
+        const result:
+
+        Face[] = [];
+
+
+
+
+
+        for(
+
+            const face of
+
+            this.solid.getFaces()
+
+        ){
+
+
+
+            if(
+
+                face
+
+                .getEdges()
+
+                .includes(edge)
+
+            ){
+
+
+
+                result.push(
+
+                    face
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return result;
+
+    }
+
+
+
+
 
 
 
