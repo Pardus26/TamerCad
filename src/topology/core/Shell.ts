@@ -10,20 +10,6 @@ import { Vertex }
 from "./Vertex";
 
 
-import { Transform }
-from "../../geometry/core/Transform";
-
-
-
-export enum ShellOrientation {
-
-    OUTWARD,
-
-    INWARD
-
-}
-
-
 
 
 
@@ -33,34 +19,31 @@ export class Shell {
 
 
 
-    private static nextId = 1;
+    private faces:
+
+    Face[] = [];
 
 
 
-    public readonly id:number;
 
-
-
-    public orientation:
-
-    ShellOrientation =
-
-    ShellOrientation.OUTWARD;
 
 
 
     constructor(
 
-        public faces:Face[] = []
+        faces:Face[] = []
 
     ){
 
 
-        this.id =
 
-        Shell.nextId++;
+        this.faces =
+
+        faces;
 
     }
+
+
 
 
 
@@ -78,13 +61,29 @@ export class Shell {
 
 
 
-        this.faces.push(
+        if(
 
-            face
+            !this.faces.includes(
 
-        );
+                face
+
+            )
+
+        ){
+
+
+
+            this.faces.push(
+
+                face
+
+            );
+
+        }
 
     }
+
+
 
 
 
@@ -112,7 +111,15 @@ export class Shell {
 
 
 
-        if(index>=0){
+
+
+        if(
+
+            index !== -1
+
+        ){
+
+
 
             this.faces.splice(
 
@@ -132,19 +139,19 @@ export class Shell {
 
 
 
+
+
     getFaces():
 
     Face[] {
 
 
 
-        return [
-
-            ...this.faces
-
-        ];
+        return this.faces;
 
     }
+
+
 
 
 
@@ -164,6 +171,8 @@ export class Shell {
 
 
 
+
+
         for(
 
             const face of
@@ -174,27 +183,49 @@ export class Shell {
 
 
 
-            edges.push(
+            for(
 
-                ...face.getEdges()
+                const edge of
 
-            );
+                face.getEdges()
+
+            ){
+
+
+
+                if(
+
+                    !edges.includes(
+
+                        edge
+
+                    )
+
+                ){
+
+
+
+                    edges.push(
+
+                        edge
+
+                    );
+
+                }
+
+            }
 
         }
 
 
 
-        return [
 
-            ...new Set(
 
-                edges
-
-            )
-
-        ];
+        return edges;
 
     }
+
+
 
 
 
@@ -214,6 +245,8 @@ export class Shell {
 
 
 
+
+
         for(
 
             const edge of
@@ -224,27 +257,57 @@ export class Shell {
 
 
 
-            vertices.push(
+            if(
 
-                ...edge.getVertices()
+                !vertices.includes(
 
-            );
+                    edge.start
+
+                )
+
+            ){
+
+                vertices.push(
+
+                    edge.start
+
+                );
+
+            }
+
+
+
+
+
+            if(
+
+                !vertices.includes(
+
+                    edge.end
+
+                )
+
+            ){
+
+                vertices.push(
+
+                    edge.end
+
+                );
+
+            }
 
         }
 
 
 
-        return [
 
-            ...new Set(
 
-                vertices
-
-            )
-
-        ];
+        return vertices;
 
     }
+
+
 
 
 
@@ -258,9 +321,13 @@ export class Shell {
 
 
 
-        const edgeMap =
+        const edgeCount:
 
-        new Map<Edge,number>();
+        Map<Edge,number> =
+
+        new Map();
+
+
 
 
 
@@ -274,13 +341,17 @@ export class Shell {
 
 
 
-            edgeMap.set(
+            edgeCount.set(
 
                 edge,
 
                 (
 
-                    edgeMap.get(edge)
+                    edgeCount.get(
+
+                        edge
+
+                    )
 
                     ??
 
@@ -288,7 +359,9 @@ export class Shell {
 
                 )
 
-                +1
+                +
+
+                1
 
             );
 
@@ -296,11 +369,13 @@ export class Shell {
 
 
 
+
+
         for(
 
             const count of
 
-            edgeMap.values()
+            edgeCount.values()
 
         ){
 
@@ -320,6 +395,8 @@ export class Shell {
 
 
 
+
+
         return true;
 
     }
@@ -330,29 +407,43 @@ export class Shell {
 
 
 
-    area():
+
+
+    containsFace(
+
+        face:Face
+
+    ):
+
+    boolean {
+
+
+
+        return this.faces
+
+        .includes(
+
+            face
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    faceCount():
 
     number {
 
 
 
-        return this.faces.reduce(
-
-            (
-
-                total,
-
-                face
-
-            ) =>
-
-                total +
-
-                face.area(),
-
-            0
-
-        );
+        return this.faces.length;
 
     }
 
@@ -362,23 +453,15 @@ export class Shell {
 
 
 
-    boundaryEdges():
-
-    Edge[] {
 
 
+    clear():
 
-        return this
+    void {
 
-        .getEdges()
 
-        .filter(
 
-            edge =>
-
-            edge.isBoundary()
-
-        );
+        this.faces = [];
 
     }
 
@@ -388,59 +471,9 @@ export class Shell {
 
 
 
-    reverse():
-
-    Shell {
 
 
-
-        const reversed =
-
-        new Shell(
-
-            this.faces.map(
-
-                face =>
-
-                face.reverse()
-
-            )
-
-        );
-
-
-
-        reversed.orientation =
-
-        this.orientation ===
-
-        ShellOrientation.OUTWARD
-
-        ?
-
-        ShellOrientation.INWARD
-
-        :
-
-        ShellOrientation.OUTWARD;
-
-
-
-        return reversed;
-
-    }
-
-
-
-
-
-
-
-    transform(
-
-        transform:Transform
-
-    ):
+    clone():
 
     Shell {
 
@@ -448,21 +481,23 @@ export class Shell {
 
         return new Shell(
 
-            this.faces.map(
+            this.faces
+
+            .map(
 
                 face =>
 
-                face.transform(
-
-                    transform
-
-                )
+                face.clone()
 
             )
 
         );
 
     }
+
+
+
+
 
 
 
