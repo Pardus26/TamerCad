@@ -83,6 +83,24 @@ export class BRepBuilder {
 
 
 
+        if(
+
+            start === end
+
+        ){
+
+            throw new Error(
+
+                "Edge start and end cannot be same vertex"
+
+            );
+
+        }
+
+
+
+
+
         return new Edge(
 
             start,
@@ -167,6 +185,24 @@ export class BRepBuilder {
 
 
 
+        if(
+
+            !wire.isClosed()
+
+        ){
+
+            throw new Error(
+
+                "Wire creation failed: not closed"
+
+            );
+
+        }
+
+
+
+
+
         return wire;
 
     }
@@ -191,6 +227,24 @@ export class BRepBuilder {
     ):
 
     Face {
+
+
+
+        if(
+
+            !wire.isClosed()
+
+        ){
+
+            throw new Error(
+
+                "Face requires closed wire"
+
+            );
+
+        }
+
+
 
 
 
@@ -222,6 +276,24 @@ export class BRepBuilder {
     ):
 
     void {
+
+
+
+        if(
+
+            !wire.isClosed()
+
+        ){
+
+            throw new Error(
+
+                "Hole wire must be closed"
+
+            );
+
+        }
+
+
 
 
 
@@ -269,19 +341,11 @@ export class BRepBuilder {
 
 
 
-        const shell =
-
-        new Shell(
+        return new Shell(
 
             faces
 
         );
-
-
-
-
-
-        return shell;
 
     }
 
@@ -329,21 +393,13 @@ export class BRepBuilder {
 
 
 
-        const shell =
-
-        this.createShell(
-
-            faces
-
-        );
-
-
-
-
-
         return this.createSolid(
 
-            shell
+            this.createShell(
+
+                faces
+
+            )
 
         );
 
@@ -446,17 +502,37 @@ export class BRepBuilder {
 
 
 
-        return (
+        if(
+
+            !wire
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+        if(
 
             wire.getEdges()
 
-            .length > 0
+            .length === 0
 
-            &&
+        ){
 
-            wire.isClosed()
+            return false;
 
-        );
+        }
+
+
+
+
+
+        return wire.isClosed();
 
     }
 
@@ -478,7 +554,33 @@ export class BRepBuilder {
 
 
 
-        return face.isValid();
+        if(
+
+            !face
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+        const wire =
+
+        face.getOuterWire();
+
+
+
+
+
+        return this.validateWire(
+
+            wire
+
+        );
 
     }
 
@@ -500,7 +602,31 @@ export class BRepBuilder {
 
 
 
-        return shell.isValid();
+        if(
+
+            !shell
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+        return (
+
+            shell.getFaces()
+
+            .length > 0
+
+            &&
+
+            shell.isClosed()
+
+        );
 
     }
 
@@ -519,6 +645,20 @@ export class BRepBuilder {
     ):
 
     boolean {
+
+
+
+        if(
+
+            !solid
+
+        ){
+
+            return false;
+
+        }
+
+
 
 
 
