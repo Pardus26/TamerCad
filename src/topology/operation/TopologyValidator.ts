@@ -44,10 +44,6 @@ export class TopologyValidator {
 
 
 
-    
-
-
-
 
 
 
@@ -65,6 +61,18 @@ export class TopologyValidator {
         const errors:
 
         string[] = [];
+
+
+
+
+
+        this.validateSolid(
+
+            solid,
+
+            errors
+
+        );
 
 
 
@@ -118,6 +126,18 @@ export class TopologyValidator {
 
 
 
+        this.validateEuler(
+
+            solid,
+
+            errors
+
+        );
+
+
+
+
+
         return {
 
 
@@ -129,6 +149,47 @@ export class TopologyValidator {
             errors
 
         };
+
+    }
+
+
+
+
+
+
+
+
+
+    private validateSolid(
+
+        solid:Solid,
+
+
+        errors:string[]
+
+    ):
+
+    void {
+
+
+
+        if(
+
+            !solid
+
+        ){
+
+
+
+            errors.push(
+
+                "Solid is null"
+
+            );
+
+        }
+
+
 
     }
 
@@ -171,7 +232,7 @@ export class TopologyValidator {
 
             errors.push(
 
-                "Solid has no shell"
+                "Solid has no shells"
 
             );
 
@@ -179,6 +240,10 @@ export class TopologyValidator {
             return;
 
         }
+
+
+
+
 
 
 
@@ -210,6 +275,30 @@ export class TopologyValidator {
 
             }
 
+
+
+
+
+            if(
+
+                shell.faceCount()
+
+                ===
+
+                0
+
+            ){
+
+
+
+                errors.push(
+
+                    "Empty shell"
+
+                );
+
+            }
+
         }
 
     }
@@ -235,11 +324,19 @@ export class TopologyValidator {
 
 
 
+        const faces =
+
+        solid.getFaces();
+
+
+
+
+
         for(
 
             const face of
 
-            solid.getFaces()
+            faces
 
         ){
 
@@ -255,6 +352,29 @@ export class TopologyValidator {
 
             if(
 
+                !wire
+
+            ){
+
+
+
+                errors.push(
+
+                    "Face has no outer wire"
+
+                );
+
+
+                continue;
+
+            }
+
+
+
+
+
+            if(
+
                 !wire.isClosed()
 
             ){
@@ -263,7 +383,7 @@ export class TopologyValidator {
 
                 errors.push(
 
-                    "Face outer wire is open"
+                    "Face wire is open"
 
                 );
 
@@ -275,9 +395,11 @@ export class TopologyValidator {
 
             if(
 
-                face.getEdges()
+                wire.length()
 
-                .length === 0
+                ===
+
+                0
 
             ){
 
@@ -285,7 +407,82 @@ export class TopologyValidator {
 
                 errors.push(
 
-                    "Face contains no edges"
+                    "Face has zero length wire"
+
+                );
+
+            }
+
+
+
+
+
+            this.validateWire(
+
+                wire,
+
+                errors
+
+            );
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    private validateWire(
+
+        wire:any,
+
+
+        errors:string[]
+
+    ):
+
+    void {
+
+
+
+        const edges =
+
+        wire.getEdges();
+
+
+
+
+
+        for(
+
+            let i = 0;
+
+            i < edges.length-1;
+
+            i++
+
+        ){
+
+
+
+            if(
+
+                edges[i].end !==
+
+                edges[i+1].start
+
+            ){
+
+
+
+                errors.push(
+
+                    "Wire edge continuity broken"
 
                 );
 
@@ -324,6 +521,14 @@ export class TopologyValidator {
 
 
 
+        const duplicate:
+
+        Edge[] = [];
+
+
+
+
+
         for(
 
             const edge of
@@ -348,9 +553,10 @@ export class TopologyValidator {
 
                 errors.push(
 
-                    "Edge has invalid vertices"
+                    "Edge has invalid vertex"
 
                 );
+
 
                 continue;
 
@@ -372,11 +578,71 @@ export class TopologyValidator {
 
                 errors.push(
 
-                    "Edge has identical start and end vertex"
+                    "Zero length edge"
 
                 );
 
             }
+
+
+
+
+
+            for(
+
+                const other of
+
+                edges
+
+            ){
+
+
+
+                if(
+
+                    edge !== other
+
+                    &&
+
+                    edge.equals(
+
+                        other
+
+                    )
+
+                ){
+
+
+
+                    duplicate.push(
+
+                        edge
+
+                    );
+
+                }
+
+            }
+
+        }
+
+
+
+
+
+        if(
+
+            duplicate.length
+
+        ){
+
+
+
+            errors.push(
+
+                "Duplicate edges detected"
+
+            );
 
         }
 
@@ -403,11 +669,19 @@ export class TopologyValidator {
 
 
 
+        const vertices =
+
+        solid.getVertices();
+
+
+
+
+
         for(
 
             const vertex of
 
-            solid.getVertices()
+            vertices
 
         ){
 
@@ -427,6 +701,9 @@ export class TopologyValidator {
 
                 );
 
+
+                continue;
+
             }
 
 
@@ -445,11 +722,88 @@ export class TopologyValidator {
 
                 errors.push(
 
-                    "Dangling vertex detected"
+                    "Dangling vertex"
 
                 );
 
             }
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    private validateEuler(
+
+        solid:Solid,
+
+
+        errors:string[]
+
+    ):
+
+    void {
+
+
+
+        const V =
+
+        solid.getVertices()
+
+        .length;
+
+
+
+        const E =
+
+        solid.getEdges()
+
+        .length;
+
+
+
+        const F =
+
+        solid.getFaces()
+
+        .length;
+
+
+
+
+
+        const chi =
+
+        V - E + F;
+
+
+
+
+
+        if(
+
+            chi !== 2
+
+        ){
+
+
+
+            errors.push(
+
+                "Euler characteristic invalid: "
+
+                +
+
+                chi
+
+            );
 
         }
 
@@ -615,7 +969,7 @@ export class TopologyValidator {
 
             if(
 
-                count < 2
+                count !== 2
 
             ){
 
