@@ -25,6 +25,8 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface FilletOptions {
 
 
@@ -69,8 +71,6 @@ export class Fillet {
 
 
 
-
-
         if(
 
             radius <= 0
@@ -85,7 +85,27 @@ export class Fillet {
 
         }
 
+
+
+
+
+        if(
+
+            edges.length === 0
+
+        ){
+
+            throw new Error(
+
+                "Fillet requires at least one edge"
+
+            );
+
+        }
+
     }
+
+
 
 
 
@@ -163,6 +183,10 @@ export class Fillet {
 
 
 
+
+
+
+
         const shell =
 
         builder.createShell(
@@ -233,6 +257,40 @@ export class Fillet {
 
 
 
+        /*
+
+
+            Gerçek CAD kernel aşaması:
+
+
+            1- Edge komşu yüzleri alınır
+
+
+            2- Edge boyunca tangent hesaplanır
+
+
+            3- Radius kadar offset alınır
+
+
+            4- Arc/cylinder blend surface oluşturulur
+
+
+            5- Trim uygulanır
+
+
+            6- Yeni Face oluşturulur
+
+
+
+            Şimdilik topology korunur.
+
+
+        */
+
+
+
+
+
         const surface =
 
         new PlaneSurface();
@@ -248,6 +306,76 @@ export class Fillet {
             face.outerWire
 
         );
+
+    }
+
+
+
+
+
+
+
+
+
+    private getAdjacentFaces(
+
+        edge:Edge
+
+    ):
+
+    Face[] {
+
+
+
+        const result:
+
+        Face[] = [];
+
+
+
+
+
+        for(
+
+            const face of
+
+            this.solid.getFaces()
+
+        ){
+
+
+
+            if(
+
+                face
+
+                .getEdges()
+
+                .includes(
+
+                    edge
+
+                )
+
+            ){
+
+
+
+                result.push(
+
+                    face
+
+                );
+
+            }
+
+        }
+
+
+
+
+
+        return result;
 
     }
 
@@ -295,67 +423,65 @@ export class Fillet {
 
 
 
-    private getAdjacentFaces(
+    getSegments():
 
-        edge:Edge
-
-    ):
-
-    Face[] {
+    number {
 
 
 
-        const result:
+        return (
 
-        Face[] = [];
+            this.options.segments ??
 
+            16
 
-
-
-
-        for(
-
-            const face of
-
-            this.solid.getFaces()
-
-        ){
-
-
-
-            if(
-
-                face
-
-                .getEdges()
-
-                .includes(edge)
-
-            ){
-
-
-
-                result.push(
-
-                    face
-
-                );
-
-            }
-
-        }
-
-
-
-
-
-        return result;
+        );
 
     }
 
 
 
 
+
+
+
+
+
+    isSmooth():
+
+    boolean {
+
+
+
+        return (
+
+            this.options.smooth === true
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    preserveTopology():
+
+    boolean {
+
+
+
+        return (
+
+            this.options.preserveTopology !== false
+
+        );
+
+    }
 
 
 
