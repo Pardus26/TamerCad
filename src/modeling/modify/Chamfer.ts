@@ -21,6 +21,8 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface ChamferOptions {
 
 
@@ -79,7 +81,47 @@ export class Chamfer {
 
         }
 
+
+
+
+
+        if(
+
+            edges.length === 0
+
+        ){
+
+            throw new Error(
+
+                "Chamfer requires at least one edge"
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            this.getAngle() <= 0 ||
+
+            this.getAngle() >= Math.PI
+
+        ){
+
+            throw new Error(
+
+                "Chamfer angle must be between 0 and PI"
+
+            );
+
+        }
+
     }
+
+
 
 
 
@@ -157,6 +199,10 @@ export class Chamfer {
 
 
 
+
+
+
+
         const shell =
 
         builder.createShell(
@@ -203,7 +249,11 @@ export class Chamfer {
 
             edge =>
 
-            this.edges.includes(edge)
+            this.edges.includes(
+
+                edge
+
+            )
 
         );
 
@@ -224,6 +274,37 @@ export class Chamfer {
     ):
 
     Face {
+
+
+
+        /*
+
+
+            Gerçek CAD kernel aşaması:
+
+
+            1- Edge komşu yüzleri bulunur
+
+
+            2- Distance offset hesaplanır
+
+
+            3- İki yüz arasında planar chamfer surface oluşturulur
+
+
+            4- Trim işlemi yapılır
+
+
+            5- Yeni Face topology'ye bağlanır
+
+
+
+            Şimdilik mevcut topology korunur.
+
+
+        */
+
+
 
 
 
@@ -287,7 +368,11 @@ export class Chamfer {
 
                 .getEdges()
 
-                .includes(edge)
+                .includes(
+
+                    edge
+
+                )
 
             ){
 
@@ -368,6 +453,52 @@ export class Chamfer {
 
 
         return this.edges;
+
+    }
+
+
+
+
+
+
+
+
+
+    getSegments():
+
+    number {
+
+
+
+        return (
+
+            this.options.segments ??
+
+            1
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    preserveTopology():
+
+    boolean {
+
+
+
+        return (
+
+            this.options.preserveTopology !== false
+
+        );
 
     }
 
