@@ -123,12 +123,6 @@ export abstract class Feature {
 
 
 
-    
-
-
-
-
-
 
 
     abstract rebuild():
@@ -161,9 +155,15 @@ export abstract class Feature {
 
 
 
-            this.result =
+            const rebuilt =
 
             this.rebuild();
+
+
+
+            this.result =
+
+            rebuilt;
 
 
 
@@ -177,7 +177,7 @@ export abstract class Feature {
 
 
 
-        return this.result;
+        return this.result as Solid;
 
     }
 
@@ -210,6 +210,7 @@ export abstract class Feature {
     setParameter(
 
         name:string,
+
 
         value:any
 
@@ -245,10 +246,6 @@ export abstract class Feature {
 
             value;
 
-
-
-            this.invalidate();
-
         }
 
         else {
@@ -266,11 +263,13 @@ export abstract class Feature {
 
             });
 
-
-
-            this.invalidate();
-
         }
+
+
+
+
+
+        this.invalidate();
 
     }
 
@@ -292,17 +291,21 @@ export abstract class Feature {
 
 
 
-        return this.parameters
+        const parameter =
 
-        .find(
+        this.parameters.find(
 
             p =>
 
             p.name === name
 
-        )
+        );
 
-        ?.value;
+
+
+
+
+        return parameter?.value;
 
     }
 
@@ -326,7 +329,7 @@ export abstract class Feature {
 
         if(
 
-            !this.children.includes(
+            this.children.includes(
 
                 feature
 
@@ -334,35 +337,41 @@ export abstract class Feature {
 
         ){
 
+            return;
+
+        }
 
 
-            this.children.push(
 
-                feature
+
+
+        this.children.push(
+
+            feature
+
+        );
+
+
+
+
+
+        if(
+
+            !feature.parents.includes(
+
+                this
+
+            )
+
+        ){
+
+
+
+            feature.parents.push(
+
+                this
 
             );
-
-
-
-            if(
-
-                !feature.parents.includes(
-
-                    this
-
-                )
-
-            ){
-
-
-
-                feature.parents.push(
-
-                    this
-
-                );
-
-            }
 
         }
 
@@ -535,6 +544,24 @@ export abstract class Feature {
 
 
         return this.state.visible;
+
+    }
+
+
+
+
+
+
+
+
+
+    isDirty():
+
+    boolean {
+
+
+
+        return this.state.dirty;
 
     }
 
