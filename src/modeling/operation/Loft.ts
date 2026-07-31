@@ -21,6 +21,8 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface LoftOptions {
 
 
@@ -31,6 +33,12 @@ export interface LoftOptions {
 
 
     smooth?:boolean;
+
+
+    capStart?:boolean;
+
+
+    capEnd?:boolean;
 
 
 }
@@ -73,7 +81,15 @@ export class Loft {
 
         }
 
+
+
+
+
+        this.validateProfiles();
+
     }
+
+
 
 
 
@@ -95,17 +111,23 @@ export class Loft {
 
 
 
-        const faces =
+        const faces:
 
-        this.createFaces();
-
-
+        Face[] = [];
 
 
 
-        let finalFaces =
 
-        faces;
+
+        faces.push(
+
+            ...this.createFaces()
+
+        );
+
+
+
+
 
 
 
@@ -117,17 +139,77 @@ export class Loft {
 
         ){
 
-            finalFaces =
 
-            [
 
-                ...faces,
+            faces.push(
 
                 ...this.createClosingFaces()
 
-            ];
+            );
 
         }
+
+        else {
+
+
+
+            if(
+
+                this.options.capStart !== false
+
+            ){
+
+
+
+                faces.push(
+
+                    new Face(
+
+                        null as any,
+
+                        this.profiles[0]
+
+                    )
+
+                );
+
+            }
+
+
+
+
+
+            if(
+
+                this.options.capEnd !== false
+
+            ){
+
+
+
+                faces.push(
+
+                    new Face(
+
+                        null as any,
+
+                        this.profiles[
+
+                            this.profiles.length - 1
+
+                        ]
+
+                    )
+
+                );
+
+            }
+
+        }
+
+
+
+
 
 
 
@@ -137,7 +219,7 @@ export class Loft {
 
         builder.createShell(
 
-            finalFaces
+            faces
 
         );
 
@@ -150,6 +232,78 @@ export class Loft {
             shell
 
         );
+
+    }
+
+
+
+
+
+
+
+
+
+    private validateProfiles():
+
+    void {
+
+
+
+        const firstCount =
+
+        this.profiles[0]
+
+        .getEdges()
+
+        .length;
+
+
+
+
+
+        for(
+
+            const profile of
+
+            this.profiles
+
+        ){
+
+
+
+            if(
+
+                !profile.isClosed()
+
+            ){
+
+                throw new Error(
+
+                    "Loft profiles must be closed"
+
+                );
+
+            }
+
+
+
+
+
+            if(
+
+                profile.getEdges().length !== firstCount
+
+            ){
+
+                throw new Error(
+
+                    "All loft profiles must have same edge count"
+
+                );
+
+            }
+
+        }
 
     }
 
@@ -215,25 +369,11 @@ export class Loft {
 
 
 
-            const count =
-
-            Math.min(
-
-                currentEdges.length,
-
-                nextEdges.length
-
-            );
-
-
-
-
-
             for(
 
                 let j = 0;
 
-                j < count;
+                j < currentEdges.length;
 
                 j++
 
@@ -241,27 +381,13 @@ export class Loft {
 
 
 
-                const edgeA =
-
-                currentEdges[j];
-
-
-
-                const edgeB =
-
-                nextEdges[j];
-
-
-
-
-
                 faces.push(
 
                     this.createLoftFace(
 
-                        edgeA,
+                        currentEdges[j],
 
-                        edgeB
+                        nextEdges[j]
 
                     )
 
@@ -392,23 +518,11 @@ export class Loft {
 
 
 
-        if(
-
-            this.profiles.length < 2
-
-        ){
-
-            return faces;
-
-        }
-
-
-
-
-
         const first =
 
         this.profiles[0];
+
+
 
 
 
@@ -438,25 +552,11 @@ export class Loft {
 
 
 
-        const count =
-
-        Math.min(
-
-            firstEdges.length,
-
-            lastEdges.length
-
-        );
-
-
-
-
-
         for(
 
             let i = 0;
 
-            i < count;
+            i < firstEdges.length;
 
             i++
 
@@ -489,6 +589,56 @@ export class Loft {
 
 
 
+
+
+
+
+
+    getProfiles():
+
+    Wire[] {
+
+
+
+        return this.profiles;
+
+    }
+
+
+
+
+
+
+
+
+
+    isSmooth():
+
+    boolean {
+
+
+
+        return this.options.smooth === true;
+
+    }
+
+
+
+
+
+
+
+
+
+    isClosed():
+
+    boolean {
+
+
+
+        return this.options.closed === true;
+
+    }
 
 
 
