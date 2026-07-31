@@ -1,12 +1,6 @@
-export interface StepEntity {
-
-    id: number;
-
-    type: string;
-
-    rawParameters: string;
-
-}
+import { StepEntity } from "./StepEntity";
+import { StepEntityFactory } from "./StepEntityFactory";
+import { StepSchema } from "./StepSchema";
 
 export interface StepHeader {
 
@@ -30,7 +24,17 @@ export interface StepModel {
 
 export class StepParser {
 
-    parse(content: string): StepModel {
+    private readonly schema =
+        new StepSchema();
+
+    private readonly factory =
+        new StepEntityFactory();
+
+    parse(
+
+        content: string
+
+    ): StepModel {
 
         const normalized =
 
@@ -38,11 +42,19 @@ export class StepParser {
 
         const header =
 
-            this.parseHeader(normalized);
+            this.parseHeader(
+
+                normalized
+
+            );
 
         const entities =
 
-            this.parseEntities(normalized);
+            this.parseEntities(
+
+                normalized
+
+            );
 
         return {
 
@@ -70,7 +82,7 @@ export class StepParser {
 
         const header: StepHeader = {};
 
-        const headerMatch =
+        const match =
 
             text.match(
 
@@ -78,7 +90,7 @@ export class StepParser {
 
             );
 
-        if (!headerMatch) {
+        if (!match) {
 
             return header;
 
@@ -86,13 +98,13 @@ export class StepParser {
 
         const section =
 
-            headerMatch[1];
+            match[1];
 
         const desc =
 
             section.match(
 
-                /FILE_DESCRIPTION\s*(.*?);/s
+                /FILE_DESCRIPTION\s*\((.*?)\);/s
 
             );
 
@@ -104,19 +116,19 @@ export class StepParser {
 
         }
 
-        const fileName =
+        const name =
 
             section.match(
 
-                /FILE_NAME\s*(.*?);/s
+                /FILE_NAME\s*\((.*?)\);/s
 
             );
 
-        if (fileName) {
+        if (name) {
 
             header.fileName =
 
-                fileName[1];
+                name[1];
 
         }
 
@@ -124,7 +136,7 @@ export class StepParser {
 
             section.match(
 
-                /FILE_SCHEMA\s*(.*?);/s
+                /FILE_SCHEMA\s*\((.*?)\);/s
 
             );
 
@@ -146,7 +158,7 @@ export class StepParser {
 
     ): StepEntity[] {
 
-        const result: StepEntity[] = [];
+        const output: StepEntity[] = [];
 
         const dataMatch =
 
@@ -158,7 +170,7 @@ export class StepParser {
 
         if (!dataMatch) {
 
-            return result;
+            return output;
 
         }
 
@@ -168,10 +180,9 @@ export class StepParser {
 
         const regex =
 
-            /#(\d+)\s*=\s*([A-Z0-9_]+)\s*(.*?);/gs;
+            /#(\d+)\s*=\s*([A-Z0-9_]+)\s*\((.*?)\);/gs;
 
         let match:
-
             RegExpExecArray | null;
 
         while (
@@ -182,21 +193,153 @@ export class StepParser {
 
         ) {
 
-            result.push({
+            const id =
 
-                id:
+                Number(match[1]);
 
-                    Number(match[1]),
+            const type =
 
-                type:
+                match[2].toUpperCase();
 
-                    match[2],
+            if (
 
-                rawParameters:
+                !this.schema.has(type)
+
+            ) {
+
+                continue;
+
+            }
+
+            const definition =
+
+                this.schema.get(type);
+
+            if (
+
+                !definition ||
+
+                !definition.supported
+
+            ) {
+
+                continue;
+
+            }
+
+            const parameters =
+
+                this.tokenize(
 
                     match[3]
 
-            });
+                );
+
+            try {
+
+                const entity =
+
+                    this.factory.create(
+
+                        id,
+
+                        type,
+
+                        parameters
+
+                    );
+
+                output.push(
+
+                    entity
+
+                );
+
+            }
+
+            catch {
+
+                // geçersiz entity
+
+            }
+
+        }
+
+        return output;
+
+    }
+
+    private tokenize(
+
+        value: string
+
+    ): string[] {
+
+        const result: string[] = [];
+
+        let current = "";
+
+        let depth = 0;
+
+        let inString = false;
+
+        for (
+
+            const c of value
+
+        ) {
+
+            if (c === "'") {
+
+                inString =
+
+                    !inString;
+
+            }
+
+            if (!inString) {
+
+                if (c === "(") depth++;
+
+                if (c === ")") depth--;
+
+                if (
+
+                    c === "," &&
+
+                    depth === 0
+
+                ) {
+
+                    result.push(
+
+                        current.trim()
+
+                    );
+
+                    current = "";
+
+                    continue;
+
+                }
+
+            }
+
+            current += c;
+
+        }
+
+        if (
+
+            current.length > 0
+
+        ) {
+
+            result.push(
+
+                current.trim()
+
+            );
 
         }
 
@@ -218,4 +361,14 @@ export class StepParser {
 
         const match =
 
-            value
+            value.match(
+
+                /^'([^']+)'/
+
+            );
+
+        return match?.[1];
+
+    }
+
+}
