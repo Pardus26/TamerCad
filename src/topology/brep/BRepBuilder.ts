@@ -1,15 +1,3 @@
-import { Point }
-from "../../geometry/core/Point";
-
-
-import { Curve }
-from "../../geometry/curve/Curve";
-
-
-import { Surface }
-from "../../geometry/surface/Surface";
-
-
 import { Vertex }
 from "../core/Vertex";
 
@@ -34,39 +22,18 @@ import { Solid }
 from "../core/Solid";
 
 
-import { BRepModel }
-from "./BRepModel";
+import { Surface }
+from "../../geometry/surface/Surface";
 
 
-import { TopologyValidator }
-from "../operation/TopologyValidator";
+
+
 
 
 
 export class BRepBuilder {
 
 
-
-    private model:
-
-    BRepModel;
-
-
-
-    constructor(
-
-        model?:BRepModel
-
-    ){
-
-
-        this.model =
-
-        model ??
-
-        new BRepModel();
-
-    }
 
 
 
@@ -76,7 +43,7 @@ export class BRepBuilder {
 
     createVertex(
 
-        point:Point
+        vertex:Vertex
 
     ):
 
@@ -84,13 +51,11 @@ export class BRepBuilder {
 
 
 
-        return new Vertex(
-
-            point
-
-        );
+        return vertex;
 
     }
+
+
 
 
 
@@ -102,9 +67,8 @@ export class BRepBuilder {
 
         start:Vertex,
 
-        end:Vertex,
 
-        curve:Curve|null=null
+        end:Vertex
 
     ):
 
@@ -116,13 +80,13 @@ export class BRepBuilder {
 
             start,
 
-            end,
-
-            curve
+            end
 
         );
 
     }
+
+
 
 
 
@@ -146,31 +110,33 @@ export class BRepBuilder {
 
 
 
+
+
         for(
 
-            const edge of edges
+            const edge of
+
+            edges
 
         ){
 
 
 
-            if(
+            wire.addEdge(
 
-                edge.halfEdge1
+                edge
 
-            ){
-
-
-
-                wire.addHalfEdge(
-
-                    edge.halfEdge1
-
-                );
-
-            }
+            );
 
         }
+
+
+
+
+
+        wire.close();
+
+
 
 
 
@@ -184,9 +150,12 @@ export class BRepBuilder {
 
 
 
+
+
     createFace(
 
         surface:Surface,
+
 
         wire:Wire
 
@@ -212,11 +181,14 @@ export class BRepBuilder {
 
 
 
-    addHole(
+
+
+    addInnerWire(
 
         face:Face,
 
-        hole:Wire
+
+        wire:Wire
 
     ):
 
@@ -226,11 +198,13 @@ export class BRepBuilder {
 
         face.addInnerWire(
 
-            hole
+            wire
 
         );
 
     }
+
+
 
 
 
@@ -248,13 +222,41 @@ export class BRepBuilder {
 
 
 
-        return new Shell(
+        const shell =
+
+        new Shell();
+
+
+
+
+
+        for(
+
+            const face of
 
             faces
 
-        );
+        ){
+
+
+
+            shell.addFace(
+
+                face
+
+            );
+
+        }
+
+
+
+
+
+        return shell;
 
     }
+
+
 
 
 
@@ -274,11 +276,7 @@ export class BRepBuilder {
 
         return new Solid(
 
-            [
-
-                shell
-
-            ]
+            shell
 
         );
 
@@ -290,19 +288,33 @@ export class BRepBuilder {
 
 
 
-    sewFaces(
+
+
+    createSolidFromFaces(
 
         faces:Face[]
 
     ):
 
-    Shell {
+    Solid {
 
 
 
-        return new Shell(
+        const shell =
+
+        this.createShell(
 
             faces
+
+        );
+
+
+
+
+
+        return this.createSolid(
+
+            shell
 
         );
 
@@ -314,9 +326,14 @@ export class BRepBuilder {
 
 
 
-    addSolid(
 
-        solid:Solid
+
+    connectTwinEdges(
+
+        edgeA:Edge,
+
+
+        edgeB:Edge
 
     ):
 
@@ -324,9 +341,39 @@ export class BRepBuilder {
 
 
 
-        this.model.addSolid(
+        const halfA =
 
-            solid
+        new HalfEdge(
+
+            edgeA,
+
+            edgeA.start,
+
+            edgeA.end
+
+        );
+
+
+
+        const halfB =
+
+        new HalfEdge(
+
+            edgeB,
+
+            edgeB.end,
+
+            edgeB.start
+
+        );
+
+
+
+
+
+        halfA.setTwin(
+
+            halfB
 
         );
 
@@ -338,33 +385,25 @@ export class BRepBuilder {
 
 
 
-    build():
-
-    BRepModel {
 
 
+    validateSolid(
 
-        if(
+        solid:Solid
 
-            !this.model.validate()
+    ):
 
-        ){
+    boolean {
 
 
 
-            console.warn(
-
-                "BRep model contains invalid topology"
-
-            );
-
-        }
-
-
-
-        return this.model;
+        return solid.isValid();
 
     }
+
+
+
+
 
 
 
