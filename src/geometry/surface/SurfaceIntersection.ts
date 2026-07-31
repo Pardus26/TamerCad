@@ -19,6 +19,8 @@ from "../curve/LineCurve";
 
 
 
+
+
 export class SurfaceIntersection {
 
 
@@ -27,11 +29,15 @@ export class SurfaceIntersection {
 
         public surfaceA:Surface,
 
+
         public surfaceB:Surface,
+
 
         public tolerance:number = 1e-6
 
     ){}
+
+
 
 
 
@@ -40,19 +46,26 @@ export class SurfaceIntersection {
     Curve[] {
 
 
-        const curves:Curve[]=[];
+
+        const curves:
+
+        Curve[] = [];
 
 
 
-        const samples =
+
+
+        const points =
 
         this.sampleSearch();
 
 
 
+
+
         for(
 
-            const p of samples
+            const point of points
 
         ){
 
@@ -62,13 +75,17 @@ export class SurfaceIntersection {
 
             this.traceCurve(
 
-                p
+                point
 
             );
 
 
 
-            if(curve){
+            if(
+
+                curve
+
+            ){
 
                 curves.push(
 
@@ -82,9 +99,13 @@ export class SurfaceIntersection {
 
 
 
+
+
         return curves;
 
     }
+
+
 
 
 
@@ -98,19 +119,27 @@ export class SurfaceIntersection {
 
 
 
-        const result:Point[]=[];
+        const result:
+
+        Point[] = [];
 
 
 
-        const steps = 20;
+
+
+        const steps =
+
+        40;
+
+
 
 
 
         for(
 
-            let i=0;
+            let i = 0;
 
-            i<steps;
+            i <= steps;
 
             i++
 
@@ -120,9 +149,9 @@ export class SurfaceIntersection {
 
             for(
 
-                let j=0;
+                let j = 0;
 
-                j<steps;
+                j <= steps;
 
                 j++
 
@@ -146,7 +175,9 @@ export class SurfaceIntersection {
 
 
 
-                const p1 =
+
+
+                const pointA =
 
                 this.surfaceA.evaluate(
 
@@ -158,7 +189,7 @@ export class SurfaceIntersection {
 
 
 
-                const p2 =
+                const pointB =
 
                 this.surfaceB.evaluate(
 
@@ -170,27 +201,27 @@ export class SurfaceIntersection {
 
 
 
-                const distance =
-
-                p1.distanceTo(
-
-                    p2
-
-                );
-
 
 
                 if(
 
-                    distance <
+                    pointA.distanceTo(
+
+                        pointB
+
+                    )
+
+                    <
 
                     this.tolerance
 
                 ){
 
+
+
                     result.push(
 
-                        p1
+                        pointA
 
                     );
 
@@ -199,6 +230,8 @@ export class SurfaceIntersection {
             }
 
         }
+
+
 
 
 
@@ -212,17 +245,19 @@ export class SurfaceIntersection {
 
 
 
+
+
     private traceCurve(
 
         start:Point
 
     ):
 
-    Curve | null {
+    Curve|null {
 
 
 
-        const direction =
+        const tangent =
 
         this.computeTangent(
 
@@ -232,9 +267,11 @@ export class SurfaceIntersection {
 
 
 
+
+
         if(
 
-            direction.length()
+            tangent.length()
 
             <
 
@@ -248,17 +285,29 @@ export class SurfaceIntersection {
 
 
 
+
+
+        const length =
+
+        1;
+
+
+
+
+
         const end =
 
         start.addVector(
 
-            direction.multiply(
+            tangent.multiply(
 
-                100
+                length
 
             )
 
         );
+
+
 
 
 
@@ -271,6 +320,8 @@ export class SurfaceIntersection {
         );
 
     }
+
+
 
 
 
@@ -300,6 +351,8 @@ export class SurfaceIntersection {
 
 
 
+
+
         const normalB =
 
         this.surfaceB
@@ -312,15 +365,21 @@ export class SurfaceIntersection {
 
 
 
-        return normalA
 
-        .cross(
+
+        const tangent =
+
+        normalA.cross(
 
             normalB
 
-        )
+        );
 
-        .normalize();
+
+
+
+
+        return tangent.normalize();
 
     }
 
