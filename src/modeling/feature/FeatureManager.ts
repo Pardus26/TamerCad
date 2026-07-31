@@ -9,6 +9,8 @@ from "./FeatureTree";
 
 
 
+
+
 export interface FeatureManagerResult {
 
 
@@ -36,10 +38,6 @@ export class FeatureManager {
 
 
 
-    private activeFeature:
-
-    Feature|null = null;
-
 
 
 
@@ -62,6 +60,8 @@ export class FeatureManager {
 
 
 
+
+
     addFeature(
 
         feature:Feature
@@ -76,17 +76,13 @@ export class FeatureManager {
 
 
 
-            this.tree.add(
+            this.tree.addFeature(
 
                 feature
 
             );
 
 
-
-            this.activeFeature =
-
-            feature;
 
 
 
@@ -137,9 +133,9 @@ export class FeatureManager {
 
 
 
-        const feature =
+        const removed =
 
-        this.tree.find(
+        this.tree.removeFeature(
 
             id
 
@@ -151,7 +147,7 @@ export class FeatureManager {
 
         if(
 
-            !feature
+            !removed
 
         ){
 
@@ -168,36 +164,6 @@ export class FeatureManager {
                 "Feature not found"
 
             };
-
-        }
-
-
-
-
-
-        this.tree.remove(
-
-            id
-
-        );
-
-
-
-
-
-        if(
-
-            this.activeFeature &&
-
-            this.activeFeature.id === id
-
-        ){
-
-
-
-            this.activeFeature =
-
-            null;
 
         }
 
@@ -232,39 +198,13 @@ export class FeatureManager {
 
 
 
-        const feature =
+        return this.tree
 
-        this.tree.find(
+        .setActiveFeature(
 
             id
 
         );
-
-
-
-
-
-        if(
-
-            !feature
-
-        ){
-
-            return false;
-
-        }
-
-
-
-
-
-        this.activeFeature =
-
-        feature;
-
-
-
-        return true;
 
     }
 
@@ -282,7 +222,9 @@ export class FeatureManager {
 
 
 
-        return this.activeFeature;
+        return this.tree
+
+        .getActiveFeature();
 
     }
 
@@ -300,27 +242,7 @@ export class FeatureManager {
 
 
 
-        const features =
-
-        this.tree.getOrdered();
-
-
-
-
-
-        for(
-
-            const feature of
-
-            features
-
-        ){
-
-
-
-            feature.evaluate();
-
-        }
+        this.tree.rebuild();
 
     }
 
@@ -356,13 +278,13 @@ export class FeatureManager {
 
     ):
 
-    void {
+    Feature|null {
 
 
 
-        const feature =
+        const result =
 
-        this.tree.find(
+        this.tree.rollback(
 
             featureId
 
@@ -372,25 +294,7 @@ export class FeatureManager {
 
 
 
-        if(
-
-            !feature
-
-        ){
-
-            return;
-
-        }
-
-
-
-
-
-        this.tree.setEnd(
-
-            feature
-
-        );
+        return result;
 
     }
 
@@ -428,11 +332,7 @@ export class FeatureManager {
 
 
 
-        return this.tree
-
-        .getOrdered()
-
-        .length;
+        return this.tree.count;
 
     }
 
@@ -451,12 +351,6 @@ export class FeatureManager {
 
 
         this.tree.clear();
-
-
-
-        this.activeFeature =
-
-        null;
 
     }
 
