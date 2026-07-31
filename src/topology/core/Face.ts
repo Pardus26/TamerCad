@@ -29,8 +29,6 @@ export class Face {
 
 
 
-
-
     public reversed:
 
     boolean = false;
@@ -44,11 +42,14 @@ export class Face {
     constructor(
 
 
-        public surface:Surface,
+        public surface:
+
+        Surface | null,
 
 
-        public outerWire:Wire
+        public outerWire:
 
+        Wire
 
     ){
 
@@ -88,11 +89,75 @@ export class Face {
 
 
 
-        this.innerWires.push(
+        if(
+
+            !this.innerWires.includes(
+
+                wire
+
+            )
+
+        ){
+
+
+
+            this.innerWires.push(
+
+                wire
+
+            );
+
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+    removeInnerWire(
+
+        wire:Wire
+
+    ):
+
+    void {
+
+
+
+        const index =
+
+        this.innerWires.indexOf(
 
             wire
 
         );
+
+
+
+
+
+        if(
+
+            index !== -1
+
+        ){
+
+
+
+            this.innerWires.splice(
+
+                index,
+
+                1
+
+            );
+
+        }
 
     }
 
@@ -128,7 +193,11 @@ export class Face {
 
 
 
-        return this.innerWires;
+        return [
+
+            ...this.innerWires
+
+        ];
 
     }
 
@@ -170,7 +239,7 @@ export class Face {
 
 
 
-        const edges:
+        const result:
 
         Edge[] = [];
 
@@ -200,7 +269,7 @@ export class Face {
 
                 if(
 
-                    !edges.includes(
+                    !result.includes(
 
                         edge
 
@@ -208,7 +277,9 @@ export class Face {
 
                 ){
 
-                    edges.push(
+
+
+                    result.push(
 
                         edge
 
@@ -224,7 +295,7 @@ export class Face {
 
 
 
-        return edges;
+        return result;
 
     }
 
@@ -290,7 +361,11 @@ export class Face {
 
         v:number
 
-    ){
+    ):
+
+
+
+    any {
 
 
 
@@ -308,15 +383,41 @@ export class Face {
 
 
 
-        return this.surface
+        const normal =
 
-        .normal(
+        this.surface.normal(
 
             u,
 
             v
 
         );
+
+
+
+
+
+        if(
+
+            this.reversed
+
+        ){
+
+
+
+            return normal.negate
+
+            ? normal.negate()
+
+            : normal;
+
+        }
+
+
+
+
+
+        return normal;
 
     }
 
@@ -348,9 +449,7 @@ export class Face {
 
 
 
-        return this.surface
-
-        .area();
+        return this.surface.area();
 
     }
 
@@ -382,6 +481,12 @@ export class Face {
 
 
 
+        face.outerWire.close();
+
+
+
+
+
         for(
 
             const wire of
@@ -392,9 +497,19 @@ export class Face {
 
 
 
+            const inner =
+
+            wire.clone();
+
+
+
+            inner.close();
+
+
+
             face.addInnerWire(
 
-                wire.clone()
+                inner
 
             );
 
@@ -436,9 +551,11 @@ export class Face {
 
         return this.getEdges()
 
-        .includes(
+        .some(
 
-            edge
+            e =>
+
+            e === edge
 
         );
 
@@ -494,7 +611,41 @@ export class Face {
 
 
 
+        face.reversed =
+
+        this.reversed;
+
+
+
+
+
         return face;
+
+    }
+
+
+
+
+
+
+
+
+
+    isValid():
+
+    boolean {
+
+
+
+        return (
+
+            this.outerWire.isValid()
+
+            &&
+
+            this.outerWire.isClosed()
+
+        );
 
     }
 
