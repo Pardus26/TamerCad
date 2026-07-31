@@ -1,29 +1,23 @@
 import { Solid }
 from "../core/Solid";
 
-import { Shell }
-from "../core/Shell";
-
 import { Face }
 from "../core/Face";
 
-import { Edge }
-from "../core/Edge";
-
-import { Wire }
-from "../core/Wire";
-
-import { Vertex }
-from "../core/Vertex";
-
-import { Point }
-from "../../geometry/core/Point";
-
-import { BRepValidator }
-from "./BRepValidator";
-
 import { FaceSewing }
 from "./FaceSewing";
+
+import { Splitter }
+from "./Splitter";
+
+import { BooleanResultBuilder }
+from "./BooleanResultBuilder";
+
+import { TopologyValidator }
+from "./TopologyValidator";
+
+import { SolidClassifier }
+from "../SolidClassifier";
 
 
 
@@ -32,7 +26,6 @@ from "./FaceSewing";
 
 
 export type BooleanOperation =
-
 
     "union"
 
@@ -43,8 +36,6 @@ export type BooleanOperation =
     |
 
     "intersection";
-
-
 
 
 
@@ -63,10 +54,7 @@ export interface BooleanResult {
 
     errors:string[];
 
-
 }
-
-
 
 
 
@@ -82,15 +70,33 @@ export class BooleanOperations {
 
 
 
-    private validator:
-
-    BRepValidator;
-
-
-
     private sewing:
 
     FaceSewing;
+
+
+
+    private splitter:
+
+    Splitter;
+
+
+
+    private resultBuilder:
+
+    BooleanResultBuilder;
+
+
+
+    private validator:
+
+    TopologyValidator;
+
+
+
+    private classifier:
+
+    SolidClassifier;
 
 
 
@@ -106,9 +112,9 @@ export class BooleanOperations {
 
 
 
-        this.validator =
+        this.sewing =
 
-        new BRepValidator(
+        new FaceSewing(
 
             tolerance
 
@@ -116,11 +122,35 @@ export class BooleanOperations {
 
 
 
+        this.splitter =
+
+        new Splitter(
+
+            tolerance
+
+        );
 
 
-        this.sewing =
 
-        new FaceSewing(
+        this.resultBuilder =
+
+        new BooleanResultBuilder(
+
+            tolerance
+
+        );
+
+
+
+        this.validator =
+
+        new TopologyValidator();
+
+
+
+        this.classifier =
+
+        new SolidClassifier(
 
             tolerance
 
@@ -236,9 +266,7 @@ export class BooleanOperations {
 
         a:Solid,
 
-
         b:Solid,
-
 
         operation:BooleanOperation
 
@@ -248,13 +276,23 @@ export class BooleanOperations {
 
 
 
-        const errors:
+        const va =
 
-        string[] = [];
+        this.validator.validate(
+
+            a
+
+        );
 
 
 
+        const vb =
 
+        this.validator.validate(
+
+            b
+
+        );
 
 
 
@@ -262,17 +300,11 @@ export class BooleanOperations {
 
         if(
 
-            !this.validator
+            !va.valid
 
-            .validateSolid(
+            ||
 
-                a,
-
-                errors,
-
-                []
-
-            )
+            !vb.valid
 
         ){
 
@@ -289,52 +321,7 @@ export class BooleanOperations {
 
                 errors:[
 
-                    "Invalid first solid"
-
-                ]
-
-            };
-
-        }
-
-
-
-
-
-
-
-
-
-        if(
-
-            !this.validator
-
-            .validateSolid(
-
-                b,
-
-                errors,
-
-                []
-
-            )
-
-        ){
-
-
-
-            return {
-
-
-                solid:null,
-
-
-                success:false,
-
-
-                errors:[
-
-                    "Invalid second solid"
+                    "Invalid BRep input"
 
                 ]
 
@@ -360,17 +347,13 @@ export class BooleanOperations {
 
             case "union":
 
-
-
-                return this.unionSolids(
+                return this.buildUnion(
 
                     a,
 
                     b
 
                 );
-
-
 
 
 
@@ -378,9 +361,7 @@ export class BooleanOperations {
 
             case "difference":
 
-
-
-                return this.subtractSolid(
+                return this.buildDifference(
 
                     a,
 
@@ -392,13 +373,9 @@ export class BooleanOperations {
 
 
 
-
-
             case "intersection":
 
-
-
-                return this.intersectSolids(
+                return this.buildIntersection(
 
                     a,
 
@@ -418,7 +395,7 @@ export class BooleanOperations {
 
 
 
-    private unionSolids(
+    private buildUnion(
 
         a:Solid,
 
@@ -430,34 +407,47 @@ export class BooleanOperations {
 
 
 
-        /*
+        const splitA =
 
-            Gerçek kernel:
+        this.splitter
 
-            - intersect faces
+        .splitSolid(
 
-            - split faces
+            a,
 
-            - classify regions
+            b
 
-            - remove internal faces
-
-            - sew remaining faces
-
-
-        */
+        );
 
 
 
+        const splitB =
+
+        this.splitter
+
+        .splitSolid(
+
+            b,
+
+            a
+
+        );
 
 
-        const faces:
 
-        Face[] = [
 
-            ...a.getFaces(),
 
-            ...b.getFaces()
+
+
+
+
+        const faces =
+
+        [
+
+            ...splitA.faces,
+
+            ...splitB.faces
 
         ];
 
@@ -465,61 +455,33 @@ export class BooleanOperations {
 
 
 
-        try {
-
-
-
-            const result =
-
-            this.sewing.createSolid(
-
-                faces
-
-            );
 
 
 
 
+        /*
 
-            return {
+            İç yüzleri kaldırma
 
+            aşaması burada:
 
-                solid:result,
+            RegionSelector
 
-
-                success:true,
-
-
-                errors:[]
-
-            };
+        */
 
 
 
-        }
-
-        catch(error){
 
 
 
-            return {
 
+        return this.resultBuilder
 
-                solid:null,
+        .buildFromFaces(
 
+            faces
 
-                success:false,
-
-
-                errors:[
-
-                    String(error)
-
-                ]
-
-            };
-
-        }
+        );
 
     }
 
@@ -531,7 +493,7 @@ export class BooleanOperations {
 
 
 
-    private subtractSolid(
+    private buildDifference(
 
         base:Solid,
 
@@ -543,25 +505,29 @@ export class BooleanOperations {
 
 
 
-        /*
+        const split =
 
-            Placeholder:
+        this.splitter
 
-            Base - Tool
+        .splitSolid(
 
-            gerçek uygulamada:
+            base,
 
-            tool yüzleri ile
+            tool
 
-            base yüzleri intersect edilir.
-
-        */
+        );
 
 
 
-        const remainingFaces:
+
+
+        const faces:
 
         Face[] = [];
+
+
+
+
 
 
 
@@ -571,27 +537,53 @@ export class BooleanOperations {
 
             const face of
 
-            base.getFaces()
+            split.faces
 
         ){
 
 
 
+            const center =
+
+            this.faceCenter(
+
+                face
+
+            );
+
+
+
+
+
+            const classification =
+
+            this.classifier
+
+            .classifyPoint(
+
+                center,
+
+                tool
+
+            );
+
+
+
+
+
             if(
 
-                !this.faceInsideSolid(
+                classification.classification
 
-                    face,
+                !==
 
-                    tool
-
-                )
+                "inside"
 
             ){
 
 
 
-                remainingFaces.push(
+                faces.push(
 
                     face
 
@@ -609,61 +601,13 @@ export class BooleanOperations {
 
 
 
-        try {
+        return this.resultBuilder
 
+        .buildFromFaces(
 
+            faces
 
-            const solid =
-
-            this.sewing.createSolid(
-
-                remainingFaces
-
-            );
-
-
-
-
-
-            return {
-
-
-                solid,
-
-
-                success:true,
-
-
-                errors:[]
-
-            };
-
-
-
-        }
-
-        catch(error){
-
-
-
-            return {
-
-
-                solid:null,
-
-
-                success:false,
-
-
-                errors:[
-
-                    String(error)
-
-                ]
-
-            };
-
-        }
+        );
 
     }
 
@@ -675,7 +619,7 @@ export class BooleanOperations {
 
 
 
-    private intersectSolids(
+    private buildIntersection(
 
         a:Solid,
 
@@ -687,7 +631,23 @@ export class BooleanOperations {
 
 
 
-        const commonFaces:
+        const split =
+
+        this.splitter
+
+        .splitSolid(
+
+            a,
+
+            b
+
+        );
+
+
+
+
+
+        const faces:
 
         Face[] = [];
 
@@ -695,47 +655,65 @@ export class BooleanOperations {
 
 
 
+
+
+
+
         for(
 
-            const faceA of
+            const face of
 
-            a.getFaces()
+            split.faces
 
         ){
 
 
 
-            for(
+            const center =
 
-                const faceB of
+            this.faceCenter(
 
-                b.getFaces()
+                face
+
+            );
+
+
+
+
+
+            const result =
+
+            this.classifier
+
+            .classifyPoint(
+
+                center,
+
+                b
+
+            );
+
+
+
+
+
+            if(
+
+                result.classification
+
+                ===
+
+                "inside"
 
             ){
 
 
 
-                if(
+                faces.push(
 
-                    this.facesCoincident(
+                    face
 
-                        faceA,
-
-                        faceB
-
-                    )
-
-                ){
-
-
-
-                    commonFaces.push(
-
-                        faceA
-
-                    );
-
-                }
+                );
 
             }
 
@@ -749,90 +727,13 @@ export class BooleanOperations {
 
 
 
-        if(
+        return this.resultBuilder
 
-            commonFaces.length === 0
+        .buildFromFaces(
 
-        ){
+            faces
 
-
-
-            return {
-
-
-                solid:null,
-
-
-                success:false,
-
-
-                errors:[
-
-                    "No intersection found"
-
-                ]
-
-            };
-
-        }
-
-
-
-
-
-
-
-
-
-        try {
-
-
-
-            return {
-
-
-                solid:
-
-                this.sewing.createSolid(
-
-                    commonFaces
-
-                ),
-
-
-                success:true,
-
-
-                errors:[]
-
-            };
-
-
-
-        }
-
-        catch(error){
-
-
-
-            return {
-
-
-                solid:null,
-
-
-                success:false,
-
-
-                errors:[
-
-                    String(error)
-
-                ]
-
-            };
-
-        }
+        );
 
     }
 
@@ -844,19 +745,15 @@ export class BooleanOperations {
 
 
 
-    private faceInsideSolid(
+    private faceCenter(
 
-        face:Face,
+        face:Face
 
-        solid:Solid
-
-    ):
-
-    boolean {
+    ){
 
 
 
-        const vertices =
+        const points =
 
         face.getEdges()
 
@@ -872,168 +769,11 @@ export class BooleanOperations {
 
 
 
-        if(
+        let x = 0;
 
-            vertices.length === 0
+        let y = 0;
 
-        ){
-
-            return false;
-
-        }
-
-
-
-
-
-        const center =
-
-        this.averagePoint(
-
-            vertices
-
-        );
-
-
-
-
-
-        return this.pointInsideSolid(
-
-            center,
-
-            solid
-
-        );
-
-    }
-
-
-
-
-
-
-
-
-
-    private pointInsideSolid(
-
-        point:Point,
-
-        solid:Solid
-
-    ):
-
-    boolean {
-
-
-
-        /*
-
-            Ray casting:
-
-            Gerçek kernel burada
-
-            face intersection
-
-            ile yapılır.
-
-
-        */
-
-
-
-        return false;
-
-    }
-
-
-
-
-
-
-
-
-
-    private facesCoincident(
-
-        a:Face,
-
-        b:Face
-
-    ):
-
-    boolean {
-
-
-
-        const edgesA =
-
-        a.getEdges();
-
-
-
-        const edgesB =
-
-        b.getEdges();
-
-
-
-
-
-        if(
-
-            edgesA.length !==
-
-            edgesB.length
-
-        ){
-
-            return false;
-
-        }
-
-
-
-
-
-        return true;
-
-    }
-
-
-
-
-
-
-
-
-
-    private averagePoint(
-
-        points:Point[]
-
-    ):
-
-    Point {
-
-
-
-        let x =
-
-        0;
-
-
-
-        let y =
-
-        0;
-
-
-
-        let z =
-
-        0;
+        let z = 0;
 
 
 
@@ -1051,9 +791,7 @@ export class BooleanOperations {
 
             x += p.x;
 
-
             y += p.y;
-
 
             z += p.z;
 
@@ -1063,19 +801,23 @@ export class BooleanOperations {
 
 
 
-        return new Point(
+        return points.length
 
+        ?
+
+        new (points[0].constructor as any)(
 
             x / points.length,
 
-
             y / points.length,
-
 
             z / points.length
 
+        )
 
-        );
+        :
+
+        null;
 
     }
 
