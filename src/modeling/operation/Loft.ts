@@ -2,32 +2,16 @@ import { Feature }
 from "../feature/Feature";
 
 
-import { SketchProfile }
-from "../sketch/SketchProfile";
-
-
-import { Curve }
-from "../../geometry/curve/Curve";
-
-
 import { Solid }
 from "../../topology/core/Solid";
 
 
+import { Edge }
+from "../../topology/core/Edge";
 
 
-
-
-
-export enum LoftMode {
-
-
-    Surface = "Surface",
-
-
-    Solid = "Solid"
-
-}
+import { Face }
+from "../../topology/core/Face";
 
 
 
@@ -35,16 +19,13 @@ export enum LoftMode {
 
 
 
-export enum LoftContinuity {
+export interface FilletEdge {
 
 
-    C0 = "C0",
+    edge:Edge;
 
 
-    C1 = "C1",
-
-
-    C2 = "C2"
+    radius:number;
 
 }
 
@@ -54,7 +35,7 @@ export enum LoftContinuity {
 
 
 
-export class Loft
+export class Fillet
 
 extends Feature {
 
@@ -66,28 +47,14 @@ extends Feature {
         id:string,
 
 
-        public profiles:
+        public inputSolid:
 
-        SketchProfile[],
-
-
-        public guides:
-
-        Curve[] = [],
+        Solid,
 
 
-        public mode:
+        public edges:
 
-        LoftMode =
-
-        LoftMode.Solid,
-
-
-        public continuity:
-
-        LoftContinuity =
-
-        LoftContinuity.C1
+        FilletEdge[]
 
 
 
@@ -113,7 +80,7 @@ extends Feature {
 
         this.result =
 
-        this.createSolid();
+        this.createFillet();
 
     }
 
@@ -123,51 +90,37 @@ extends Feature {
 
 
 
-    createSolid():
+    createFillet():
 
     Solid {
 
 
 
-        const solid =
+        const result =
 
-        new Solid();
+        this.cloneSolid(
 
+            this.inputSolid
 
-
-        const sections =
-
-        this.prepareSections();
-
-
-
-        const surfaces =
-
-        [];
+        );
 
 
 
         for(
 
-            let i = 0;
+            const filletEdge of
 
-            i < sections.length-1;
-
-            i++
+            this.edges
 
         ){
 
 
 
-            surfaces.push(
+            this.applyEdgeFillet(
 
-                this.createTransition(
+                result,
 
-                    sections[i],
-
-                    sections[i+1]
-
-                )
+                filletEdge
 
             );
 
@@ -175,49 +128,123 @@ extends Feature {
 
 
 
-        for(
+        return result;
 
-            const surface of
-
-            surfaces
-
-        ){
+    }
 
 
 
-            solid.addFace(
 
-                surface
 
-            );
 
-        }
+
+    private applyEdgeFillet(
+
+        solid:
+
+        Solid,
+
+
+        data:
+
+        FilletEdge
+
+    ):
+
+    void {
+
+
+
+        const edge =
+
+        data.edge;
+
+
+
+        const radius =
+
+        data.radius;
+
+
+
+        // Gerçek kernel:
+
+        //
+
+        // 1. Edge komşu yüzleri bul
+
+        // 2. Offset yüzeyleri oluştur
+
+        // 3. Blend surface üret
+
+        // 4. Topolojiyi yeniden bağla
+
+    }
+
+
+
+
+
+
+
+    private cloneSolid(
+
+        solid:
+
+        Solid
+
+    ):
+
+    Solid {
+
+
+
+        return solid.clone();
+
+    }
+
+
+
+
+
+
+
+    validateRadius(
+
+        edge:
+
+        Edge,
+
+
+        radius:number
+
+    ):
+
+    boolean {
 
 
 
         if(
 
-            this.mode ===
-
-            LoftMode.Solid
+            radius <= 0
 
         ){
 
-
-
-            this.closeEnds(
-
-                solid,
-
-                sections
-
-            );
+            return false;
 
         }
 
 
 
-        return solid;
+        // Gerçek kernel:
+
+        // maksimum izin verilen radius
+
+        // face distance ile hesaplanır.
+
+
+
+        return true;
 
     }
 
@@ -227,139 +254,14 @@ extends Feature {
 
 
 
-    private prepareSections():
+    setRadius(
 
-    any[] {
+        edge:
 
+        Edge,
 
 
-        return this.profiles.map(
-
-            profile => ({
-
-
-                profile,
-
-
-                samples:
-
-                this.sampleProfile(
-
-                    profile
-
-                )
-
-            })
-
-        );
-
-    }
-
-
-
-
-
-
-
-    private sampleProfile(
-
-        profile:
-
-        SketchProfile
-
-    ):
-
-    any[] {
-
-
-
-        const points =
-
-        [];
-
-
-
-        for(
-
-            const entity of
-
-            profile.outerLoop
-
-        ){
-
-
-
-            points.push(
-
-                ...entity.getPoints()
-
-            );
-
-        }
-
-
-
-        return points;
-
-    }
-
-
-
-
-
-
-
-    private createTransition(
-
-        sectionA:any,
-
-
-        sectionB:any
-
-    ):
-
-    any {
-
-
-
-        return {
-
-
-            type:
-
-            "LoftSurface",
-
-
-            from:
-
-            sectionA,
-
-
-            to:
-
-            sectionB,
-
-
-            continuity:
-
-            this.continuity
-
-        };
-
-    }
-
-
-
-
-
-
-
-    private closeEnds(
-
-        solid:Solid,
-
-
-        sections:any[]
+        radius:number
 
     ):
 
@@ -367,35 +269,27 @@ extends Feature {
 
 
 
-        // Closed solid için
+        const item =
 
-        // başlangıç ve bitiş
+        this.edges.find(
 
-        // yüzleri oluşturulur.
+            e =>
 
-    }
-
-
-
-
-
-
-
-    addGuide(
-
-        curve:Curve
-
-    ):
-
-    void {
-
-
-
-        this.guides.push(
-
-            curve
+            e.edge === edge
 
         );
+
+
+
+        if(item)
+
+        {
+
+            item.radius =
+
+            radius;
+
+        }
 
     }
 
