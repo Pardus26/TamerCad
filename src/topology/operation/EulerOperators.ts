@@ -1,9 +1,13 @@
-import { Point }
-from "../../geometry/core/Point";
+import { Solid }
+from "../core/Solid";
 
 
-import { Vertex }
-from "../core/Vertex";
+import { Shell }
+from "../core/Shell";
+
+
+import { Face }
+from "../core/Face";
 
 
 import { Edge }
@@ -14,20 +18,16 @@ import { Wire }
 from "../core/Wire";
 
 
-import { Face }
-from "../core/Face";
+import { Vertex }
+from "../core/Vertex";
 
 
-import { Shell }
-from "../core/Shell";
+import { BRepBuilder }
+from "../brep/BRepBuilder";
 
 
-import { Solid }
-from "../core/Solid";
 
 
-import { Curve }
-from "../../geometry/curve/Curve";
 
 
 
@@ -37,9 +37,35 @@ export class EulerOperators {
 
 
 
-    static makeVertex(
 
-        point:Point
+
+    constructor(
+
+        private builder:
+
+        BRepBuilder =
+
+        new BRepBuilder()
+
+    ){}
+
+
+
+    
+
+
+
+
+
+
+
+    makeVertex(
+
+        x:number,
+
+        y:number,
+
+        z:number
 
     ):
 
@@ -47,9 +73,23 @@ export class EulerOperators {
 
 
 
-        return new Vertex(
+        return this.builder
 
-            point
+        .createVertex(
+
+            new Vertex(
+
+                {
+
+                    x,
+
+                    y,
+
+                    z
+
+                } as any
+
+            )
 
         );
 
@@ -63,13 +103,11 @@ export class EulerOperators {
 
 
 
-    static makeEdge(
+    makeEdge(
 
         start:Vertex,
 
-        end:Vertex,
-
-        curve:Curve|null=null
+        end:Vertex
 
     ):
 
@@ -77,13 +115,13 @@ export class EulerOperators {
 
 
 
-        return new Edge(
+        return this.builder
+
+        .createEdge(
 
             start,
 
-            end,
-
-            curve
+            end
 
         );
 
@@ -97,7 +135,7 @@ export class EulerOperators {
 
 
 
-    static makeWire(
+    makeWire(
 
         edges:Edge[]
 
@@ -107,39 +145,13 @@ export class EulerOperators {
 
 
 
-        const wire =
+        return this.builder
 
-        new Wire();
+        .createWire(
 
+            edges
 
-
-        for(
-
-            const edge of edges
-
-        ){
-
-
-
-            if(
-
-                edge.halfEdge1
-
-            ){
-
-                wire.addHalfEdge(
-
-                    edge.halfEdge1
-
-                );
-
-            }
-
-        }
-
-
-
-        return wire;
+        );
 
     }
 
@@ -151,9 +163,7 @@ export class EulerOperators {
 
 
 
-    static makeFace(
-
-        surface:any,
+    makeFace(
 
         wire:Wire
 
@@ -163,9 +173,11 @@ export class EulerOperators {
 
 
 
-        return new Face(
+        return this.builder
 
-            surface,
+        .createFace(
+
+            null as any,
 
             wire
 
@@ -181,19 +193,21 @@ export class EulerOperators {
 
 
 
-    static makeShell(
+    addFaceToShell(
 
-        faces:Face[]
+        shell:Shell,
+
+        face:Face
 
     ):
 
-    Shell {
+    void {
 
 
 
-        return new Shell(
+        shell.addFace(
 
-            faces
+            face
 
         );
 
@@ -207,19 +221,21 @@ export class EulerOperators {
 
 
 
-    static makeSolid(
+    removeFaceFromShell(
 
-        shells:Shell[]
+        shell:Shell,
+
+        face:Face
 
     ):
 
-    Solid {
+    void {
 
 
 
-        return new Solid(
+        shell.removeFace(
 
-            shells
+            face
 
         );
 
@@ -233,7 +249,7 @@ export class EulerOperators {
 
 
 
-    static splitEdge(
+    splitEdge(
 
         edge:Edge,
 
@@ -257,6 +273,8 @@ export class EulerOperators {
 
 
 
+
+
         const second =
 
         new Edge(
@@ -266,6 +284,8 @@ export class EulerOperators {
             edge.end
 
         );
+
+
 
 
 
@@ -287,7 +307,7 @@ export class EulerOperators {
 
 
 
-    static mergeEdges(
+    joinEdges(
 
         edgeA:Edge,
 
@@ -295,7 +315,23 @@ export class EulerOperators {
 
     ):
 
-    Edge {
+    Edge|null {
+
+
+
+        if(
+
+            edgeA.end !==
+
+            edgeB.start
+
+        ){
+
+            return null;
+
+        }
+
+
 
 
 
@@ -303,9 +339,7 @@ export class EulerOperators {
 
             edgeA.start,
 
-            edgeB.end,
-
-            edgeA.curve
+            edgeB.end
 
         );
 
@@ -319,7 +353,7 @@ export class EulerOperators {
 
 
 
-    static splitFace(
+    addHole(
 
         face:Face,
 
@@ -327,15 +361,49 @@ export class EulerOperators {
 
     ):
 
-    Face[] {
+    void {
 
 
 
-        const newFace =
+        face.addInnerWire(
 
-        new Face(
+            wire
 
-            face.surface,
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    removeHole(
+
+        face:Face,
+
+        wire:Wire
+
+    ):
+
+    void {
+
+
+
+        const holes =
+
+        face.innerWires;
+
+
+
+
+
+        const index =
+
+        holes.indexOf(
 
             wire
 
@@ -343,13 +411,25 @@ export class EulerOperators {
 
 
 
-        return [
 
-            face,
 
-            newFace
+        if(
 
-        ];
+            index !== -1
+
+        ){
+
+
+
+            holes.splice(
+
+                index,
+
+                1
+
+            );
+
+        }
 
     }
 
@@ -361,7 +441,7 @@ export class EulerOperators {
 
 
 
-    static mergeFaces(
+    mergeFaces(
 
         faceA:Face,
 
@@ -369,15 +449,53 @@ export class EulerOperators {
 
     ):
 
-    Face {
+    Face|null {
 
 
 
-        return new Face(
+        const edges =
 
-            faceA.surface,
+        [
 
-            faceA.outerWire
+            ...faceA.getEdges(),
+
+            ...faceB.getEdges()
+
+        ];
+
+
+
+
+
+        if(
+
+            edges.length === 0
+
+        ){
+
+            return null;
+
+        }
+
+
+
+
+
+        const wire =
+
+        this.makeWire(
+
+            edges
+
+        );
+
+
+
+
+
+        return this.makeFace(
+
+            wire
 
         );
 
@@ -391,7 +509,7 @@ export class EulerOperators {
 
 
 
-    static validateEuler(
+    checkEuler(
 
         solid:Solid
 
@@ -401,7 +519,7 @@ export class EulerOperators {
 
 
 
-        const V =
+        const vertices =
 
         solid.getVertices()
 
@@ -409,7 +527,7 @@ export class EulerOperators {
 
 
 
-        const E =
+        const edges =
 
         solid.getEdges()
 
@@ -417,7 +535,7 @@ export class EulerOperators {
 
 
 
-        const F =
+        const faces =
 
         solid.getFaces()
 
@@ -425,13 +543,27 @@ export class EulerOperators {
 
 
 
+
+
         return (
 
-            V-E+F===2
+            vertices -
 
-        );
+            edges +
+
+            faces
+
+        )
+
+        ===
+
+        2;
 
     }
+
+
+
+
 
 
 
