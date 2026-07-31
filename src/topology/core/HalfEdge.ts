@@ -1,5 +1,13 @@
+import { Edge }
+from "./Edge";
+
+
 import { Vertex }
 from "./Vertex";
+
+
+
+
 
 
 
@@ -7,31 +15,23 @@ export class HalfEdge {
 
 
 
-    private static nextId = 1;
+    public next:
+
+    HalfEdge|null = null;
 
 
 
-    public readonly id:number;
+    public previous:
+
+    HalfEdge|null = null;
 
 
 
-    public twin:HalfEdge|null = null;
+    public twin:
+
+    HalfEdge|null = null;
 
 
-
-    public next:HalfEdge|null = null;
-
-
-
-    public previous:HalfEdge|null = null;
-
-
-
-    public face:any|null = null;
-
-
-
-    public edge:any|null = null;
 
 
 
@@ -39,64 +39,63 @@ export class HalfEdge {
 
     constructor(
 
-        public origin:Vertex
+
+        public edge:Edge,
+
+
+        public start:Vertex,
+
+
+        public end:Vertex
+
 
     ){
 
 
-        this.id =
 
-        HalfEdge.nextId++;
+        if(
 
-    }
+            start !== edge.start
 
+            &&
 
+            start !== edge.end
 
+        ){
 
+            throw new Error(
 
+                "HalfEdge start vertex does not belong to edge"
 
-
-    getTarget():
-
-    Vertex|null {
-
-
-
-        if(this.next){
-
-            return this.next.origin;
+            );
 
         }
 
 
 
-        return null;
+
+
+        if(
+
+            end !== edge.start
+
+            &&
+
+            end !== edge.end
+
+        ){
+
+            throw new Error(
+
+                "HalfEdge end vertex does not belong to edge"
+
+            );
+
+        }
 
     }
 
 
-
-
-
-
-
-    setTwin(
-
-        twin:HalfEdge
-
-    ):
-
-    void {
-
-
-
-        this.twin = twin;
-
-
-
-        twin.twin = this;
-
-    }
 
 
 
@@ -106,7 +105,7 @@ export class HalfEdge {
 
     setNext(
 
-        next:HalfEdge
+        halfEdge:HalfEdge
 
     ):
 
@@ -114,11 +113,9 @@ export class HalfEdge {
 
 
 
-        this.next = next;
+        this.next =
 
-
-
-        next.previous = this;
+        halfEdge;
 
     }
 
@@ -128,9 +125,11 @@ export class HalfEdge {
 
 
 
-    setFace(
 
-        face:any
+
+    setPrevious(
+
+        halfEdge:HalfEdge
 
     ):
 
@@ -138,7 +137,9 @@ export class HalfEdge {
 
 
 
-        this.face = face;
+        this.previous =
+
+        halfEdge;
 
     }
 
@@ -148,33 +149,27 @@ export class HalfEdge {
 
 
 
-    length():
-
-    number {
 
 
+    setTwin(
 
-        const target =
+        halfEdge:HalfEdge
 
-        this.getTarget();
+    ):
 
-
-
-        if(!target){
-
-            return 0;
-
-        }
+    void {
 
 
 
-        return this.origin
+        this.twin =
 
-        .distanceTo(
+        halfEdge;
 
-            target
 
-        );
+
+        halfEdge.twin =
+
+        this;
 
     }
 
@@ -184,19 +179,109 @@ export class HalfEdge {
 
 
 
-    isBoundary():
-
-    boolean {
 
 
+    getStart():
 
-        return (
+    Vertex {
 
-            this.face === null
 
-        );
+
+        return this.start;
 
     }
+
+
+
+
+
+
+
+
+
+    getEnd():
+
+    Vertex {
+
+
+
+        return this.end;
+
+    }
+
+
+
+
+
+
+
+
+
+    getEdge():
+
+    Edge {
+
+
+
+        return this.edge;
+
+    }
+
+
+
+
+
+
+
+
+
+    getNext():
+
+    HalfEdge|null {
+
+
+
+        return this.next;
+
+    }
+
+
+
+
+
+
+
+
+
+    getPrevious():
+
+    HalfEdge|null {
+
+
+
+        return this.previous;
+
+    }
+
+
+
+
+
+
+
+
+
+    getTwin():
+
+    HalfEdge|null {
+
+
+
+        return this.twin;
+
+    }
+
+
 
 
 
@@ -210,37 +295,131 @@ export class HalfEdge {
 
 
 
-        if(this.twin){
-
-            return this.twin;
-
-        }
+        return new HalfEdge(
 
 
+            this.edge.reverse(),
 
-        const reversed =
+
+            this.end,
+
+
+            this.start
+
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    length():
+
+    number {
+
+
+
+        return this.edge.getLength();
+
+    }
+
+
+
+
+
+
+
+
+
+    connects(
+
+        vertex:Vertex
+
+    ):
+
+    boolean {
+
+
+
+        return (
+
+            this.start === vertex
+
+            ||
+
+            this.end === vertex
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    isClosed():
+
+    boolean {
+
+
+
+        return (
+
+            this.start === this.end
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    clone():
+
+    HalfEdge {
+
+
+
+        const cloned =
 
         new HalfEdge(
 
-            this.getTarget()
 
-            ??
+            this.edge.clone(),
 
-            this.origin
+
+            this.start.clone(),
+
+
+            this.end.clone()
+
 
         );
 
 
 
-        reversed.face =
-
-        this.face;
-
-
-
-        return reversed;
+        return cloned;
 
     }
+
+
+
+
 
 
 
