@@ -19,6 +19,8 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface DraftOptions {
 
 
@@ -42,6 +44,7 @@ export class Draft {
 
     constructor(
 
+
         public solid:Solid,
 
 
@@ -51,16 +54,36 @@ export class Draft {
         public angle:number,
 
 
-        public neutralPlane:
-
-        Point,
+        public neutralPlane:Point,
 
 
         public options:
 
         DraftOptions = {}
 
-    ){}
+    ){
+
+
+
+        if(
+
+            angle === 0
+
+        ){
+
+            throw new Error(
+
+                "Draft angle cannot be zero"
+
+            );
+
+        }
+
+    }
+
+
+
+
 
 
 
@@ -76,9 +99,13 @@ export class Draft {
 
 
 
+
+
         const resultFaces:
 
-        Face[]=[];
+        Face[] = [];
+
+
 
 
 
@@ -114,8 +141,6 @@ export class Draft {
 
                 );
 
-
-
             }
 
             else {
@@ -134,6 +159,8 @@ export class Draft {
 
 
 
+
+
         const shell =
 
         builder.createShell(
@@ -144,6 +171,8 @@ export class Draft {
 
 
 
+
+
         return builder.createSolid(
 
             shell
@@ -151,6 +180,8 @@ export class Draft {
         );
 
     }
+
+
 
 
 
@@ -184,6 +215,8 @@ export class Draft {
 
 
 
+
+
     private applyDraft(
 
         face:Face
@@ -194,15 +227,103 @@ export class Draft {
 
 
 
-        // Gerçek kernel'de:
+        /*
 
-        // Surface transform + taper
+            Gerçek CAD kernel aşaması:
 
-        // algoritması çalışır.
+            1- Face surface alınır
+
+            2- Neutral plane belirlenir
+
+            3- Direction vector hesaplanır
+
+            4- Angle kadar taper uygulanır
+
+            5- Yeni surface oluşturulur
+
+            6- Face yeniden oluşturulur
+
+
+            Şimdilik topology korunur.
+
+
+        */
 
 
 
         return face;
+
+    }
+
+
+
+
+
+
+
+
+
+    getAngle():
+
+    number {
+
+
+
+        return this.angle;
+
+    }
+
+
+
+
+
+
+
+
+
+    getNeutralPlane():
+
+    Point {
+
+
+
+        return this.neutralPlane;
+
+    }
+
+
+
+
+
+
+
+
+
+    getFaces():
+
+    Face[] {
+
+
+
+        return this.faces;
+
+    }
+
+
+
+
+
+
+
+
+
+    getDirection():
+
+    Vector3 | undefined {
+
+
+
+        return this.options.direction;
 
     }
 
