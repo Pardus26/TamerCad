@@ -3,9 +3,24 @@ import {
     PostProcessType
 } from "./PostProcess";
 
+import { RenderContext } from "../RenderContext";
+
 import { ShaderProgram } from "../shader/ShaderProgram";
 
-import { RenderContext } from "../RenderContext";
+
+
+export interface OutlineColor {
+
+
+    r:number;
+
+    g:number;
+
+    b:number;
+
+    a?:number;
+
+}
 
 
 
@@ -15,17 +30,7 @@ export interface OutlineOptions {
     enabled?: boolean;
 
 
-    color?: {
-
-        r:number;
-
-        g:number;
-
-        b:number;
-
-        a?:number;
-
-    };
+    color?: OutlineColor;
 
 
     thickness?: number;
@@ -37,13 +42,17 @@ export interface OutlineOptions {
 
 
 
+
+
 export class Outline extends PostProcess {
 
 
     /**
-     * Çizgi rengi
+     * CAD seçim rengi
      */
-    public color = {
+    public color:
+
+    OutlineColor = {
 
 
         r:1,
@@ -59,28 +68,36 @@ export class Outline extends PostProcess {
 
 
     /**
-     * Kenar kalınlığı
+     * Kenar piksel kalınlığı
      */
     public thickness = 2;
 
 
 
     /**
-     * Highlight gücü
+     * Highlight kuvveti
      */
     public intensity = 1;
 
 
 
+    /**
+     * Object ID / selection mask
+     */
     private maskTexture:
 
         any = null;
 
 
 
+    /**
+     * Depth edge detection
+     */
     private depthTexture:
 
         any = null;
+
+
 
 
 
@@ -90,8 +107,7 @@ export class Outline extends PostProcess {
 
             OutlineOptions = {}
 
-    ) {
-
+    ){
 
         super({
 
@@ -108,15 +124,17 @@ export class Outline extends PostProcess {
 
 
 
-        if (
+        if(
 
             options.color
 
-        ) {
+        ){
 
             this.color = {
 
+
                 ...this.color,
+
 
                 ...options.color
 
@@ -126,29 +144,33 @@ export class Outline extends PostProcess {
 
 
 
-        if (
+        if(
 
             options.thickness !== undefined
 
-        ) {
+        ){
 
-            this.thickness =
+            this.setThickness(
 
-                options.thickness;
+                options.thickness
+
+            );
 
         }
 
 
 
-        if (
+        if(
 
             options.intensity !== undefined
 
-        ) {
+        ){
 
-            this.intensity =
+            this.setIntensity(
 
-                options.intensity;
+                options.intensity
+
+            );
 
         }
 
@@ -168,19 +190,6 @@ export class Outline extends PostProcess {
         this.maskTexture =
 
             texture;
-
-    }
-
-
-
-
-
-    getMaskTexture():
-
-    any {
-
-
-        return this.maskTexture;
 
     }
 
@@ -214,11 +223,12 @@ export class Outline extends PostProcess {
     ):any {
 
 
-        if (
+
+        if(
 
             !this.enabled
 
-        ) {
+        ){
 
             return this.inputTexture;
 
@@ -226,17 +236,19 @@ export class Outline extends PostProcess {
 
 
 
-        const shader =
+        const shader:
+
+        ShaderProgram | null =
 
             this.getShader();
 
 
 
-        if (
+        if(
 
             shader
 
-        ) {
+        ){
 
 
             shader.setUniform(
@@ -305,14 +317,18 @@ export class Outline extends PostProcess {
 
     setColor(
 
-        color:any
+        color:
+
+            OutlineColor
 
     ):void {
 
 
         this.color = {
 
+
             ...this.color,
+
 
             ...color
 
@@ -337,7 +353,13 @@ export class Outline extends PostProcess {
 
                 1,
 
-                value
+                Math.min(
+
+                    10,
+
+                    value
+
+                )
 
             );
 
@@ -360,7 +382,13 @@ export class Outline extends PostProcess {
 
                 0,
 
-                value
+                Math.min(
+
+                    5,
+
+                    value
+
+                )
 
             );
 
