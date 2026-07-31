@@ -33,6 +33,8 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface ExtrudeOptions {
 
 
@@ -57,6 +59,16 @@ export class Extrude {
 
 
 
+    private normalizedDirection:
+
+    Vector3;
+
+
+
+
+
+
+
     constructor(
 
 
@@ -73,7 +85,61 @@ export class Extrude {
 
         ExtrudeOptions = {}
 
-    ){}
+    ){
+
+
+
+        if(
+
+            distance <= 0
+
+        ){
+
+            throw new Error(
+
+                "Extrude distance must be positive"
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            !profile.isClosed()
+
+        ){
+
+            throw new Error(
+
+                "Extrude profile must be closed"
+
+            );
+
+        }
+
+
+
+
+
+        this.normalizedDirection =
+
+        this.normalizeDirection(
+
+            direction
+
+        );
+
+    }
+
+
+
+
+
+
 
 
 
@@ -89,6 +155,8 @@ export class Extrude {
 
 
 
+
+
         const startWire =
 
         this.cloneWire(
@@ -96,6 +164,8 @@ export class Extrude {
             this.profile
 
         );
+
+
 
 
 
@@ -109,9 +179,17 @@ export class Extrude {
 
 
 
+
+
         const faces:
 
         Face[] = [];
+
+
+
+
+
+
 
 
 
@@ -139,6 +217,10 @@ export class Extrude {
 
 
 
+
+
+
+
         faces.push(
 
             ...this.createSideFaces(
@@ -150,6 +232,10 @@ export class Extrude {
             )
 
         );
+
+
+
+
 
 
 
@@ -179,6 +265,10 @@ export class Extrude {
 
 
 
+
+
+
+
         const shell =
 
         builder.createShell(
@@ -189,6 +279,8 @@ export class Extrude {
 
 
 
+
+
         return builder.createSolid(
 
             shell
@@ -196,6 +288,8 @@ export class Extrude {
         );
 
     }
+
+
 
 
 
@@ -229,6 +323,8 @@ export class Extrude {
 
 
 
+
+
     private translatePoint(
 
         point:Point
@@ -239,32 +335,28 @@ export class Extrude {
 
 
 
-        const dir =
-
-        this.getDirection();
-
-
-
         return new Point(
 
 
             point.x +
 
-            dir.x *
+            this.normalizedDirection.x *
 
             this.distance,
+
 
 
             point.y +
 
-            dir.y *
+            this.normalizedDirection.y *
 
             this.distance,
 
 
+
             point.z +
 
-            dir.z *
+            this.normalizedDirection.z *
 
             this.distance
 
@@ -279,7 +371,13 @@ export class Extrude {
 
 
 
-    private getDirection():
+
+
+    private normalizeDirection(
+
+        vector:Vector3
+
+    ):
 
     Vector3 {
 
@@ -290,22 +388,24 @@ export class Extrude {
         Math.sqrt(
 
 
-            this.direction.x *
+            vector.x *
 
-            this.direction.x +
-
-
-            this.direction.y *
-
-            this.direction.y +
+            vector.x +
 
 
-            this.direction.z *
+            vector.y *
 
-            this.direction.z
+            vector.y +
+
+
+            vector.z *
+
+            vector.z
 
 
         );
+
+
 
 
 
@@ -327,20 +427,24 @@ export class Extrude {
 
 
 
+
+
         return new Vector3(
 
 
-            this.direction.x /
+            vector.x /
 
             length,
 
 
-            this.direction.y /
+
+            vector.y /
 
             length,
 
 
-            this.direction.z /
+
+            vector.z /
 
             length
 
@@ -348,6 +452,8 @@ export class Extrude {
         );
 
     }
+
+
 
 
 
@@ -368,6 +474,10 @@ export class Extrude {
         const result =
 
         new Wire();
+
+
+
+
 
 
 
@@ -399,6 +509,8 @@ export class Extrude {
 
 
 
+
+
             const end =
 
             new Vertex(
@@ -414,6 +526,8 @@ export class Extrude {
                 )
 
             );
+
+
 
 
 
@@ -433,9 +547,15 @@ export class Extrude {
 
 
 
+
+
+
+
         return result;
 
     }
+
+
 
 
 
@@ -456,6 +576,10 @@ export class Extrude {
         const result =
 
         new Wire();
+
+
+
+
 
 
 
@@ -483,6 +607,8 @@ export class Extrude {
 
 
 
+
+
             const end =
 
             new Vertex(
@@ -494,6 +620,8 @@ export class Extrude {
                 )
 
             );
+
+
 
 
 
@@ -513,9 +641,15 @@ export class Extrude {
 
 
 
+
+
+
+
         return result;
 
     }
+
+
 
 
 
@@ -542,6 +676,8 @@ export class Extrude {
 
 
 
+
+
         const sourceEdges =
 
         source.getEdges();
@@ -551,6 +687,8 @@ export class Extrude {
         const targetEdges =
 
         target.getEdges();
+
+
 
 
 
@@ -566,6 +704,12 @@ export class Extrude {
 
 
 
+
+
+
+
+
+
         for(
 
             let i = 0;
@@ -578,15 +722,19 @@ export class Extrude {
 
 
 
-            const e1 =
+            const bottom =
 
             sourceEdges[i];
 
 
 
-            const e2 =
+
+
+            const top =
 
             targetEdges[i];
+
+
 
 
 
@@ -596,25 +744,15 @@ export class Extrude {
 
 
 
-            sideWire.addEdge(
-
-                e1
-
-            );
-
 
 
             sideWire.addEdge(
 
-                new Edge(
-
-                    e1.end,
-
-                    e2.end
-
-                )
+                bottom
 
             );
+
+
 
 
 
@@ -622,13 +760,15 @@ export class Extrude {
 
                 new Edge(
 
-                    e2.end,
+                    bottom.end,
 
-                    e2.start
+                    top.end
 
                 )
 
             );
+
+
 
 
 
@@ -636,13 +776,31 @@ export class Extrude {
 
                 new Edge(
 
-                    e2.start,
+                    top.end,
 
-                    e1.start
+                    top.start
 
                 )
 
             );
+
+
+
+
+
+            sideWire.addEdge(
+
+                new Edge(
+
+                    top.start,
+
+                    bottom.start
+
+                )
+
+            );
+
+
 
 
 
@@ -662,9 +820,71 @@ export class Extrude {
 
 
 
+
+
+
+
         return faces;
 
     }
+
+
+
+
+
+
+
+
+
+    getDirection():
+
+    Vector3 {
+
+
+
+        return this.normalizedDirection;
+
+    }
+
+
+
+
+
+
+
+
+
+    getDistance():
+
+    number {
+
+
+
+        return this.distance;
+
+    }
+
+
+
+
+
+
+
+
+
+    getProfile():
+
+    Wire {
+
+
+
+        return this.profile;
+
+    }
+
+
+
+
 
 
 
