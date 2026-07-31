@@ -37,6 +37,8 @@ from "../../topology/brep/BRepBuilder";
 
 
 
+
+
 export interface SweepOptions {
 
 
@@ -47,6 +49,12 @@ export interface SweepOptions {
 
 
     scale?:number;
+
+
+    capStart?:boolean;
+
+
+    capEnd?:boolean;
 
 
 }
@@ -74,7 +82,29 @@ export class Sweep {
 
         SweepOptions = {}
 
-    ){}
+    ){
+
+
+
+        if(
+
+            !profile.isClosed()
+
+        ){
+
+            throw new Error(
+
+                "Sweep profile must be closed"
+
+            );
+
+        }
+
+    }
+
+
+
+
 
 
 
@@ -96,9 +126,13 @@ export class Sweep {
 
         const sections =
 
-        this.options.sections ??
+        Math.max(
 
-        32;
+            this.options.sections ?? 32,
+
+            2
+
+        );
 
 
 
@@ -190,13 +224,81 @@ export class Sweep {
 
 
 
-        const faces =
+        const faces:
 
-        this.createFaces(
+        Face[] = [];
 
-            profileSections
+
+
+
+
+        faces.push(
+
+            ...this.createFaces(
+
+                profileSections
+
+            )
 
         );
+
+
+
+
+
+        if(
+
+            this.options.capStart !== false
+
+        ){
+
+
+
+            faces.push(
+
+                new Face(
+
+                    null as any,
+
+                    profileSections[0]
+
+                )
+
+            );
+
+        }
+
+
+
+
+
+        if(
+
+            this.options.capEnd !== false
+
+        ){
+
+
+
+            faces.push(
+
+                new Face(
+
+                    null as any,
+
+                    profileSections[
+
+                        profileSections.length - 1
+
+                    ]
+
+                )
+
+            );
+
+        }
+
+
 
 
 
@@ -252,15 +354,15 @@ export class Sweep {
 
 
 
+
+
         return (
 
             1 +
 
             (
 
-                this.options.scale -
-
-                1
+                this.options.scale - 1
 
             )
 
@@ -282,18 +384,16 @@ export class Sweep {
 
     private placeProfile(
 
-
         profile:Wire,
 
 
-        position:Point,
+        origin:Point,
 
 
         tangent:Vector3,
 
 
         scale:number
-
 
     ):
 
@@ -309,9 +409,9 @@ export class Sweep {
 
 
 
-        const normal =
+        const frame =
 
-        this.createNormal(
+        this.createFrame(
 
             tangent
 
@@ -337,11 +437,13 @@ export class Sweep {
 
                 edge.start.position,
 
-                position,
+                origin,
 
-                normal,
+                frame.normal,
 
-                tangent,
+                frame.binormal,
+
+                frame.tangent,
 
                 scale
 
@@ -357,11 +459,13 @@ export class Sweep {
 
                 edge.end.position,
 
-                position,
+                origin,
 
-                normal,
+                frame.normal,
 
-                tangent,
+                frame.binormal,
+
+                frame.tangent,
 
                 scale
 
@@ -412,11 +516,13 @@ export class Sweep {
         normal:Vector3,
 
 
+        binormal:Vector3,
+
+
         tangent:Vector3,
 
 
         scale:number
-
 
     ):
 
@@ -457,24 +563,156 @@ export class Sweep {
 
             normal.x * x +
 
+            binormal.x * y +
+
             tangent.x * z,
+
 
 
             origin.y +
 
             normal.y * x +
 
+            binormal.y * y +
+
             tangent.y * z,
+
 
 
             origin.z +
 
-            normal.z * y +
+            normal.z * x +
 
-            tangent.z * y
+            binormal.z * y +
+
+            tangent.z * z
 
 
         );
+
+    }
+
+
+
+
+
+
+
+
+
+    private createFrame(
+
+        tangent:Vector3
+
+    )
+
+    :{
+
+
+        normal:Vector3;
+
+
+        binormal:Vector3;
+
+
+        tangent:Vector3;
+
+
+    } {
+
+
+
+        let reference =
+
+        new Vector3(
+
+            0,
+
+            0,
+
+            1
+
+        );
+
+
+
+
+
+        if(
+
+            Math.abs(
+
+                tangent.z
+
+            ) > 0.9
+
+        ){
+
+
+
+            reference =
+
+            new Vector3(
+
+                1,
+
+                0,
+
+                0
+
+            );
+
+        }
+
+
+
+
+
+        const normal =
+
+        this.normalize(
+
+            tangent.cross(
+
+                reference
+
+            )
+
+        );
+
+
+
+
+
+        const binormal =
+
+        this.normalize(
+
+            tangent.cross(
+
+                normal
+
+            )
+
+        );
+
+
+
+
+
+        return {
+
+
+            normal,
+
+
+            binormal,
+
+
+            tangent
+
+
+        };
 
     }
 
@@ -676,108 +914,6 @@ export class Sweep {
 
 
 
-    private createNormal(
-
-        tangent:Vector3
-
-    ):
-
-    Vector3 {
-
-
-
-        let normal =
-
-        new Vector3(
-
-            0,
-
-            0,
-
-            1
-
-        );
-
-
-
-
-
-        if(
-
-            Math.abs(
-
-                tangent.z
-
-            ) > 0.9
-
-        ){
-
-
-
-            normal =
-
-            new Vector3(
-
-                1,
-
-                0,
-
-                0
-
-            );
-
-        }
-
-
-
-
-
-        return this.normalize(
-
-            new Vector3(
-
-
-                tangent.y *
-
-                normal.z -
-
-                tangent.z *
-
-                normal.y,
-
-
-                tangent.z *
-
-                normal.x -
-
-                tangent.x *
-
-                normal.z,
-
-
-                tangent.x *
-
-                normal.y -
-
-                tangent.y *
-
-                normal.x
-
-
-            )
-
-        );
-
-    }
-
-
-
-
-
-
-
-
-
     private normalize(
 
         vector:Vector3
@@ -792,17 +928,11 @@ export class Sweep {
 
         Math.sqrt(
 
-            vector.x *
+            vector.x * vector.x +
 
-            vector.x +
+            vector.y * vector.y +
 
-            vector.y *
-
-            vector.y +
-
-            vector.z *
-
-            vector.z
+            vector.z * vector.z
 
         );
 
@@ -841,6 +971,60 @@ export class Sweep {
 
 
         );
+
+    }
+
+
+
+
+
+
+
+
+
+    getProfile():
+
+    Wire {
+
+
+
+        return this.profile;
+
+    }
+
+
+
+
+
+
+
+
+
+    getPath():
+
+    Curve {
+
+
+
+        return this.path;
+
+    }
+
+
+
+
+
+
+
+
+
+    getSections():
+
+    number {
+
+
+
+        return this.options.sections ?? 32;
 
     }
 
