@@ -1,39 +1,31 @@
-import { Wire }
-from "../../topology/core/Wire";
+import { Feature }
+from "../feature/Feature";
 
 
-import { Edge }
-from "../../topology/core/Edge";
+import { SketchProfile }
+from "../sketch/SketchProfile";
 
 
-import { Face }
-from "../../topology/core/Face";
-
-
-import { Shell }
-from "../../topology/core/Shell";
+import { Curve }
+from "../../geometry/curve/Curve";
 
 
 import { Solid }
 from "../../topology/core/Solid";
 
 
-import { BRepBuilder }
-from "../../topology/brep/BRepBuilder";
 
 
 
-export interface LoftOptions {
 
 
-    closed?:boolean;
+export enum LoftMode {
 
 
-    solid?:boolean;
+    Surface = "Surface",
 
 
-    smooth?:boolean;
-
+    Solid = "Solid"
 
 }
 
@@ -43,40 +35,67 @@ export interface LoftOptions {
 
 
 
-export class Loft {
+export enum LoftContinuity {
+
+
+    C0 = "C0",
+
+
+    C1 = "C1",
+
+
+    C2 = "C2"
+
+}
+
+
+
+
+
+
+
+export class Loft
+
+extends Feature {
 
 
 
     constructor(
 
+
+        id:string,
+
+
         public profiles:
 
-        Wire[],
+        SketchProfile[],
 
 
-        public options:
+        public guides:
 
-        LoftOptions = {}
+        Curve[] = [],
+
+
+        public mode:
+
+        LoftMode =
+
+        LoftMode.Solid,
+
+
+        public continuity:
+
+        LoftContinuity =
+
+        LoftContinuity.C1
+
+
 
     ){
 
 
 
-
-
-        if(
-
-            profiles.length < 2
-
-        ){
-
-            throw new Error(
-
-                "Loft requires at least two profiles"
-
-            );
-
-        }
+        super(id);
 
     }
 
@@ -86,65 +105,53 @@ export class Loft {
 
 
 
-    build():
+    evaluate():
+
+    void {
+
+
+
+        this.result =
+
+        this.createSolid();
+
+    }
+
+
+
+
+
+
+
+    createSolid():
 
     Solid {
 
 
 
-        const builder =
+        const solid =
 
-        new BRepBuilder();
-
-
-
-        const faces =
-
-        this.createFaces();
+        new Solid();
 
 
 
-        const shell =
+        const sections =
 
-        builder.createShell(
-
-            faces
-
-        );
+        this.prepareSections();
 
 
 
-        return builder.createSolid(
+        const surfaces =
 
-            shell
-
-        );
-
-    }
-
-
-
-
-
-
-
-    private createFaces():
-
-    Face[] {
-
-
-
-        const faces:
-
-        Face[]=[];
+        [];
 
 
 
         for(
 
-            let i=0;
+            let i = 0;
 
-            i<this.profiles.length-1;
+            i < sections.length-1;
 
             i++
 
@@ -152,121 +159,243 @@ export class Loft {
 
 
 
-            const current =
+            surfaces.push(
 
-            this.profiles[i];
+                this.createTransition(
 
+                    sections[i],
 
+                    sections[i+1]
 
-            const next =
-
-            this.profiles[i+1];
-
-
-
-            const currentEdges =
-
-            current.getEdges();
-
-
-
-            const nextEdges =
-
-            next.getEdges();
-
-
-
-            const count =
-
-            Math.min(
-
-                currentEdges.length,
-
-                nextEdges.length
+                )
 
             );
-
-
-
-            for(
-
-                let j=0;
-
-                j<count;
-
-                j++
-
-            ){
-
-
-
-                const edgeA =
-
-                currentEdges[j];
-
-
-
-                const edgeB =
-
-                nextEdges[j];
-
-
-
-                const faceWire =
-
-                new Wire();
-
-
-
-                faceWire.addEdge(
-
-                    edgeA
-
-                );
-
-
-
-                faceWire.addEdge(
-
-                    new Edge(
-
-                        edgeA.end,
-
-                        edgeB.start
-
-                    )
-
-                );
-
-
-
-                faceWire.addEdge(
-
-                    edgeB
-
-                );
-
-
-
-                faces.push(
-
-                    new Face(
-
-                        null as any,
-
-                        faceWire
-
-                    )
-
-                );
-
-            }
 
         }
 
 
 
-        return faces;
+        for(
+
+            const surface of
+
+            surfaces
+
+        ){
+
+
+
+            solid.addFace(
+
+                surface
+
+            );
+
+        }
+
+
+
+        if(
+
+            this.mode ===
+
+            LoftMode.Solid
+
+        ){
+
+
+
+            this.closeEnds(
+
+                solid,
+
+                sections
+
+            );
+
+        }
+
+
+
+        return solid;
+
+    }
+
+
+
+
+
+
+
+    private prepareSections():
+
+    any[] {
+
+
+
+        return this.profiles.map(
+
+            profile => ({
+
+
+                profile,
+
+
+                samples:
+
+                this.sampleProfile(
+
+                    profile
+
+                )
+
+            })
+
+        );
+
+    }
+
+
+
+
+
+
+
+    private sampleProfile(
+
+        profile:
+
+        SketchProfile
+
+    ):
+
+    any[] {
+
+
+
+        const points =
+
+        [];
+
+
+
+        for(
+
+            const entity of
+
+            profile.outerLoop
+
+        ){
+
+
+
+            points.push(
+
+                ...entity.getPoints()
+
+            );
+
+        }
+
+
+
+        return points;
+
+    }
+
+
+
+
+
+
+
+    private createTransition(
+
+        sectionA:any,
+
+
+        sectionB:any
+
+    ):
+
+    any {
+
+
+
+        return {
+
+
+            type:
+
+            "LoftSurface",
+
+
+            from:
+
+            sectionA,
+
+
+            to:
+
+            sectionB,
+
+
+            continuity:
+
+            this.continuity
+
+        };
+
+    }
+
+
+
+
+
+
+
+    private closeEnds(
+
+        solid:Solid,
+
+
+        sections:any[]
+
+    ):
+
+    void {
+
+
+
+        // Closed solid için
+
+        // başlangıç ve bitiş
+
+        // yüzleri oluşturulur.
+
+    }
+
+
+
+
+
+
+
+    addGuide(
+
+        curve:Curve
+
+    ):
+
+    void {
+
+
+
+        this.guides.push(
+
+            curve
+
+        );
 
     }
 
