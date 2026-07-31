@@ -22,19 +22,119 @@ import { Vertex }
 from "../core/Vertex";
 
 
-import { Point }
-from "../../geometry/core/Point";
+
+
+
+
+
+export interface SerializedVertex {
+
+
+    id:string;
+
+
+    x:number;
+
+
+    y:number;
+
+
+    z:number;
+
+
+}
+
+
+
+
+
+
+
+export interface SerializedEdge {
+
+
+    id:string;
+
+
+    start:string;
+
+
+    end:string;
+
+
+}
+
+
+
+
+
+
+
+export interface SerializedFace {
+
+
+    id:string;
+
+
+    edges:string[];
+
+
+}
+
+
+
+
+
+
+
+export interface SerializedShell {
+
+
+    id:string;
+
+
+    faces:string[];
+
+}
+
+
+
+
+
+
+
+export interface SerializedSolid {
+
+
+    id:string;
+
+
+    shells:string[];
+
+}
+
+
+
+
 
 
 
 export interface SerializedBRep {
 
 
-    version:string;
+    vertices:SerializedVertex[];
 
 
-    solids:any[];
+    edges:SerializedEdge[];
 
+
+    faces:SerializedFace[];
+
+
+    shells:SerializedShell[];
+
+
+    solids:SerializedSolid[];
 
 }
 
@@ -48,17 +148,11 @@ export class BRepSerializer {
 
 
 
-    static VERSION =
-
-    "1.0";
 
 
 
 
-
-
-
-    static serialize(
+    serialize(
 
         model:BRepModel
 
@@ -68,336 +162,478 @@ export class BRepSerializer {
 
 
 
-        return {
+        const vertices:
 
-            version:
+        SerializedVertex[] = [];
 
-            this.VERSION,
 
 
-            solids:
+        const edges:
 
-            model
-
-            .getSolids()
-
-            .map(
-
-                solid =>
-
-                this.serializeSolid(
-
-                    solid
-
-                )
-
-            )
-
-        };
-
-    }
-
-
-
-
-
-
-
-    private static serializeSolid(
-
-        solid:Solid
-
-    ):
-
-
-
-    any {
-
-
-
-        return {
-
-
-            id:
-
-            solid.id,
-
-
-            shells:
-
-            solid.shells.map(
-
-                shell =>
-
-                this.serializeShell(
-
-                    shell
-
-                )
-
-            )
-
-
-        };
-
-    }
-
-
-
-
-
-
-
-    private static serializeShell(
-
-        shell:Shell
-
-    ):
-
-
-
-    any {
-
-
-
-        return {
-
-
-            id:
-
-            shell.id,
-
-
-            faces:
-
-            shell.faces.map(
-
-                face =>
-
-                this.serializeFace(
-
-                    face
-
-                )
-
-            )
-
-
-        };
-
-    }
-
-
-
-
-
-
-
-    private static serializeFace(
-
-        face:Face
-
-    ):
-
-
-
-    any {
-
-
-
-        return {
-
-
-            id:
-
-            face.id,
-
-
-            orientation:
-
-            face.orientation,
-
-
-            outerWire:
-
-            face.outerWire.id,
-
-
-            innerWires:
-
-            face.innerWires
-
-            .map(
-
-                wire =>
-
-                wire.id
-
-            )
-
-        };
-
-    }
-
-
-
-
-
-
-
-    static deserialize(
-
-        data:SerializedBRep
-
-    ):
-
-    BRepModel {
-
-
-
-        const model =
-
-        new BRepModel();
-
-
-
-        for(
-
-            const solidData of
-
-            data.solids
-
-        ){
-
-
-
-            const solid =
-
-            this.deserializeSolid(
-
-                solidData
-
-            );
-
-
-
-            model.addSolid(
-
-                solid
-
-            );
-
-        }
-
-
-
-        return model;
-
-    }
-
-
-
-
-
-
-
-    private static deserializeSolid(
-
-        data:any
-
-    ):
-
-    Solid {
-
-
-
-        const shells:
-
-        Shell[]=[];
-
-
-
-        for(
-
-            const shellData of
-
-            data.shells
-
-        ){
-
-
-
-            shells.push(
-
-                this.deserializeShell(
-
-                    shellData
-
-                )
-
-            );
-
-        }
-
-
-
-        return new Solid(
-
-            shells
-
-        );
-
-    }
-
-
-
-
-
-
-
-    private static deserializeShell(
-
-        data:any
-
-    ):
-
-    Shell {
+        SerializedEdge[] = [];
 
 
 
         const faces:
 
-        Face[]=[];
+        SerializedFace[] = [];
+
+
+
+        const shells:
+
+        SerializedShell[] = [];
+
+
+
+        const solids:
+
+        SerializedSolid[] = [];
+
+
+
+
+
+        const vertexIds =
+
+        new Map<Vertex,string>();
+
+
+
+        const edgeIds =
+
+        new Map<Edge,string>();
+
+
+
+        const faceIds =
+
+        new Map<Face,string>();
+
+
+
+        const shellIds =
+
+        new Map<Shell,string>();
+
+
+
+
+
+
+
+
+
+        let counter =
+
+        0;
+
+
+
+
+
+        const createId =
+
+        (prefix:string)=>{
+
+
+            counter++;
+
+
+            return prefix + counter;
+
+
+        };
+
+
+
+
+
+
 
 
 
         for(
 
-            const faceData of
+            const vertex of
 
-            data.faces
+            model.getVertices()
 
         ){
 
 
 
-            faces.push(
+            const id =
 
-                this.deserializeFace(
+            createId(
 
-                    faceData
-
-                )
+                "v"
 
             );
+
+
+
+            vertexIds.set(
+
+                vertex,
+
+                id
+
+            );
+
+
+
+
+
+            vertices.push({
+
+
+                id,
+
+
+                x:
+
+                vertex.position.x,
+
+
+                y:
+
+                vertex.position.y,
+
+
+                z:
+
+                vertex.position.z
+
+
+            });
 
         }
 
 
 
-        return new Shell(
 
-            faces
+
+
+
+
+
+        for(
+
+            const edge of
+
+            model.getEdges()
+
+        ){
+
+
+
+            const id =
+
+            createId(
+
+                "e"
+
+            );
+
+
+
+            edgeIds.set(
+
+                edge,
+
+                id
+
+            );
+
+
+
+
+
+            edges.push({
+
+
+                id,
+
+
+                start:
+
+                vertexIds.get(
+
+                    edge.start
+
+                )!,
+
+
+                end:
+
+                vertexIds.get(
+
+                    edge.end
+
+                )!
+
+
+            });
+
+        }
+
+
+
+
+
+
+
+
+
+        for(
+
+            const face of
+
+            model.getFaces()
+
+        ){
+
+
+
+            const id =
+
+            createId(
+
+                "f"
+
+            );
+
+
+
+            faceIds.set(
+
+                face,
+
+                id
+
+            );
+
+
+
+
+
+            faces.push({
+
+
+                id,
+
+
+                edges:
+
+                face.getEdges()
+
+                .map(
+
+                    edge =>
+
+                    edgeIds.get(
+
+                        edge
+
+                    )!
+
+                )
+
+
+            });
+
+        }
+
+
+
+
+
+
+
+
+
+        for(
+
+            const solid of
+
+            model.getSolids()
+
+        ){
+
+
+
+            for(
+
+                const shell of
+
+                solid.getShells()
+
+            ){
+
+
+
+                const id =
+
+                createId(
+
+                    "sh"
+
+                );
+
+
+
+                shellIds.set(
+
+                    shell,
+
+                    id
+
+                );
+
+
+
+
+
+                shells.push({
+
+
+                    id,
+
+
+                    faces:
+
+                    shell.getFaces()
+
+                    .map(
+
+                        face =>
+
+                        faceIds.get(
+
+                            face
+
+                        )!
+
+                    )
+
+
+                });
+
+            }
+
+        }
+
+
+
+
+
+
+
+
+
+        for(
+
+            const solid of
+
+            model.getSolids()
+
+        ){
+
+
+
+            solids.push({
+
+
+                id:
+
+                createId(
+
+                    "so"
+
+                ),
+
+
+                shells:
+
+                solid.getShells()
+
+                .map(
+
+                    shell =>
+
+                    shellIds.get(
+
+                        shell
+
+                    )!
+
+                )
+
+
+            });
+
+        }
+
+
+
+
+
+
+
+
+
+        return {
+
+
+            vertices,
+
+
+            edges,
+
+
+            faces,
+
+
+            shells,
+
+
+            solids
+
+
+        };
+
+    }
+
+
+
+
+
+
+
+
+
+    toJSON(
+
+        model:BRepModel
+
+    ):
+
+    string {
+
+
+
+        return JSON.stringify(
+
+            this.serialize(
+
+                model
+
+            ),
+
+            null,
+
+            2
 
         );
 
@@ -406,33 +642,6 @@ export class BRepSerializer {
 
 
 
-
-
-
-    private static deserializeFace(
-
-        data:any
-
-    ):
-
-    Face {
-
-
-
-        return {
-
-            id:
-
-            data.id,
-
-
-            orientation:
-
-            data.orientation
-
-        } as Face;
-
-    }
 
 
 
