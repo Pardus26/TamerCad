@@ -2,10 +2,6 @@ import { Solid }
 from "../core/Solid";
 
 
-import { Shell }
-from "../core/Shell";
-
-
 import { Face }
 from "../core/Face";
 
@@ -152,7 +148,7 @@ export class BRepModel {
 
     ):
 
-    void {
+    boolean {
 
 
 
@@ -170,21 +166,25 @@ export class BRepModel {
 
         if(
 
-            index !== -1
+            index === -1
 
         ){
 
-
-
-            this.solids.splice(
-
-                index,
-
-                1
-
-            );
+            return false;
 
         }
+
+
+
+
+
+        this.solids.splice(
+
+            index,
+
+            1
+
+        );
 
 
 
@@ -204,13 +204,55 @@ export class BRepModel {
 
             ?
 
-            this.solids[0]
+            this.solids[
+
+                this.solids.length - 1
+
+            ]
 
             :
 
             null;
 
         }
+
+
+
+
+
+        return true;
+
+    }
+
+
+
+
+
+
+
+
+
+    findSolid(
+
+        predicate:
+
+        (
+
+            solid:Solid
+
+        )=>boolean
+
+    ):
+
+    Solid|undefined {
+
+
+
+        return this.solids.find(
+
+            predicate
+
+        );
 
     }
 
@@ -228,7 +270,11 @@ export class BRepModel {
 
 
 
-        return this.solids;
+        return [
+
+            ...this.solids
+
+        ];
 
     }
 
@@ -328,11 +374,37 @@ export class BRepModel {
 
 
 
-            faces.push(
+            for(
 
-                ...solid.getFaces()
+                const face of
 
-            );
+                solid.getFaces()
+
+            ){
+
+
+
+                if(
+
+                    !faces.includes(
+
+                        face
+
+                    )
+
+                ){
+
+
+
+                    faces.push(
+
+                        face
+
+                    );
+
+                }
+
+            }
 
         }
 
@@ -388,9 +460,15 @@ export class BRepModel {
 
                 if(
 
-                    !edges.includes(
+                    !edges.some(
 
-                        edge
+                        e =>
+
+                        e.equals(
+
+                            edge
+
+                        )
 
                     )
 
@@ -509,6 +587,7 @@ export class BRepModel {
         this.solids = [];
 
 
+
         this.activeSolid =
 
         null;
@@ -529,7 +608,11 @@ export class BRepModel {
 
 
 
-        return this.solids.length === 0;
+        return (
+
+            this.solids.length === 0
+
+        );
 
     }
 
@@ -603,6 +686,46 @@ export class BRepModel {
 
 
 
+        if(
+
+            this.activeSolid
+
+        ){
+
+
+
+            const index =
+
+            this.solids.indexOf(
+
+                this.activeSolid
+
+            );
+
+
+
+
+
+            if(
+
+                index >= 0
+
+            ){
+
+
+
+                model.activeSolid =
+
+                model.solids[index];
+
+            }
+
+        }
+
+
+
+
+
         return model;
 
     }
@@ -646,10 +769,6 @@ export class BRepModel {
         );
 
     }
-
-
-
-
 
 
 
