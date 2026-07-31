@@ -13,6 +13,9 @@ from "../core/Shell";
 import { Solid } 
 from "../core/Solid";
 
+import { EdgeMatcher }
+from "./EdgeMatcher";
+
 
 
 
@@ -33,7 +36,6 @@ export interface SewingResult {
 
     errors:string[];
 
-
 }
 
 
@@ -50,17 +52,35 @@ export class FaceSewing {
 
 
 
+    private matcher:
+
+    EdgeMatcher;
+
+
+
+
+
+
+
     constructor(
 
         public tolerance:number = 1e-6
 
-    ){}
+    ){
 
 
 
+        this.matcher =
+
+        new EdgeMatcher(
+
+            tolerance
+
+        );
+
+    }
 
 
-    
 
 
 
@@ -106,10 +126,6 @@ export class FaceSewing {
 
 
 
-
-
-
-
         this.createHalfEdges(
 
             faces,
@@ -136,13 +152,9 @@ export class FaceSewing {
 
         this.connectLoops(
 
-            faces
+            halfEdges
 
         );
-
-
-
-
 
 
 
@@ -207,9 +219,7 @@ export class FaceSewing {
 
             throw new Error(
 
-                result.errors.join(
-                    "\n"
-                )
+                result.errors.join("\n")
 
             );
 
@@ -267,6 +277,14 @@ export class FaceSewing {
 
 
 
+                const hes:
+
+                HalfEdge[] = [];
+
+
+
+
+
                 for(
 
                     const edge of
@@ -277,7 +295,7 @@ export class FaceSewing {
 
 
 
-                    const halfEdge =
+                    const he =
 
                     new HalfEdge(
 
@@ -293,9 +311,44 @@ export class FaceSewing {
 
 
 
+                    hes.push(
+
+                        he
+
+                    );
+
+
                     output.push(
 
-                        halfEdge
+                        he
+
+                    );
+
+                }
+
+
+
+
+
+                wire.clear();
+
+
+
+
+
+                for(
+
+                    const he of
+
+                    hes
+
+                ){
+
+
+
+                    wire.addHalfEdge(
+
+                        he
 
                     );
 
@@ -369,7 +422,7 @@ export class FaceSewing {
 
                 j < halfEdges.length;
 
-                j++
+            j++
 
             ){
 
@@ -397,15 +450,25 @@ export class FaceSewing {
 
 
 
+                const match =
+
+                this.matcher.match(
+
+                    a.edge,
+
+                    b.edge
+
+                );
+
+
+
+
+
                 if(
 
-                    this.isOpposite(
+                    match.type ===
 
-                        a,
-
-                        b
-
-                    )
+                    "OppositeDirection"
 
                 ){
 
@@ -430,9 +493,13 @@ export class FaceSewing {
 
 
 
+
+
+
+
         for(
 
-            const halfEdge of
+            const he of
 
             halfEdges
 
@@ -442,7 +509,7 @@ export class FaceSewing {
 
             if(
 
-                !halfEdge.twin
+                !he.twin
 
             ){
 
@@ -450,7 +517,7 @@ export class FaceSewing {
 
                 errors.push(
 
-                    "Open edge detected during sewing"
+                    "Unsewn boundary edge"
 
                 );
 
@@ -468,100 +535,11 @@ export class FaceSewing {
 
 
 
-    private isOpposite(
-
-        a:HalfEdge,
-
-        b:HalfEdge
-
-    ):
-
-    boolean {
-
-
-
-        return (
-
-
-            this.sameVertex(
-
-                a.start,
-
-                b.end
-
-            )
-
-            &&
-
-
-            this.sameVertex(
-
-                a.end,
-
-                b.start
-
-            )
-
-
-        );
-
-    }
-
-
-
-
-
-
-
-
-
-    private sameVertex(
-
-        a:any,
-
-        b:any
-
-    ):
-
-    boolean {
-
-
-
-        return (
-
-            a === b
-
-        )
-
-        ||
-
-        (
-
-            a.position.distanceTo(
-
-                b.position
-
-            )
-
-            <=
-
-            this.tolerance
-
-        );
-
-    }
-
-
-
-
-
-
-
-
-
     private connectLoops(
 
-        faces:Face[]
+        halfEdges:
+
+        HalfEdge[]
 
     ):
 
@@ -569,100 +547,142 @@ export class FaceSewing {
 
 
 
+        const outgoing =
+
+        new Map<any, HalfEdge[]>();
+
+
+
+
+
         for(
 
-            const face of
+            const he of
 
-            faces
+            halfEdges
 
         ){
 
 
 
-            for(
+            if(
 
-                const wire of
+                !outgoing.has(
 
-                face.getWires()
+                    he.start
+
+                )
 
             ){
 
 
 
-                const halfEdges =
+                outgoing.set(
 
-                wire.getHalfEdges();
+                    he.start,
 
+                    []
 
+                );
 
-
-
-                if(
-
-                    halfEdges.length < 2
-
-                ){
-
-                    continue;
-
-                }
+            }
 
 
 
 
 
-                for(
+            outgoing.get(
 
-                    let i = 0;
+                he.start
 
-                    i < halfEdges.length;
+            )!
 
-                    i++
+            .push(
 
-                ){
+                he
 
+            );
 
-
-                    const current =
-
-                    halfEdges[i];
-
-
-
-                    const next =
-
-                    halfEdges[
-
-                        (
-
-                            i + 1
-
-                        )
-
-                        %
-
-                        halfEdges.length
-
-                    ];
+        }
 
 
 
 
 
-                    current.setNext(
-
-                        next
-
-                    );
 
 
-                    next.setPrevious(
 
-                        current
 
-                    );
+        for(
 
-                }
+            const he of
+
+            halfEdges
+
+        ){
+
+
+
+            const candidates =
+
+            outgoing.get(
+
+                he.end
+
+            );
+
+
+
+
+
+            if(
+
+                !candidates
+
+            ){
+
+                continue;
+
+            }
+
+
+
+
+
+            const next =
+
+            candidates.find(
+
+                candidate =>
+
+                candidate !== he.twin
+
+            );
+
+
+
+
+
+            if(
+
+                next
+
+            ){
+
+
+
+                he.setNext(
+
+                    next
+
+                );
+
+
+                next.setPrevious(
+
+                    he
+
+                );
 
             }
 
@@ -706,7 +726,7 @@ export class FaceSewing {
 
 
 
-            let count =
+            let uses =
 
             0;
 
@@ -724,19 +744,31 @@ export class FaceSewing {
 
 
 
-                if(
+                for(
 
-                    face.containsEdge(
+                    const candidate of
 
-                        edge
-
-                    )
+                    face.getEdges()
 
                 ){
 
 
 
-                    count++;
+                    if(
+
+                        this.matcher.equals(
+
+                            edge,
+
+                            candidate
+
+                        )
+
+                    ){
+
+                        uses++;
+
+                    }
 
                 }
 
@@ -748,7 +780,7 @@ export class FaceSewing {
 
             if(
 
-                count === 1
+                uses === 1
 
             ){
 
