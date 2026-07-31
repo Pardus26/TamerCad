@@ -59,6 +59,28 @@ export class FeatureTree {
 
 
 
+        if(
+
+            this.getFeature(
+
+                feature.id
+
+            )
+
+        ){
+
+            throw new Error(
+
+                "Feature id already exists"
+
+            );
+
+        }
+
+
+
+
+
         const previous =
 
         this.getLastFeature();
@@ -72,8 +94,6 @@ export class FeatureTree {
             previous
 
         ){
-
-
 
             previous.addChild(
 
@@ -95,9 +115,37 @@ export class FeatureTree {
 
 
 
+
+
         this.activeFeature =
 
         feature;
+
+    }
+
+
+
+
+
+
+
+
+
+    add(
+
+        feature:Feature
+
+    ):
+
+    void {
+
+
+
+        this.addFeature(
+
+            feature
+
+        );
 
     }
 
@@ -229,9 +277,7 @@ export class FeatureTree {
 
         if(
 
-            this.activeFeature ===
-
-            feature
+            this.activeFeature === feature
 
         ){
 
@@ -248,6 +294,32 @@ export class FeatureTree {
 
 
         return true;
+
+    }
+
+
+
+
+
+
+
+
+
+    remove(
+
+        id:string
+
+    ):
+
+    boolean {
+
+
+
+        return this.removeFeature(
+
+            id
+
+        );
 
     }
 
@@ -361,7 +433,7 @@ export class FeatureTree {
 
         const feature =
 
-        this.getFeature(
+        this.find(
 
             id
 
@@ -527,6 +599,80 @@ export class FeatureTree {
 
 
 
+        return this.setEnd(
+
+            this.features[index]
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    setEnd(
+
+        feature:Feature
+
+    ):
+
+    Solid | null {
+
+
+
+        const index =
+
+        this.features.indexOf(
+
+            feature
+
+        );
+
+
+
+
+
+        if(
+
+            index < 0
+
+        ){
+
+            return null;
+
+        }
+
+
+
+
+
+        for(
+
+            let i = 0;
+
+            i < this.features.length;
+
+            i++
+
+        ){
+
+
+
+            this.features[i]
+
+            .invalidate();
+
+        }
+
+
+
+
+
         let result:
 
         Solid | null = null;
@@ -561,7 +707,7 @@ export class FeatureTree {
 
         this.activeFeature =
 
-        this.features[index];
+        feature;
 
 
 
