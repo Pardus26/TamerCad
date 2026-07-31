@@ -25,6 +25,12 @@ export class Shell {
 
 
 
+    public reversed:
+
+    boolean = false;
+
+
+
 
 
 
@@ -39,7 +45,11 @@ export class Shell {
 
         this.faces =
 
-        faces;
+        [
+
+            ...faces
+
+        ];
 
     }
 
@@ -97,7 +107,7 @@ export class Shell {
 
     ):
 
-    void {
+    boolean {
 
 
 
@@ -115,21 +125,31 @@ export class Shell {
 
         if(
 
-            index !== -1
+            index === -1
 
         ){
 
-
-
-            this.faces.splice(
-
-                index,
-
-                1
-
-            );
+            return false;
 
         }
+
+
+
+
+
+        this.faces.splice(
+
+            index,
+
+            1
+
+        );
+
+
+
+
+
+        return true;
 
     }
 
@@ -147,7 +167,11 @@ export class Shell {
 
 
 
-        return this.faces;
+        return [
+
+            ...this.faces
+
+        ];
 
     }
 
@@ -195,9 +219,15 @@ export class Shell {
 
                 if(
 
-                    !edges.includes(
+                    !edges.some(
 
-                        edge
+                        e =>
+
+                        e.equals(
+
+                            edge
+
+                        )
 
                     )
 
@@ -267,6 +297,8 @@ export class Shell {
 
             ){
 
+
+
                 vertices.push(
 
                     edge.start
@@ -288,6 +320,8 @@ export class Shell {
                 )
 
             ){
+
+
 
                 vertices.push(
 
@@ -321,9 +355,9 @@ export class Shell {
 
 
 
-        const edgeCount:
+        const usage:
 
-        Map<Edge,number> =
+        Map<string,number> =
 
         new Map();
 
@@ -341,29 +375,105 @@ export class Shell {
 
 
 
-            edgeCount.set(
+            const key =
 
-                edge,
+            [
 
-                (
+                edge.start.position.x,
 
-                    edgeCount.get(
+                edge.start.position.y,
 
-                        edge
+                edge.start.position.z,
 
-                    )
+                edge.end.position.x,
 
-                    ??
+                edge.end.position.y,
 
-                    0
+                edge.end.position.z
+
+            ]
+
+            .join(",");
+
+
+
+
+
+            const reverseKey =
+
+            [
+
+                edge.end.position.x,
+
+                edge.end.position.y,
+
+                edge.end.position.z,
+
+                edge.start.position.x,
+
+                edge.start.position.y,
+
+                edge.start.position.z
+
+            ]
+
+            .join(",");
+
+
+
+
+
+            if(
+
+                usage.has(
+
+                    reverseKey
 
                 )
 
-                +
+            ){
 
-                1
 
-            );
+
+                usage.set(
+
+                    reverseKey,
+
+                    usage.get(
+
+                        reverseKey
+
+                    )! - 1
+
+                );
+
+            }
+
+            else {
+
+
+
+                usage.set(
+
+                    key,
+
+                    (
+
+                        usage.get(key)
+
+                        ??
+
+                        0
+
+                    )
+
+                    +
+
+                    1
+
+                );
+
+            }
 
         }
 
@@ -373,9 +483,9 @@ export class Shell {
 
         for(
 
-            const count of
+            const value of
 
-            edgeCount.values()
+            usage.values()
 
         ){
 
@@ -383,7 +493,7 @@ export class Shell {
 
             if(
 
-                count !== 2
+                value !== 0
 
             ){
 
@@ -419,9 +529,7 @@ export class Shell {
 
 
 
-        return this.faces
-
-        .includes(
+        return this.faces.includes(
 
             face
 
@@ -444,6 +552,52 @@ export class Shell {
 
 
         return this.faces.length;
+
+    }
+
+
+
+
+
+
+
+
+
+    reverse():
+
+    Shell {
+
+
+
+        const shell =
+
+        new Shell(
+
+            this.faces
+
+            .map(
+
+                face =>
+
+                face.reverse()
+
+            )
+
+        );
+
+
+
+
+
+        shell.reversed =
+
+        !this.reversed;
+
+
+
+
+
+        return shell;
 
     }
 
@@ -481,9 +635,7 @@ export class Shell {
 
         return new Shell(
 
-            this.faces
-
-            .map(
+            this.faces.map(
 
                 face =>
 
@@ -498,6 +650,42 @@ export class Shell {
 
 
 
+
+
+
+
+
+    isValid():
+
+    boolean {
+
+
+
+        if(
+
+            this.faces.length === 0
+
+        ){
+
+            return false;
+
+        }
+
+
+
+
+
+        return this.faces
+
+        .every(
+
+            face =>
+
+            face.isValid()
+
+        );
+
+    }
 
 
 
