@@ -1,18 +1,27 @@
+
 import {
     SSRBuffer
 } from "./SSRBuffer";
+
 
 import {
     SSRHistoryBuffer
 } from "./SSRHistoryBuffer";
 
+
 import {
     NormalPrepass
 } from "./NormalPrepass";
 
+
 import {
     DepthPrepass
 } from "./DepthPrepass";
+
+
+import {
+    ShaderProgram
+} from "../shader/ShaderProgram";
 
 
 
@@ -33,6 +42,9 @@ export interface SSRDenoiseOptions {
 
     enabled?: boolean;
 
+
+    sigma?: number;
+
 }
 
 
@@ -52,6 +64,41 @@ export enum SSRDenoiseMode {
 
 
 
+export interface SSRDenoiseSample {
+
+
+    color:any;
+
+
+    normal:any;
+
+
+    depth:number;
+
+
+    weight:number;
+
+}
+
+
+
+export interface SSRDenoiseResult {
+
+
+    color:any;
+
+
+    iterations:number;
+
+
+    mode:SSRDenoiseMode;
+
+}
+
+
+
+
+
 export class SSRDenoise {
 
 
@@ -60,31 +107,23 @@ export class SSRDenoise {
 
 
 
-    /**
-     * Kernel yarıçapı
-     */
     public radius = 2;
 
 
 
-    /**
-     * Filter tekrar sayısı
-     */
     public iterations = 2;
 
 
 
-    /**
-     * Normal fark toleransı
-     */
     public normalThreshold = 0.15;
 
 
 
-    /**
-     * Depth fark toleransı
-     */
     public depthThreshold = 0.01;
+
+
+
+    public sigma = 2.0;
 
 
 
@@ -92,7 +131,7 @@ export class SSRDenoise {
 
         SSRDenoiseMode =
 
-        SSRDenoiseMode.EdgeAware;
+            SSRDenoiseMode.EdgeAware;
 
 
 
@@ -120,87 +159,72 @@ export class SSRDenoise {
 
 
 
+    private shader:
+
+        ShaderProgram | null = null;
+
+
+
+    private frameIndex = 0;
+
+
+
     constructor(
 
         options:
 
             SSRDenoiseOptions = {}
 
-    ) {
-
-
-        if (
-
-            options.radius !== undefined
-
-        ) {
-
-
-            this.radius =
-
-                options.radius;
-
-        }
+    ){
 
 
 
-        if (
+        this.radius =
 
-            options.iterations !== undefined
+            options.radius ??
 
-        ) {
-
-
-            this.iterations =
-
-                options.iterations;
-
-        }
+            this.radius;
 
 
 
-        if (
+        this.iterations =
 
-            options.normalThreshold !== undefined
+            options.iterations ??
 
-        ) {
-
-
-            this.normalThreshold =
-
-                options.normalThreshold;
-
-        }
+            this.iterations;
 
 
 
-        if (
+        this.normalThreshold =
 
-            options.depthThreshold !== undefined
+            options.normalThreshold ??
 
-        ) {
-
-
-            this.depthThreshold =
-
-                options.depthThreshold;
-
-        }
+            this.normalThreshold;
 
 
 
-        if (
+        this.depthThreshold =
 
-            options.enabled !== undefined
+            options.depthThreshold ??
 
-        ) {
+            this.depthThreshold;
 
 
-            this.enabled =
 
-                options.enabled;
+        this.enabled =
 
-        }
+            options.enabled ??
+
+            this.enabled;
+
+
+
+        this.sigma =
+
+            options.sigma ??
+
+            this.sigma;
+
 
     }
 
@@ -214,12 +238,11 @@ export class SSRDenoise {
 
             SSRBuffer
 
-    ):void {
+    ):void{
 
 
-        this.ssrBuffer =
+        this.ssrBuffer = buffer;
 
-            buffer;
 
     }
 
@@ -233,12 +256,11 @@ export class SSRDenoise {
 
             SSRHistoryBuffer
 
-    ):void {
+    ):void{
 
 
-        this.history =
+        this.history = buffer;
 
-            buffer;
 
     }
 
@@ -252,12 +274,11 @@ export class SSRDenoise {
 
             NormalPrepass
 
-    ):void {
+    ):void{
 
 
-        this.normal =
+        this.normal = buffer;
 
-            buffer;
 
     }
 
@@ -271,12 +292,11 @@ export class SSRDenoise {
 
             DepthPrepass
 
-    ):void {
+    ):void{
 
 
-        this.depth =
+        this.depth = buffer;
 
-            buffer;
 
     }
 
@@ -284,64 +304,788 @@ export class SSRDenoise {
 
 
 
-    private bilateralWeight(
+    setShader(
 
-        normalDiff:number,
+        shader:
 
-        depthDiff:number
+            ShaderProgram
+
+    ):void{
+
+
+        this.shader = shader;
+
+
+    }
+
+/*
+========================================
+Gaussian Kernel
+========================================
+*/
+
+    generateKernel()
+
+    :number[] {
+
+
+
+        const kernel:number[] = [];
+
+
+
+        const size =
+
+            this.radius * 2 + 1;
+
+
+
+        let sum = 0;
+
+
+
+        for (
+
+            let i = -this.radius;
+
+            i <= this.radius;
+
+            i++
+
+        ){
+
+
+
+            const weight =
+
+                Math.exp(
+
+                    -(
+
+                        i * i
+
+                    )
+
+                    /
+
+                    (
+
+                        2 *
+
+                        this.sigma *
+
+                        this.sigma
+
+                    )
+
+                );
+
+
+
+            kernel.push(
+
+                weight
+
+            );
+
+
+
+            sum += weight;
+
+        }
+
+
+
+        /*
+            Normalize
+        */
+
+
+        for (
+
+            let i = 0;
+
+            i < kernel.length;
+
+            i++
+
+        ){
+
+
+            kernel[i] /= sum;
+
+
+        }
+
+
+
+        return kernel;
+
+    }
+
+
+
+
+
+/*
+========================================
+Spatial Weight
+========================================
+*/
+
+    spatialWeight(
+
+        distance:number
 
     ):number {
 
 
-        if (
 
-            Math.abs(
+        return Math.exp(
 
-                normalDiff
+            -(
 
-            )
+                distance *
 
-            >
-
-            this.normalThreshold
-
-        ) {
-
-
-            return 0;
-
-        }
-
-
-
-        if (
-
-            Math.abs(
-
-                depthDiff
+                distance
 
             )
 
-            >
+            /
 
-            this.depthThreshold
+            (
 
-        ) {
+                2 *
 
+                this.sigma *
 
-            return 0;
+                this.sigma
 
-        }
+            )
 
-
-
-        return 1.0;
+        );
 
     }
 
 
 
 
+
+/*
+========================================
+Normal Weight
+========================================
+*/
+
+    normalWeight(
+
+        center:any,
+
+        sample:any
+
+    ):number {
+
+
+
+        if (
+
+            !center ||
+
+            !sample
+
+        ){
+
+            return 0;
+
+        }
+
+
+
+        const dot =
+
+            center.x *
+
+            sample.x +
+
+
+            center.y *
+
+            sample.y +
+
+
+            center.z *
+
+            sample.z;
+
+
+
+        if (
+
+            dot <
+
+            this.normalThreshold
+
+        ){
+
+            return 0;
+
+        }
+
+
+
+        return Math.max(
+
+            0,
+
+            dot
+
+        );
+
+    }
+
+
+
+
+
+/*
+========================================
+Depth Weight
+========================================
+*/
+
+    depthWeight(
+
+        centerDepth:number,
+
+        sampleDepth:number
+
+    ):number {
+
+
+
+        const difference =
+
+            Math.abs(
+
+                centerDepth -
+
+                sampleDepth
+
+            );
+
+
+
+        if (
+
+            difference >
+
+            this.depthThreshold
+
+        ){
+
+            return 0;
+
+        }
+
+
+
+        return Math.exp(
+
+            -
+
+            difference /
+
+            this.depthThreshold
+
+        );
+
+    }
+
+
+
+
+
+/*
+========================================
+Combined Bilateral Weight
+========================================
+*/
+
+    calculateWeight(
+
+        center:any,
+
+        sample:any,
+
+        distance:number
+
+    ):number {
+
+
+
+        const spatial =
+
+            this.spatialWeight(
+
+                distance
+
+            );
+
+
+
+        const normal =
+
+            this.normalWeight(
+
+                center.normal,
+
+                sample.normal
+
+            );
+
+
+
+        const depth =
+
+            this.depthWeight(
+
+                center.depth,
+
+                sample.depth
+
+            );
+
+
+
+        return (
+
+            spatial *
+
+            normal *
+
+            depth
+
+        );
+
+    }
+
+/*
+========================================
+Sample Fetch
+========================================
+*/
+
+    sampleNeighborhood(
+
+        texture:any,
+
+        x:number,
+
+        y:number
+
+    ):SSRDenoiseSample[] {
+
+
+
+        const samples:
+
+            SSRDenoiseSample[] = [];
+
+
+
+        const kernelSize =
+
+            this.radius * 2 + 1;
+
+
+
+        for (
+
+            let i = -this.radius;
+
+            i <= this.radius;
+
+            i++
+
+        ){
+
+
+
+            for (
+
+                let j = -this.radius;
+
+                j <= this.radius;
+
+                j++
+
+            ){
+
+
+
+                /*
+                    Gerçek GPU:
+
+                    texture sample
+
+                    burada yapılır
+                */
+
+
+                samples.push({
+
+
+                    color:
+
+                        texture,
+
+
+                    normal:
+
+                        {
+
+                            x:0,
+
+                            y:0,
+
+                            z:1
+
+                        },
+
+
+                    depth:
+
+                        1.0,
+
+
+                    weight:
+
+                        this.spatialWeight(
+
+                            Math.sqrt(
+
+                                i*i +
+
+                                j*j
+
+                            )
+
+                        )
+
+
+                });
+
+            }
+
+        }
+
+
+
+        return samples;
+
+    }
+
+
+
+
+
+/*
+========================================
+Bilateral Filter
+========================================
+*/
+
+    bilateralFilter(
+
+        input:any
+
+    ):any {
+
+
+
+        const samples =
+
+            this.sampleNeighborhood(
+
+                input,
+
+                0,
+
+                0
+
+            );
+
+
+
+        let totalWeight = 0;
+
+
+
+        let result:any = null;
+
+
+
+        const center =
+
+            samples[0];
+
+
+
+        for (
+
+            const sample of samples
+
+        ){
+
+
+
+            const weight =
+
+                this.calculateWeight(
+
+                    center,
+
+                    sample,
+
+                    sample.weight
+
+                );
+
+
+
+            totalWeight += weight;
+
+
+
+            if (
+
+                weight > 0
+
+            ){
+
+
+                result = {
+
+
+                    color:
+
+                        sample.color,
+
+
+                    weight
+
+                };
+
+
+            }
+
+        }
+
+
+
+        if (
+
+            totalWeight === 0
+
+        ){
+
+
+            return input;
+
+        }
+
+
+
+        return {
+
+
+            color:
+
+                result,
+
+
+            weight:
+
+                totalWeight
+
+
+        };
+
+    }
+
+
+
+
+
+/*
+========================================
+Edge Aware Filter
+========================================
+*/
+
+    edgeAwareFilter(
+
+        input:any
+
+    ):any {
+
+
+
+        const samples =
+
+            this.sampleNeighborhood(
+
+                input,
+
+                0,
+
+                0
+
+            );
+
+
+
+        const filtered:any[] = [];
+
+
+
+        for (
+
+            const sample of samples
+
+        ){
+
+
+
+            const weight =
+
+                this.calculateWeight(
+
+                    samples[0],
+
+                    sample,
+
+                    sample.weight
+
+                );
+
+
+
+            if (
+
+                weight >
+
+                0
+
+            ){
+
+
+                filtered.push({
+
+                    value:
+
+                        sample.color,
+
+
+                    weight
+
+                });
+
+            }
+
+        }
+
+
+
+        return {
+
+
+            type:
+
+                "EdgeAwareResult",
+
+
+            samples:
+
+                filtered
+
+        };
+
+    }
+
+
+
+
+
+/*
+========================================
+Filter Dispatch
+========================================
+*/
+
+    applyFilter(
+
+        input:any
+
+    ):any {
+
+
+
+        switch(
+
+            this.mode
+
+        ){
+
+
+
+            case SSRDenoiseMode.Gaussian:
+
+
+                return this.bilateralFilter(
+
+                    input
+
+                );
+
+
+
+
+
+            case SSRDenoiseMode.Bilateral:
+
+
+                return this.bilateralFilter(
+
+                    input
+
+                );
+
+
+
+
+
+            case SSRDenoiseMode.EdgeAware:
+
+
+            default:
+
+
+                return this.edgeAwareFilter(
+
+                    input
+
+                );
+
+        }
+
+    }
+
+/*
+========================================
+Multi Iteration Denoise
+========================================
+*/
 
     denoise(
 
@@ -350,14 +1094,44 @@ export class SSRDenoise {
     ):any {
 
 
+
         if (
 
             !this.enabled
 
-        ) {
-
+        ){
 
             return reflection;
+
+        }
+
+
+
+        let result =
+
+            reflection;
+
+
+
+        for (
+
+            let i = 0;
+
+            i < this.iterations;
+
+            i++
+
+        ){
+
+
+
+            result =
+
+                this.applyFilter(
+
+                    result
+
+                );
 
         }
 
@@ -371,9 +1145,7 @@ export class SSRDenoise {
                 "DenoisedSSR",
 
 
-            radius:
-
-                this.radius,
+            result,
 
 
             iterations:
@@ -383,12 +1155,8 @@ export class SSRDenoise {
 
             mode:
 
-                this.mode,
+                this.mode
 
-
-            input:
-
-                reflection
 
         };
 
@@ -398,17 +1166,77 @@ export class SSRDenoise {
 
 
 
-    execute():
+/*
+========================================
+Ping Pong Resolve
+========================================
+*/
 
-    any {
+    private pingPong(
+
+        input:any
+
+    ):any {
+
+
+
+        let current =
+
+            input;
+
+
+
+        for (
+
+            let i = 0;
+
+            i < this.iterations;
+
+            i++
+
+        ){
+
+
+
+            current =
+
+                this.applyFilter(
+
+                    current
+
+                );
+
+        }
+
+
+
+        return current;
+
+    }
+
+
+
+
+
+/*
+========================================
+GPU Execute
+========================================
+*/
+
+    execute(
+
+        context:any
+
+    ):any {
+
 
 
         if (
 
-            !this.ssrBuffer
+            !this.enabled
 
-        ) {
-
+        ){
 
             return null;
 
@@ -416,9 +1244,174 @@ export class SSRDenoise {
 
 
 
-        return this.denoise(
+        if (
 
-            this.ssrBuffer.getReflectionTexture()
+            !this.shader
+
+        ){
+
+            return null;
+
+        }
+
+
+
+        this.shader.bind();
+
+
+
+        this.shader.setUniform?.(
+
+            "uRadius",
+
+            this.radius
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uIterations",
+
+            this.iterations
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uNormalThreshold",
+
+            this.normalThreshold
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uDepthThreshold",
+
+            this.depthThreshold
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uSigma",
+
+            this.sigma
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uMode",
+
+            this.mode
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uFrameIndex",
+
+            this.frameIndex
+
+        );
+
+
+
+        /*
+            SSR texture bind
+
+        */
+
+
+        this.ssrBuffer?.bind();
+
+
+
+        this.history?.bind();
+
+
+
+        this.normal?.bind();
+
+
+
+        this.depth?.bind();
+
+
+
+        context.drawFullscreenQuad?.();
+
+
+
+        this.ssrBuffer?.unbind();
+
+
+
+        this.frameIndex++;
+
+
+
+        return {
+
+
+            type:
+
+                "SSRDenoiseResult",
+
+
+            frame:
+
+                this.frameIndex
+
+
+        };
+
+    }
+
+/*
+========================================
+Resize
+========================================
+*/
+
+    resize(
+
+        width:number,
+
+        height:number
+
+    ):void {
+
+
+
+        this.ssrBuffer?.resize?.(
+
+            width,
+
+            height
+
+        );
+
+
+
+        this.history?.resize?.(
+
+            width,
+
+            height
 
         );
 
@@ -428,29 +1421,33 @@ export class SSRDenoise {
 
 
 
-    reset():
+/*
+========================================
+Runtime Settings
+========================================
+*/
 
-    void {
+    setRadius(
 
+        radius:number
 
-        this.ssrBuffer =
-
-            null;
-
-
-        this.history =
-
-            null;
+    ):void {
 
 
-        this.normal =
 
-            null;
+        this.radius =
 
+            Math.max(
 
-        this.depth =
+                0,
 
-            null;
+                Math.floor(
+
+                    radius
+
+                )
+
+            );
 
     }
 
@@ -458,7 +1455,136 @@ export class SSRDenoise {
 
 
 
-    debugInfo(){
+    setIterations(
+
+        iterations:number
+
+    ):void {
+
+
+
+        this.iterations =
+
+            Math.max(
+
+                1,
+
+                Math.floor(
+
+                    iterations
+
+                )
+
+            );
+
+    }
+
+
+
+
+
+    setMode(
+
+        mode:
+
+            SSRDenoiseMode
+
+    ):void {
+
+
+
+        this.mode =
+
+            mode;
+
+    }
+
+
+
+
+
+    setEnabled(
+
+        enabled:boolean
+
+    ):void {
+
+
+
+        this.enabled =
+
+            enabled;
+
+    }
+
+
+
+
+
+/*
+========================================
+Invalidate
+========================================
+*/
+
+    invalidateHistory():void {
+
+
+
+        this.history?.clear?.();
+
+
+
+    }
+
+
+
+
+
+/*
+========================================
+Reset
+========================================
+*/
+
+    reset():void {
+
+
+
+        this.ssrBuffer = null;
+
+
+        this.history = null;
+
+
+        this.normal = null;
+
+
+        this.depth = null;
+
+
+        this.shader = null;
+
+
+
+        this.frameIndex = 0;
+
+
+    }
+
+
+
+
+
+/*
+========================================
+Debug Information
+========================================
+*/
+
+    debugInfo()
+
+    {
 
 
         return {
@@ -469,9 +1595,17 @@ export class SSRDenoise {
                 "SSRDenoise",
 
 
+
+            enabled:
+
+                this.enabled,
+
+
+
             mode:
 
                 this.mode,
+
 
 
             radius:
@@ -479,9 +1613,17 @@ export class SSRDenoise {
                 this.radius,
 
 
+
             iterations:
 
                 this.iterations,
+
+
+
+            sigma:
+
+                this.sigma,
+
 
 
             normalThreshold:
@@ -489,12 +1631,58 @@ export class SSRDenoise {
                 this.normalThreshold,
 
 
+
             depthThreshold:
 
-                this.depthThreshold
+                this.depthThreshold,
+
+
+
+            frame:
+
+                this.frameIndex,
+
+
+
+            resources:
+
+            {
+
+
+                ssrBuffer:
+
+                    this.ssrBuffer !== null,
+
+
+
+                history:
+
+                    this.history !== null,
+
+
+
+                normal:
+
+                    this.normal !== null,
+
+
+
+                depth:
+
+                    this.depth !== null,
+
+
+
+                shader:
+
+                    this.shader !== null
+
+            }
+
 
         };
 
     }
+
 
 }
