@@ -15,6 +15,24 @@ import {
 } from "./DepthPrepass";
 
 
+import {
+    Matrix4
+} from "../../math/Matrix4";
+
+import {
+    Vector2
+} from "../../math/Vector2";
+
+import {
+    Vector3
+} from "../../math/Vector3";
+
+
+import {
+    ShaderProgram
+} from "../shader/ShaderProgram";
+
+
 
 export interface SSRTraceOptions {
 
@@ -32,6 +50,15 @@ export interface SSRTraceOptions {
 
 
     enabled?: boolean;
+
+
+    useHiZ?: boolean;
+
+
+    edgeFade?: boolean;
+
+
+    roughnessReject?: boolean;
 
 }
 
@@ -55,28 +82,11 @@ export enum SSRTraceMode {
 export interface SSRRay {
 
 
-    origin: {
+    origin: Vector3;
 
 
-        x:number,
+    direction: Vector3;
 
-        y:number,
-
-        z:number
-
-    };
-
-
-    direction: {
-
-
-        x:number,
-
-        y:number,
-
-        z:number
-
-    };
 
 }
 
@@ -88,20 +98,52 @@ export interface SSRHit {
     hit:boolean;
 
 
-    uv?: {
-
-
-        x:number,
-
-        y:number
-
-    };
+    uv?:Vector2;
 
 
     distance?:number;
 
 
     confidence?:number;
+
+
+    worldPosition?:Vector3;
+
+}
+
+
+
+export interface SSRFrameData {
+
+
+    projection:
+
+        Matrix4;
+
+
+    inverseProjection:
+
+        Matrix4;
+
+
+    view:
+
+        Matrix4;
+
+
+    inverseView:
+
+        Matrix4;
+
+
+    cameraPosition:
+
+        Vector3;
+
+
+    resolution:
+
+        Vector2;
 
 }
 
@@ -115,30 +157,18 @@ export class SSRTrace {
 
 
 
-    /**
-     * Maksimum ray marching adımı
-     */
     public maxSteps = 64;
 
 
 
-    /**
-     * Binary refinement iterasyonu
-     */
     public binarySearchSteps = 5;
 
 
 
-    /**
-     * Surface thickness toleransı
-     */
     public thickness = 0.05;
 
 
 
-    /**
-     * Reflection ray maksimum mesafesi
-     */
     public maxDistance = 100;
 
 
@@ -147,7 +177,19 @@ export class SSRTrace {
 
         SSRTraceMode =
 
-        SSRTraceMode.BinaryRefined;
+            SSRTraceMode.BinaryRefined;
+
+
+
+    public useHiZ = false;
+
+
+
+    public edgeFade = true;
+
+
+
+    public roughnessReject = true;
 
 
 
@@ -175,6 +217,22 @@ export class SSRTrace {
 
 
 
+    private shader:
+
+        ShaderProgram | null = null;
+
+
+
+    private frame:
+
+        SSRFrameData | null = null;
+
+
+
+    private frameIndex = 0;
+
+
+
     constructor(
 
         options:
@@ -184,225 +242,262 @@ export class SSRTrace {
     ) {
 
 
-        if (
+        this.maxSteps =
 
-            options.maxSteps !== undefined
+            options.maxSteps ??
 
-        ) {
-
-
-            this.maxSteps =
-
-                options.maxSteps;
-
-        }
+            this.maxSteps;
 
 
 
-        if (
+        this.binarySearchSteps =
 
-            options.binarySearchSteps !== undefined
+            options.binarySearchSteps ??
 
-        ) {
-
-
-            this.binarySearchSteps =
-
-                options.binarySearchSteps;
-
-        }
+            this.binarySearchSteps;
 
 
 
-        if (
+        this.thickness =
 
-            options.thickness !== undefined
+            options.thickness ??
 
-        ) {
-
-
-            this.thickness =
-
-                options.thickness;
-
-        }
+            this.thickness;
 
 
 
-        if (
+        this.maxDistance =
 
-            options.maxDistance !== undefined
+            options.maxDistance ??
 
-        ) {
-
-
-            this.maxDistance =
-
-                options.maxDistance;
-
-        }
+            this.maxDistance;
 
 
 
-        if (
+        this.enabled =
 
-            options.enabled !== undefined
+            options.enabled ??
 
-        ) {
+            this.enabled;
 
 
-            this.enabled =
 
-                options.enabled;
+        this.useHiZ =
 
-        }
+            options.useHiZ ??
+
+            this.useHiZ;
+
+
+
+        this.edgeFade =
+
+            options.edgeFade ??
+
+            this.edgeFade;
+
+
+
+        this.roughnessReject =
+
+            options.roughnessReject ??
+
+            this.roughnessReject;
 
     }
-
-
 
 
 
     setGBuffer(
 
-        buffer:
-
-            GBuffer
+        buffer:GBuffer
 
     ):void {
 
 
-        this.gBuffer =
-
-            buffer;
+        this.gBuffer = buffer;
 
     }
-
-
 
 
 
     setDepthBuffer(
 
-        buffer:
-
-            DepthPrepass
+        buffer:DepthPrepass
 
     ):void {
 
 
-        this.depth =
-
-            buffer;
+        this.depth = buffer;
 
     }
-
-
 
 
 
     setMask(
 
-        mask:
-
-            SSRMask
+        mask:SSRMask
 
     ):void {
 
 
-        this.mask =
-
-            mask;
+        this.mask = mask;
 
     }
-
-
 
 
 
     setOutput(
 
-        output:
-
-            SSRBuffer
+        output:SSRBuffer
 
     ):void {
 
 
-        this.output =
-
-            output;
+        this.output = output;
 
     }
 
 
 
+    setShader(
+
+        shader:ShaderProgram
+
+    ):void {
 
 
-    trace(
+        this.shader = shader;
 
-        ray:
+    }
+    setFrameData(
 
-            SSRRay
+        frame:
 
-    ):
+            SSRFrameData
 
-    SSRHit {
-
-
-        if (
-
-            !this.enabled
-
-        ) {
+    ):void {
 
 
-            return {
+        this.frame = frame;
 
-
-                hit:false,
-
-                confidence:0
-
-            };
-
-        }
+    }
 
 
 
-        /**
-         * GPU shader tarafında:
-         *
-         * 1. Ray ilerletme
-         * 2. Depth karşılaştırma
-         * 3. Thickness testi
-         * 4. Binary refinement
-         */
+    setFrameIndex(
+
+        index:number
+
+    ):void {
+
+
+        this.frameIndex = index;
+
+    }
+
+
+
+    /*
+    ========================================
+    Reflection Vector
+    ========================================
+    */
+
+    calculateReflection(
+
+        viewDirection:
+
+            Vector3,
+
+        normal:
+
+            Vector3
+
+    ):Vector3 {
+
+
+        const dot =
+
+            viewDirection.x * normal.x +
+
+            viewDirection.y * normal.y +
+
+            viewDirection.z * normal.z;
+
+
+
+        return new Vector3(
+
+            viewDirection.x -
+
+            2.0 * dot * normal.x,
+
+
+            viewDirection.y -
+
+            2.0 * dot * normal.y,
+
+
+            viewDirection.z -
+
+            2.0 * dot * normal.z
+
+        );
+
+    }
+
+
+
+    /*
+    ========================================
+    Create SSR Ray
+    ========================================
+    */
+
+
+    createRay(
+
+        position:
+
+            Vector3,
+
+        viewDirection:
+
+            Vector3,
+
+        normal:
+
+            Vector3
+
+    ):SSRRay {
+
+
+
+        const reflection =
+
+            this.calculateReflection(
+
+                viewDirection,
+
+                normal
+
+            );
 
 
 
         return {
 
 
-            hit:true,
+            origin:
+
+                position.clone(),
 
 
-            uv:{
+            direction:
 
+                reflection.normalize()
 
-                x:0.5,
-
-
-                y:0.5
-
-
-            },
-
-
-            distance:10,
-
-
-            confidence:1.0
 
         };
 
@@ -410,55 +505,313 @@ export class SSRTrace {
 
 
 
+    /*
+    ========================================
+    View Space Position
+    ========================================
+    */
 
 
-    linearMarch(
+    projectToScreen(
+
+        position:
+
+            Vector3
+
+    ):Vector2 | null {
+
+
+
+        if (
+
+            !this.frame
+
+        ) {
+
+            return null;
+
+        }
+
+
+
+        const clip =
+
+            this.frame.projection.multiplyVector4(
+
+                position.x,
+
+                position.y,
+
+                position.z,
+
+                1.0
+
+            );
+
+
+
+        if (
+
+            clip.w <= 0
+
+        ) {
+
+            return null;
+
+        }
+
+
+
+        const ndcX =
+
+            clip.x / clip.w;
+
+
+
+        const ndcY =
+
+            clip.y / clip.w;
+
+
+
+        return new Vector2(
+
+            ndcX * 0.5 + 0.5,
+
+
+            ndcY * 0.5 + 0.5
+
+        );
+
+    }
+
+
+
+    /*
+    ========================================
+    Screen Bounds
+    ========================================
+    */
+
+
+    isInsideScreen(
+
+        uv:
+
+            Vector2
+
+    ):boolean {
+
+
+        return (
+
+            uv.x >= 0 &&
+
+            uv.x <= 1 &&
+
+            uv.y >= 0 &&
+
+            uv.y <= 1
+
+        );
+
+    }
+
+
+
+    /*
+    ========================================
+    Ray Position
+    ========================================
+    */
+
+
+    getRayPosition(
 
         ray:
 
-            SSRRay
+            SSRRay,
 
-    ):
+        distance:number
 
-    SSRHit {
-
-
-        let distance =
-
-            0;
+    ):Vector3 {
 
 
 
-        for (
+        return new Vector3(
 
-            let i = 0;
+            ray.origin.x +
 
-            i < this.maxSteps;
+            ray.direction.x *
 
-            i++
+            distance,
+
+
+            ray.origin.y +
+
+            ray.direction.y *
+
+            distance,
+
+
+            ray.origin.z +
+
+            ray.direction.z *
+
+            distance
+
+        );
+
+    }
+    /*
+    ========================================
+    Depth Sampling
+    ========================================
+    */
+
+    sampleDepth(
+
+        uv:
+
+            Vector2
+
+    ):number {
+
+
+
+        if (
+
+            !this.depth
+
+        ) {
+
+            return 1.0;
+
+        }
+
+
+
+        /*
+            Gerçek uygulamada:
+
+            depth texture read
+
+            burada yapılır.
+        */
+
+
+        return 1.0;
+
+    }
+
+
+
+    /*
+    ========================================
+    Depth Hit Test
+    ========================================
+    */
+
+
+    checkIntersection(
+
+        rayPosition:
+
+            Vector3,
+
+        uv:
+
+            Vector2
+
+    ):SSRHit {
+
+
+
+        const depth =
+
+            this.sampleDepth(
+
+                uv
+
+            );
+
+
+
+        if (
+
+            depth >= 1.0
 
         ) {
 
 
-            distance +=
-
-                this.maxDistance /
-
-                this.maxSteps;
+            return {
 
 
+                hit:false
 
-            if (
+            };
 
-                distance >
+        }
 
-                this.maxDistance
 
-            ) {
 
-                break;
+        /*
+            View depth karşılaştırması
 
-            }
+            gerçek GPU implementasyonunda
+
+            depth reconstruction yapılır.
+        */
+
+
+        const rayDepth =
+
+            Math.abs(
+
+                rayPosition.z
+
+            );
+
+
+
+        const sceneDepth =
+
+            depth;
+
+
+
+        const difference =
+
+            sceneDepth -
+
+            rayDepth;
+
+
+
+        if (
+
+            difference >= 0 &&
+
+            difference < this.thickness
+
+        ) {
+
+
+            return {
+
+
+                hit:true,
+
+
+                uv,
+
+
+                distance:
+
+                    rayDepth
+
+
+            };
 
         }
 
@@ -475,22 +828,209 @@ export class SSRTrace {
 
 
 
+    /*
+    ========================================
+    Linear Ray March
+    ========================================
+    */
 
+
+    linearMarch(
+
+        ray:
+
+            SSRRay
+
+    ):SSRHit {
+
+
+
+        const stepSize =
+
+            this.maxDistance /
+
+            this.maxSteps;
+
+
+
+        let previousDistance = 0;
+
+
+
+        for (
+
+            let i = 0;
+
+            i < this.maxSteps;
+
+            i++
+
+        ) {
+
+
+
+            const distance =
+
+                stepSize *
+
+                float(i + 1);
+
+
+
+            const position =
+
+                this.getRayPosition(
+
+                    ray,
+
+                    distance
+
+                );
+
+
+
+            const uv =
+
+                this.projectToScreen(
+
+                    position
+
+                );
+
+
+
+            if (
+
+                !uv
+
+            ) {
+
+                continue;
+
+            }
+
+
+
+            if (
+
+                !this.isInsideScreen(
+
+                    uv
+
+                )
+
+            ) {
+
+
+                return {
+
+
+                    hit:false,
+
+                    confidence:0
+
+                };
+
+            }
+
+
+
+            const result =
+
+                this.checkIntersection(
+
+                    position,
+
+                    uv
+
+                );
+
+
+
+            if (
+
+                result.hit
+
+            ) {
+
+
+                return {
+
+
+                    ...result,
+
+
+                    confidence:
+
+                        0.7
+
+                };
+
+            }
+
+
+
+            previousDistance =
+
+                distance;
+
+        }
+
+
+
+        return {
+
+
+            hit:false,
+
+
+            confidence:0
+
+        };
+
+    }
+
+/*
+========================================
+Binary Refinement
+========================================
+*/
 
     refineHit(
 
-        start:number,
+        ray:
 
-        end:number
+            SSRRay,
 
-    ):
+        startDistance:number,
 
-    number {
+        endDistance:number
+
+    ):SSRHit {
 
 
-        let result =
 
-            start;
+        let low =
+
+            startDistance;
+
+
+
+        let high =
+
+            endDistance;
+
+
+
+        let bestUV:
+
+            Vector2 | null = null;
+
+
+
+        let bestDistance =
+
+            high;
 
 
 
@@ -505,21 +1045,465 @@ export class SSRTrace {
         ) {
 
 
-            result =
+
+            const mid =
 
                 (
 
-                    start +
+                    low +
 
-                    end
+                    high
 
-                )
-
-                *
+                ) *
 
                 0.5;
 
+
+
+            const position =
+
+                this.getRayPosition(
+
+                    ray,
+
+                    mid
+
+                );
+
+
+
+            const uv =
+
+                this.projectToScreen(
+
+                    position
+
+                );
+
+
+
+            if (
+
+                !uv
+
+            ) {
+
+                break;
+
+            }
+
+
+
+            const hit =
+
+                this.checkIntersection(
+
+                    position,
+
+                    uv
+
+                );
+
+
+
+            if (
+
+                hit.hit
+
+            ) {
+
+
+                bestUV = uv;
+
+
+                bestDistance = mid;
+
+
+                high = mid;
+
+
+            }
+
+            else {
+
+
+                low = mid;
+
+
+            }
+
         }
+
+
+
+        if (
+
+            bestUV
+
+        ) {
+
+
+            return {
+
+
+                hit:true,
+
+
+                uv:
+
+                    bestUV,
+
+
+                distance:
+
+                    bestDistance,
+
+
+                confidence:
+
+                    0.9
+
+
+            };
+
+        }
+
+
+
+        return {
+
+
+            hit:false,
+
+
+            confidence:0
+
+        };
+
+    }
+
+
+
+
+
+/*
+========================================
+Hi-Z Trace Placeholder
+========================================
+*/
+
+
+    hizMarch(
+
+        ray:
+
+            SSRRay
+
+    ):SSRHit {
+
+
+
+        if (
+
+            !this.useHiZ
+
+        ) {
+
+
+            return {
+
+
+                hit:false
+
+            };
+
+        }
+
+
+
+        /*
+            Gerçek Hi-Z:
+
+            depth pyramid
+
+            mip selection
+
+            adaptive step
+
+        */
+
+
+
+        return this.linearMarch(
+
+            ray
+
+        );
+
+    }
+
+
+
+
+
+/*
+========================================
+Confidence Calculation
+========================================
+*/
+
+
+    calculateConfidence(
+
+        hit:
+
+            SSRHit,
+
+        ray:
+
+            SSRRay
+
+    ):number {
+
+
+
+        if (
+
+            !hit.hit
+
+        ) {
+
+
+            return 0;
+
+        }
+
+
+
+        let confidence = 1.0;
+
+
+
+        /*
+        Distance fade
+        */
+
+
+        if (
+
+            hit.distance
+
+        ) {
+
+
+            confidence *=
+
+                Math.max(
+
+                    0,
+
+                    1 -
+
+                    (
+
+                        hit.distance /
+
+                        this.maxDistance
+
+                    )
+
+                );
+
+        }
+
+
+
+        /*
+        Edge fade
+        */
+
+
+        if (
+
+            this.edgeFade &&
+
+            hit.uv
+
+        ) {
+
+
+            const edge =
+
+                Math.min(
+
+                    hit.uv.x,
+
+                    hit.uv.y,
+
+                    1 - hit.uv.x,
+
+                    1 - hit.uv.y
+
+                );
+
+
+
+            confidence *=
+
+                Math.min(
+
+                    1,
+
+                    edge * 10
+
+                );
+
+        }
+
+
+
+        return confidence;
+
+    }
+
+/*
+========================================
+Main Trace
+========================================
+*/
+
+    trace(
+
+        ray:
+
+            SSRRay
+
+    ):SSRHit {
+
+
+
+        if (
+
+            !this.enabled
+
+        ) {
+
+
+            return {
+
+
+                hit:false,
+
+
+                confidence:0
+
+
+            };
+
+        }
+
+
+
+        let result:
+
+            SSRHit;
+
+
+
+        switch (
+
+            this.mode
+
+        ) {
+
+
+
+            case SSRTraceMode.HiZ:
+
+
+                result =
+
+                    this.hizMarch(
+
+                        ray
+
+                    );
+
+                break;
+
+
+
+            case SSRTraceMode.Linear:
+
+
+                result =
+
+                    this.linearMarch(
+
+                        ray
+
+                    );
+
+                break;
+
+
+
+            case SSRTraceMode.BinaryRefined:
+
+
+            default:
+
+
+                result =
+
+                    this.linearMarch(
+
+                        ray
+
+                    );
+
+
+                if (
+
+                    result.hit &&
+
+                    result.distance
+
+                ) {
+
+
+                    result =
+
+                        this.refineHit(
+
+                            ray,
+
+
+                            result.distance - 1.0,
+
+
+                            result.distance
+
+                        );
+
+                }
+
+
+                break;
+
+        }
+
+
+
+        result.confidence =
+
+            this.calculateConfidence(
+
+                result,
+
+                ray
+
+            );
 
 
 
@@ -531,14 +1515,25 @@ export class SSRTrace {
 
 
 
-    execute():
+/*
+========================================
+GPU Execute
+========================================
+*/
 
-    any {
+    execute(
+
+        context:any
+
+    ):any {
+
 
 
         if (
 
-            !this.output
+            !this.enabled ||
+
+            !this.shader
 
         ) {
 
@@ -546,6 +1541,86 @@ export class SSRTrace {
             return null;
 
         }
+
+
+
+        this.shader.bind();
+
+
+
+        this.shader.setUniform?.(
+
+            "uMaxSteps",
+
+            this.maxSteps
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uThickness",
+
+            this.thickness
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uMaxDistance",
+
+            this.maxDistance
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uFrameIndex",
+
+            this.frameIndex
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uUseHiZ",
+
+            this.useHiZ
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uEdgeFade",
+
+            this.edgeFade
+
+        );
+
+
+
+        this.output?.bind();
+
+
+
+        context.drawFullscreenQuad?.();
+
+
+
+        this.output?.unbind();
+
+
+
+        this.frameIndex++;
 
 
 
@@ -557,14 +1632,10 @@ export class SSRTrace {
                 "SSRTraceResult",
 
 
-            mode:
+            frame:
 
-                this.mode,
+                this.frameIndex
 
-
-            steps:
-
-                this.maxSteps
 
         };
 
@@ -574,29 +1645,29 @@ export class SSRTrace {
 
 
 
-    reset():
+/*
+========================================
+Resize
+========================================
+*/
 
-    void {
+    resize(
 
+        width:number,
 
-        this.gBuffer =
+        height:number
 
-            null;
-
-
-        this.depth =
-
-            null;
-
-
-        this.mask =
-
-            null;
+    ):void {
 
 
-        this.output =
 
-            null;
+        this.output?.resize?.(
+
+            width,
+
+            height
+
+        );
 
     }
 
@@ -604,7 +1675,51 @@ export class SSRTrace {
 
 
 
-    debugInfo(){
+/*
+========================================
+Reset
+========================================
+*/
+
+    reset():void {
+
+
+
+        this.gBuffer = null;
+
+
+        this.depth = null;
+
+
+        this.mask = null;
+
+
+        this.output = null;
+
+
+        this.shader = null;
+
+
+        this.frame = null;
+
+
+        this.frameIndex = 0;
+
+    }
+
+
+
+
+
+/*
+========================================
+Debug
+========================================
+*/
+
+    debugInfo()
+
+    {
 
 
         return {
@@ -613,6 +1728,11 @@ export class SSRTrace {
             type:
 
                 "SSRTrace",
+
+
+            enabled:
+
+                this.enabled,
 
 
             mode:
@@ -625,6 +1745,11 @@ export class SSRTrace {
                 this.maxSteps,
 
 
+            binarySearchSteps:
+
+                this.binarySearchSteps,
+
+
             thickness:
 
                 this.thickness,
@@ -632,10 +1757,32 @@ export class SSRTrace {
 
             maxDistance:
 
-                this.maxDistance
+                this.maxDistance,
+
+
+            useHiZ:
+
+                this.useHiZ,
+
+
+            edgeFade:
+
+                this.edgeFade,
+
+
+            roughnessReject:
+
+                this.roughnessReject,
+
+
+            frame:
+
+                this.frameIndex
+
 
         };
 
     }
+
 
 }
