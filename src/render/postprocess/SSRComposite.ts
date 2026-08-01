@@ -1,18 +1,27 @@
+
 import {
     SSRBuffer
 } from "./SSRBuffer";
+
 
 import {
     SSRHistoryBuffer
 } from "./SSRHistoryBuffer";
 
+
 import {
     ReflectionProbeBuffer
 } from "./ReflectionProbeBuffer";
 
+
 import {
     EnvironmentMap
 } from "./EnvironmentMap";
+
+
+import {
+    ShaderProgram
+} from "../shader/ShaderProgram";
 
 
 
@@ -33,6 +42,9 @@ export interface SSRCompositeOptions {
 
     enabled?: boolean;
 
+
+    energyConservation?: boolean;
+
 }
 
 
@@ -52,6 +64,69 @@ export enum SSRCompositeMode {
 
 
 
+export interface SSRMaterial {
+
+
+
+    roughness:number;
+
+
+    metallic:number;
+
+
+    albedo:any;
+
+
+}
+
+
+
+export interface SSRCompositeInput {
+
+
+
+    ssr:any;
+
+
+    probe:any;
+
+
+    environment:any;
+
+
+    material:SSRMaterial;
+
+
+    viewAngle:number;
+
+
+    confidence:number;
+
+}
+
+
+
+export interface SSRCompositeResult {
+
+
+
+    color:any;
+
+
+    ssrWeight:number;
+
+
+    probeWeight:number;
+
+
+    environmentUsed:boolean;
+
+}
+
+
+
+
+
 export class SSRComposite {
 
 
@@ -60,31 +135,23 @@ export class SSRComposite {
 
 
 
-    /**
-     * Fresnel exponent
-     */
     public fresnelPower = 5.0;
 
 
 
-    /**
-     * Genel reflection kuvveti
-     */
     public reflectionStrength = 1.0;
 
 
 
-    /**
-     * Roughness etkisi
-     */
     public roughnessBlend = 1.0;
 
 
 
-    /**
-     * Metal reflection güçlendirme
-     */
     public metallicBoost = 1.2;
+
+
+
+    public energyConservation = true;
 
 
 
@@ -92,7 +159,7 @@ export class SSRComposite {
 
         SSRCompositeMode =
 
-        SSRCompositeMode.Hybrid;
+            SSRCompositeMode.Hybrid;
 
 
 
@@ -120,87 +187,72 @@ export class SSRComposite {
 
 
 
+    private shader:
+
+        ShaderProgram | null = null;
+
+
+
+    private frameIndex = 0;
+
+
+
     constructor(
 
         options:
 
             SSRCompositeOptions = {}
 
-    ) {
-
-
-        if (
-
-            options.fresnelPower !== undefined
-
-        ) {
-
-
-            this.fresnelPower =
-
-                options.fresnelPower;
-
-        }
+    ){
 
 
 
-        if (
+        this.fresnelPower =
 
-            options.reflectionStrength !== undefined
+            options.fresnelPower ??
 
-        ) {
-
-
-            this.reflectionStrength =
-
-                options.reflectionStrength;
-
-        }
+            this.fresnelPower;
 
 
 
-        if (
+        this.reflectionStrength =
 
-            options.roughnessBlend !== undefined
+            options.reflectionStrength ??
 
-        ) {
-
-
-            this.roughnessBlend =
-
-                options.roughnessBlend;
-
-        }
+            this.reflectionStrength;
 
 
 
-        if (
+        this.roughnessBlend =
 
-            options.metallicBoost !== undefined
+            options.roughnessBlend ??
 
-        ) {
-
-
-            this.metallicBoost =
-
-                options.metallicBoost;
-
-        }
+            this.roughnessBlend;
 
 
 
-        if (
+        this.metallicBoost =
 
-            options.enabled !== undefined
+            options.metallicBoost ??
 
-        ) {
+            this.metallicBoost;
 
 
-            this.enabled =
 
-                options.enabled;
+        this.enabled =
 
-        }
+            options.enabled ??
+
+            this.enabled;
+
+
+
+        this.energyConservation =
+
+            options.energyConservation ??
+
+            this.energyConservation;
+
 
     }
 
@@ -214,12 +266,11 @@ export class SSRComposite {
 
             SSRBuffer
 
-    ):void {
+    ):void{
 
 
-        this.ssr =
+        this.ssr = buffer;
 
-            buffer;
 
     }
 
@@ -233,12 +284,11 @@ export class SSRComposite {
 
             SSRHistoryBuffer
 
-    ):void {
+    ):void{
 
 
-        this.history =
+        this.history = buffer;
 
-            buffer;
 
     }
 
@@ -252,12 +302,11 @@ export class SSRComposite {
 
             ReflectionProbeBuffer
 
-    ):void {
+    ):void{
 
 
-        this.probe =
+        this.probe = buffer;
 
-            buffer;
 
     }
 
@@ -271,12 +320,11 @@ export class SSRComposite {
 
             EnvironmentMap
 
-    ):void {
+    ):void{
 
 
-        this.environment =
+        this.environment = environment;
 
-            environment;
 
     }
 
@@ -284,11 +332,98 @@ export class SSRComposite {
 
 
 
-    fresnel(
+    setShader(
 
-        viewDotNormal:number
+        shader:
+
+            ShaderProgram
+
+    ):void{
+
+
+        this.shader = shader;
+
+
+    }
+
+/*
+========================================
+Fresnel Schlick
+========================================
+*/
+
+    fresnelSchlick(
+
+        cosTheta:number,
+
+        f0:number = 0.04
 
     ):number {
+
+
+
+        const oneMinus =
+
+            1 -
+
+            Math.max(
+
+                0,
+
+                Math.min(
+
+                    1,
+
+                    cosTheta
+
+                )
+
+            );
+
+
+
+        return (
+
+            f0 +
+
+            (
+
+                1 -
+
+                f0
+
+            )
+
+            *
+
+            Math.pow(
+
+                oneMinus,
+
+                5
+
+            )
+
+        );
+
+    }
+
+
+
+
+
+/*
+========================================
+Custom Fresnel
+========================================
+*/
+
+    fresnel(
+
+        viewAngle:number
+
+    ):number {
+
 
 
         return Math.pow(
@@ -299,7 +434,7 @@ export class SSRComposite {
 
                 0,
 
-                viewDotNormal
+                viewAngle
 
             ),
 
@@ -313,13 +448,246 @@ export class SSRComposite {
 
 
 
-    calculateReflectionWeight(
+/*
+========================================
+Roughness Response
+========================================
+*/
 
-        material:any,
+    calculateRoughnessFactor(
+
+        roughness:number
+
+    ):number {
+
+
+
+        const factor =
+
+            1 -
+
+            (
+
+                roughness *
+
+                this.roughnessBlend
+
+            );
+
+
+
+        return Math.max(
+
+            0,
+
+            Math.min(
+
+                1,
+
+                factor
+
+            )
+
+        );
+
+    }
+
+
+
+
+
+/*
+========================================
+Metallic Response
+========================================
+*/
+
+    calculateMetallicFactor(
+
+        metallic:number
+
+    ):number {
+
+
+
+        if (
+
+            metallic <= 0
+
+        ){
+
+            return 1.0;
+
+        }
+
+
+
+        return 1.0 +
+
+            (
+
+                metallic *
+
+                this.metallicBoost
+
+            );
+
+    }
+
+
+
+
+
+/*
+========================================
+Confidence Factor
+========================================
+*/
+
+    calculateConfidence(
+
+        confidence:number
+
+    ):number {
+
+
+
+        return Math.max(
+
+            0,
+
+            Math.min(
+
+                1,
+
+                confidence
+
+            )
+
+        );
+
+    }
+
+
+
+
+
+/*
+========================================
+SSR Weight
+========================================
+*/
+
+    calculateSSRWeight(
+
+        material:
+
+            SSRMaterial,
+
+        viewAngle:number,
+
+        confidence:number
+
+    ):number {
+
+
+
+        let weight =
+
+            this.reflectionStrength;
+
+
+
+        /*
+            Fresnel
+        */
+
+
+        weight *=
+
+            this.fresnelSchlick(
+
+                viewAngle
+
+            );
+
+
+
+        /*
+            Roughness
+        */
+
+
+        weight *=
+
+            this.calculateRoughnessFactor(
+
+                material.roughness
+
+            );
+
+
+
+        /*
+            Metallic
+        */
+
+
+        weight *=
+
+            this.calculateMetallicFactor(
+
+                material.metallic
+
+            );
+
+
+
+        /*
+            SSR confidence
+        */
+
+
+        weight *=
+
+            this.calculateConfidence(
+
+                confidence
+
+            );
+
+
+
+        return Math.max(
+
+            0,
+
+            weight
+
+        );
+
+    }
+
+
+
+
+
+/*
+========================================
+Probe Weight
+========================================
+*/
+
+    calculateProbeWeight(
+
+        material:
+
+            SSRMaterial,
 
         viewAngle:number
 
     ):number {
+
 
 
         let weight =
@@ -330,7 +698,7 @@ export class SSRComposite {
 
         weight *=
 
-            this.fresnel(
+            this.fresnelSchlick(
 
                 viewAngle
 
@@ -340,36 +708,89 @@ export class SSRComposite {
 
         weight *=
 
-            (
+            this.calculateRoughnessFactor(
 
-                1 -
-
-                material.roughness *
-
-                this.roughnessBlend
+                material.roughness
 
             );
 
 
 
-        if (
+        return Math.max(
 
-            material.metallic >
+            0,
 
-            0.5
+            weight
 
-        ) {
+        );
+
+    }
+
+/*
+========================================
+Environment Weight
+========================================
+*/
+
+    calculateEnvironmentWeight(
+
+        material:
+
+            SSRMaterial,
+
+        confidence:number
+
+    ):number {
 
 
-            weight *=
 
-                this.metallicBoost;
-
-        }
+        let weight = 1.0;
 
 
 
-        return weight;
+        /*
+            SSR güveni düşükse
+
+            environment artar
+        */
+
+
+        weight *=
+
+            (
+
+                1 -
+
+                this.calculateConfidence(
+
+                    confidence
+
+                )
+
+            );
+
+
+
+        /*
+            Rough surface
+
+            environment daha görünür
+        */
+
+
+        weight *=
+
+            material.roughness;
+
+
+
+        return Math.max(
+
+            0,
+
+            weight
+
+        );
 
     }
 
@@ -377,41 +798,403 @@ export class SSRComposite {
 
 
 
-    composite(
+/*
+========================================
+Energy Conservation
+========================================
+*/
 
-        ssrColor:any,
+    applyEnergyConservation(
 
-        probeColor:any,
+        reflection:number,
 
-        material:any,
+        diffuse:number
 
-        viewAngle:number
+    ):number {
+
+
+
+        if (
+
+            !this.energyConservation
+
+        ){
+
+            return reflection;
+
+        }
+
+
+
+        return Math.min(
+
+            reflection,
+
+            1 -
+
+            diffuse
+
+        );
+
+    }
+
+
+
+
+
+/*
+========================================
+BRDF Reflection Combine
+========================================
+*/
+
+    combineReflection(
+
+        ssr:any,
+
+        probe:any,
+
+        environment:any,
+
+        ssrWeight:number,
+
+        probeWeight:number,
+
+        environmentWeight:number
 
     ):any {
+
+
+
+        return {
+
+
+            ssr:{
+
+
+                value:ssr,
+
+
+                weight:ssrWeight
+
+
+            },
+
+
+            probe:{
+
+
+                value:probe,
+
+
+                weight:probeWeight
+
+
+            },
+
+
+            environment:{
+
+
+                value:environment,
+
+
+                weight:environmentWeight
+
+
+            }
+
+
+        };
+
+    }
+
+
+
+
+
+/*
+========================================
+Hybrid Resolve
+========================================
+*/
+
+    resolveHybrid(
+
+        input:
+
+            SSRCompositeInput
+
+    ):SSRCompositeResult {
+
+
+
+        const ssrWeight =
+
+            this.calculateSSRWeight(
+
+                input.material,
+
+                input.viewAngle,
+
+                input.confidence
+
+            );
+
+
+
+        const probeWeight =
+
+            this.calculateProbeWeight(
+
+                input.material,
+
+                input.viewAngle
+
+            );
+
+
+
+        const environmentWeight =
+
+            this.calculateEnvironmentWeight(
+
+                input.material,
+
+                input.confidence
+
+            );
+
+
+
+        const color =
+
+            this.combineReflection(
+
+                input.ssr,
+
+                input.probe,
+
+                input.environment,
+
+                ssrWeight,
+
+                probeWeight,
+
+                environmentWeight
+
+            );
+
+
+
+        return {
+
+
+            color,
+
+
+            ssrWeight,
+
+
+            probeWeight,
+
+
+            environmentUsed:
+
+                environmentWeight > 0
+
+
+        };
+
+    }
+
+
+
+
+
+/*
+========================================
+SSR Only Resolve
+========================================
+*/
+
+    resolveSSROnly(
+
+        input:
+
+            SSRCompositeInput
+
+    ):SSRCompositeResult {
+
+
+
+        const weight =
+
+            this.calculateSSRWeight(
+
+                input.material,
+
+                input.viewAngle,
+
+                input.confidence
+
+            );
+
+
+
+        return {
+
+
+            color:
+
+
+            {
+
+
+                ssr:
+
+                    input.ssr,
+
+
+                weight
+
+
+            },
+
+
+            ssrWeight:
+
+                weight,
+
+
+            probeWeight:
+
+                0,
+
+
+            environmentUsed:false
+
+
+        };
+
+    }
+
+
+
+
+
+/*
+========================================
+Probe Only Resolve
+========================================
+*/
+
+    resolveProbeOnly(
+
+        input:
+
+            SSRCompositeInput
+
+    ):SSRCompositeResult {
+
+
+
+        const weight =
+
+            this.calculateProbeWeight(
+
+                input.material,
+
+                input.viewAngle
+
+            );
+
+
+
+        return {
+
+
+            color:
+
+
+            {
+
+
+                probe:
+
+                    input.probe,
+
+
+                weight
+
+
+            },
+
+
+            ssrWeight:
+
+                0,
+
+
+            probeWeight:
+
+                weight,
+
+
+            environmentUsed:false
+
+
+        };
+
+    }
+
+
+
+
+
+/*
+========================================
+Main Composite
+========================================
+*/
+
+    composite(
+
+        input:
+
+            SSRCompositeInput
+
+    ):SSRCompositeResult {
+
 
 
         if (
 
             !this.enabled
 
-        ) {
+        ){
 
 
-            return ssrColor;
+            return {
+
+
+                color:
+
+                    input.ssr,
+
+
+                ssrWeight:1,
+
+
+                probeWeight:0,
+
+
+                environmentUsed:false
+
+
+            };
 
         }
-
-
-
-        const weight =
-
-            this.calculateReflectionWeight(
-
-                material,
-
-                viewAngle
-
-            );
 
 
 
@@ -419,24 +1202,18 @@ export class SSRComposite {
 
             this.mode
 
-        ) {
+        ){
 
 
 
             case SSRCompositeMode.SSROnly:
 
 
-                return {
+                return this.resolveSSROnly(
 
+                    input
 
-                    color:
-
-                        ssrColor,
-
-
-                    weight
-
-                };
+                );
 
 
 
@@ -445,81 +1222,219 @@ export class SSRComposite {
             case SSRCompositeMode.ProbeOnly:
 
 
-                return {
+                return this.resolveProbeOnly(
 
+                    input
 
-                    color:
-
-                        probeColor,
-
-
-                    weight
-
-                };
+                );
 
 
 
+
+
+            case SSRCompositeMode.Hybrid:
 
 
             default:
 
 
-                return {
+                return this.resolveHybrid(
 
+                    input
 
-                    color:
-
-
-                        {
-
-
-                            ssr:
-
-                                ssrColor,
-
-
-                            probe:
-
-                                probeColor
-
-                        },
-
-
-                    weight
-
-                };
+                );
 
         }
 
     }
 
+/*
+========================================
+GPU Execute
+========================================
+*/
+
+    execute(
+
+        context:any
+
+    ):any {
+
+
+
+        if (
+
+            !this.enabled
+
+        ){
+
+            return null;
+
+        }
+
+
+
+        if (
+
+            !this.shader
+
+        ){
+
+            return null;
+
+        }
+
+
+
+        this.shader.bind();
+
+
+
+        /*
+        --------------------------------
+        Composite Parameters
+        --------------------------------
+        */
+
+
+
+        this.shader.setUniform?.(
+
+            "uFresnelPower",
+
+            this.fresnelPower
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uReflectionStrength",
+
+            this.reflectionStrength
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uRoughnessBlend",
+
+            this.roughnessBlend
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uMetallicBoost",
+
+            this.metallicBoost
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uEnergyConservation",
+
+            this.energyConservation
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uMode",
+
+            this.mode
+
+        );
+
+
+
+        this.shader.setUniform?.(
+
+            "uFrameIndex",
+
+            this.frameIndex
+
+        );
 
 
 
 
-    reset():
 
-    void {
-
-
-        this.ssr =
-
-            null;
+        /*
+        --------------------------------
+        Input Buffers
+        --------------------------------
+        */
 
 
-        this.history =
 
-            null;
-
-
-        this.probe =
-
-            null;
+        this.ssr?.bind();
 
 
-        this.environment =
 
-            null;
+        this.history?.bind();
+
+
+
+        this.probe?.bind();
+
+
+
+        this.environment?.bind();
+
+
+
+
+
+        /*
+        --------------------------------
+        Fullscreen Composite
+        --------------------------------
+        */
+
+
+
+        context.drawFullscreenQuad?.();
+
+
+
+        this.ssr?.unbind();
+
+
+
+        this.frameIndex++;
+
+
+
+        return {
+
+
+            type:
+
+                "SSRCompositeResult",
+
+
+            frame:
+
+                this.frameIndex,
+
+
+            mode:
+
+                this.mode
+
+
+        };
 
     }
 
@@ -527,7 +1442,352 @@ export class SSRComposite {
 
 
 
-    debugInfo(){
+/*
+========================================
+Runtime Controls
+========================================
+*/
+
+    setEnabled(
+
+        enabled:boolean
+
+    ):void {
+
+
+
+        this.enabled = enabled;
+
+    }
+
+
+
+
+
+    setFresnelPower(
+
+        value:number
+
+    ):void {
+
+
+
+        this.fresnelPower =
+
+            Math.max(
+
+                0.1,
+
+                value
+
+            );
+
+    }
+
+
+
+
+
+    setReflectionStrength(
+
+        value:number
+
+    ):void {
+
+
+
+        this.reflectionStrength =
+
+            Math.max(
+
+                0,
+
+                value
+
+            );
+
+    }
+
+
+
+
+
+    setRoughnessBlend(
+
+        value:number
+
+    ):void {
+
+
+
+        this.roughnessBlend =
+
+            Math.max(
+
+                0,
+
+                value
+
+            );
+
+    }
+
+
+
+
+
+    setMetallicBoost(
+
+        value:number
+
+    ):void {
+
+
+
+        this.metallicBoost =
+
+            Math.max(
+
+                0,
+
+                value
+
+            );
+
+    }
+
+
+
+
+
+/*
+========================================
+Resize
+========================================
+*/
+
+    resize(
+
+        width:number,
+
+        height:number
+
+    ):void {
+
+
+
+        this.ssr?.resize?.(
+
+            width,
+
+            height
+
+        );
+
+
+
+        this.history?.resize?.(
+
+            width,
+
+            height
+
+        );
+
+
+
+        this.probe?.resize?.(
+
+            width,
+
+            height
+
+        );
+
+    }
+
+/*
+========================================
+History Invalidate
+========================================
+*/
+
+    invalidateHistory():void {
+
+
+
+        this.history?.clear?.();
+
+
+
+    }
+
+
+
+
+
+/*
+========================================
+Reset Resources
+========================================
+*/
+
+    reset():void {
+
+
+
+        this.ssr = null;
+
+
+
+        this.history = null;
+
+
+
+        this.probe = null;
+
+
+
+        this.environment = null;
+
+
+
+        this.shader = null;
+
+
+
+        this.frameIndex = 0;
+
+
+
+    }
+
+
+
+
+
+/*
+========================================
+Frame Begin
+========================================
+*/
+
+    beginFrame():void {
+
+
+
+        this.frameIndex++;
+
+
+    }
+
+
+
+
+
+/*
+========================================
+Mode Change
+========================================
+*/
+
+    setMode(
+
+        mode:
+
+            SSRCompositeMode
+
+    ):void {
+
+
+
+        this.mode = mode;
+
+
+    }
+
+
+
+
+
+/*
+========================================
+Energy Conservation Toggle
+========================================
+*/
+
+    setEnergyConservation(
+
+        enabled:boolean
+
+    ):void {
+
+
+
+        this.energyConservation = enabled;
+
+
+    }
+
+
+
+
+
+/*
+========================================
+Runtime Statistics
+========================================
+*/
+
+    getStats()
+
+    {
+
+
+        return {
+
+
+            frame:
+
+                this.frameIndex,
+
+
+            enabled:
+
+                this.enabled,
+
+
+            mode:
+
+                this.mode,
+
+
+            energyConservation:
+
+                this.energyConservation,
+
+
+            reflectionStrength:
+
+                this.reflectionStrength
+
+        };
+
+    }
+
+
+
+
+
+/*
+========================================
+Debug Information
+========================================
+*/
+
+    debugInfo()
+
+    {
 
 
         return {
@@ -538,9 +1798,17 @@ export class SSRComposite {
                 "SSRComposite",
 
 
+
+            enabled:
+
+                this.enabled,
+
+
+
             mode:
 
                 this.mode,
+
 
 
             fresnelPower:
@@ -548,17 +1816,76 @@ export class SSRComposite {
                 this.fresnelPower,
 
 
+
             reflectionStrength:
 
                 this.reflectionStrength,
 
 
+
+            roughnessBlend:
+
+                this.roughnessBlend,
+
+
+
             metallicBoost:
 
-                this.metallicBoost
+                this.metallicBoost,
+
+
+
+            energyConservation:
+
+                this.energyConservation,
+
+
+
+            frame:
+
+                this.frameIndex,
+
+
+
+            resources:
+
+            {
+
+
+                ssr:
+
+                    this.ssr !== null,
+
+
+
+                history:
+
+                    this.history !== null,
+
+
+
+                probe:
+
+                    this.probe !== null,
+
+
+
+                environment:
+
+                    this.environment !== null,
+
+
+
+                shader:
+
+                    this.shader !== null
+
+            }
+
 
         };
 
     }
+
 
 }
