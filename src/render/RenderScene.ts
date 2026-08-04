@@ -2,8 +2,7 @@ import { MeshBody } from "../geometry/mesh/MeshBody";
 
 
 /**
- * RenderScene içindeki
- * mesh dışı render nesneleri
+ * Mesh dışı render objeleri
  */
 export interface RenderObject {
 
@@ -15,20 +14,49 @@ export interface RenderObject {
 
 
 /**
- * Seçilebilir nesne bilgisi
- *
- * Tablet kalem seçimi
- * ve CAD seçim sistemi
- * için kullanılacak.
+ * Sahne seçim bilgisi
  */
 export interface SceneSelection {
 
     id: string;
 
     type:
-        "MeshBody"
-        |
-        "Object";
+        | "MeshBody"
+        | "Object";
+
+}
+
+
+/**
+ * Arka plan rengi
+ */
+export interface BackgroundColor {
+
+    r:number;
+
+    g:number;
+
+    b:number;
+
+    a:number;
+
+}
+
+
+/**
+ * Sahne istatistikleri
+ */
+export interface RenderSceneStatistics {
+
+    meshBodies:number;
+
+    renderObjects:number;
+
+    vertices:number;
+
+    triangles:number;
+
+    selected:SceneSelection | null;
 
 }
 
@@ -36,69 +64,60 @@ export interface SceneSelection {
 /**
  * CAD Render Scene
  *
- * Shapr3D benzeri:
- *
- * Model
- *  |
+ * Scene
+ * |
  * MeshBody
- *  |
+ * |
  * DisplayMesh
- *  |
+ * |
  * Renderer
- *
  */
 export class RenderScene {
 
 
-    /**
-     * Ana CAD mesh listesi
-     */
-    private readonly meshBodies =
-        new Map<string, MeshBody>();
+    private readonly meshBodies:
+
+        Map<string,MeshBody> =
+
+            new Map();
 
 
-    /**
-     * Yardımcı render objeleri
-     *
-     * Grid
-     * Gizmo
-     * Axis
-     * Overlay
-     */
-    private readonly objects =
-        new Map<string, RenderObject>();
+
+    private readonly objects:
+
+        Map<string,RenderObject> =
+
+            new Map();
 
 
-    /**
-     * Seçili nesne
-     */
+
     private selection:
+
         SceneSelection | null = null;
 
 
 
-    /**
-     * Arka plan rengi
-     */
-    private backgroundColor = {
+    private backgroundColor:
+
+        BackgroundColor = {
 
 
-        r: 0.15,
+            r:0.15,
+
+            g:0.15,
+
+            b:0.18,
+
+            a:1.0
 
 
-        g: 0.15,
-
-
-        b: 0.18,
-
-
-        a: 1.0
-
-    };
+        };
 
 
 
-    constructor() {}
+    constructor(){}
+
+
 
 
 
@@ -107,14 +126,11 @@ export class RenderScene {
     // ----------------------------------------------------
 
 
-    /**
-     * Yeni CAD gövdesi ekler
-     */
     public addMeshBody(
 
-        body: MeshBody
+        body:MeshBody
 
-    ): void {
+    ):void{
 
 
         this.meshBodies.set(
@@ -125,67 +141,60 @@ export class RenderScene {
 
         );
 
+
     }
 
 
 
-    /**
-     * Mesh siler
-     */
+
+
     public removeMeshBody(
 
-        id: string
+        id:string
 
-    ): boolean {
+    ):boolean{
 
 
-        if (
+        if(
 
             this.selection?.id === id
 
-        ) {
+        ){
 
             this.clearSelection();
 
         }
 
 
-        return this.meshBodies.delete(
 
-            id
+        return this.meshBodies.delete(id);
 
-        );
 
     }
 
 
 
-    /**
-     * Mesh bul
-     */
+
+
     public getMeshBody(
 
-        id: string
+        id:string
 
-    ): MeshBody | undefined {
+    ):MeshBody | undefined{
 
 
-        return this.meshBodies.get(
+        return this.meshBodies.get(id);
 
-            id
-
-        );
 
     }
 
 
 
-    /**
-     * Tüm meshleri getir
-     */
+
+
     public getMeshBodies():
 
-    readonly MeshBody[] {
+    readonly MeshBody[]{
 
 
         return Array.from(
@@ -194,45 +203,39 @@ export class RenderScene {
 
         );
 
+
     }
 
 
 
-    /**
-     * Tüm meshleri temizle
-     */
+
+
     public clearMeshBodies():
 
-    void {
+    void{
 
 
         this.meshBodies.clear();
 
-
         this.clearSelection();
+
 
     }
 
+
+
+
+
     // ----------------------------------------------------
-    // Generic Render Objects
+    // Render Objects
     // ----------------------------------------------------
 
 
-    /**
-     * Render yardımcı objesi ekle
-     *
-     * Örnek:
-     *
-     * Grid
-     * Axis
-     * Selection Gizmo
-     * Measurement Overlay
-     */
     public addObject(
 
-        object: RenderObject
+        object:RenderObject
 
-    ): void {
+    ):void{
 
 
         this.objects.set(
@@ -243,56 +246,60 @@ export class RenderScene {
 
         );
 
+
     }
 
 
 
-    /**
-     * Render objesi sil
-     */
+
+
     public removeObject(
 
-        id: string
+        id:string
 
-    ): boolean {
+    ):boolean{
 
 
-        return this.objects.delete(
+        if(
 
-            id
+            this.selection?.id === id
 
-        );
+        ){
+
+            this.clearSelection();
+
+        }
+
+
+
+        return this.objects.delete(id);
+
 
     }
 
 
 
-    /**
-     * Render objesi getir
-     */
+
+
     public getObject(
 
-        id: string
+        id:string
 
-    ): RenderObject | undefined {
+    ):RenderObject | undefined{
 
 
-        return this.objects.get(
+        return this.objects.get(id);
 
-            id
-
-        );
 
     }
 
 
 
-    /**
-     * Tüm yardımcı render objeleri
-     */
+
+
     public getObjects():
 
-    readonly RenderObject[] {
+    readonly RenderObject[]{
 
 
         return Array.from(
@@ -301,92 +308,135 @@ export class RenderScene {
 
         );
 
+
     }
 
 
 
-    /**
-     * Yardımcı objeleri temizle
-     */
+
+
     public clearObjects():
 
-    void {
+    void{
 
 
         this.objects.clear();
 
+
     }
 
 
 
 
+
     // ----------------------------------------------------
-    // Selection System
+    // Selection
     // ----------------------------------------------------
 
 
-    /**
-     * Nesne seç
-     *
-     * Kalem dokunuşu sonrası
-     * burası kullanılacak.
-     */
     public select(
 
-        selection: SceneSelection | null
+        selection:SceneSelection | null
 
-    ): void {
+    ):void{
 
 
-        this.selection = selection;
+        if(selection===null){
+
+            this.selection=null;
+
+            return;
+
+        }
+
+
+
+        if(
+
+            selection.type==="MeshBody" &&
+
+            !this.meshBodies.has(selection.id)
+
+        ){
+
+            return;
+
+        }
+
+
+
+        if(
+
+            selection.type==="Object" &&
+
+            !this.objects.has(selection.id)
+
+        ){
+
+            return;
+
+        }
+
+
+
+        this.selection = {
+
+
+            id:selection.id,
+
+
+            type:selection.type
+
+
+        };
+
 
     }
 
 
 
-    /**
-     * Seçimi kaldır
-     */
+
+
     public clearSelection():
 
-    void {
+    void{
 
 
-        this.selection = null;
+        this.selection=null;
+
 
     }
 
 
 
-    /**
-     * Aktif seçim
-     */
+
+
     public getSelection():
 
-    SceneSelection | null {
+    SceneSelection | null{
 
 
         return this.selection;
 
+
     }
 
 
 
-    /**
-     * Mesh seç
-     */
+
+
     public selectMeshBody(
 
-        id: string
+        id:string
 
-    ): boolean {
+    ):boolean{
 
 
-        if (
+        if(
 
             !this.meshBodies.has(id)
 
-        ) {
+        ){
 
             return false;
 
@@ -394,36 +444,40 @@ export class RenderScene {
 
 
 
-        this.selection = {
+        this.selection={
+
 
             id,
 
-            type: "MeshBody"
+
+            type:"MeshBody"
+
 
         };
 
 
+
         return true;
+
 
     }
 
 
 
-    /**
-     * Render objesi seç
-     */
+
+
     public selectObject(
 
-        id: string
+        id:string
 
-    ): boolean {
+    ):boolean{
 
 
-        if (
+        if(
 
             !this.objects.has(id)
 
-        ) {
+        ){
 
             return false;
 
@@ -431,18 +485,24 @@ export class RenderScene {
 
 
 
-        this.selection = {
+        this.selection={
+
 
             id,
 
-            type: "Object"
+
+            type:"Object"
+
 
         };
 
 
+
         return true;
 
+
     }
+
 
 
 
@@ -452,16 +512,13 @@ export class RenderScene {
     // ----------------------------------------------------
 
 
-    /**
-     * Mesh görünürlük
-     */
     public setMeshVisibility(
 
-        id: string,
+        id:string,
 
-        visible: boolean
+        visible:boolean
 
-    ): boolean {
+    ):boolean{
 
 
         const body =
@@ -470,11 +527,7 @@ export class RenderScene {
 
 
 
-        if (
-
-            !body
-
-        ) {
+        if(!body){
 
             return false;
 
@@ -487,20 +540,20 @@ export class RenderScene {
 
         return true;
 
+
     }
 
 
 
-    /**
-     * Render object görünürlük
-     */
+
+
     public setObjectVisibility(
 
-        id: string,
+        id:string,
 
-        visible: boolean
+        visible:boolean
 
-    ): boolean {
+    ):boolean{
 
 
         const object =
@@ -509,11 +562,7 @@ export class RenderScene {
 
 
 
-        if (
-
-            !object
-
-        ) {
+        if(!object){
 
             return false;
 
@@ -526,7 +575,9 @@ export class RenderScene {
 
         return true;
 
+
     }
+
 
 
 
@@ -536,66 +587,63 @@ export class RenderScene {
     // ----------------------------------------------------
 
 
-    /**
-     * Tüm sahneyi temizle
-     */
     public clear():
 
-    void {
+    void{
 
 
         this.meshBodies.clear();
 
-
         this.objects.clear();
 
+        this.selection=null;
 
-        this.selection = null;
 
     }
 
 
 
-    /**
-     * Sahne boş mu?
-     */
+
+
     public isEmpty():
 
-    boolean {
+    boolean{
 
 
         return (
 
-            this.meshBodies.size === 0 &&
+            this.meshBodies.size===0 &&
 
-            this.objects.size === 0
+            this.objects.size===0
 
         );
 
+
     }
+
+
+
+
 
     // ----------------------------------------------------
     // Background
     // ----------------------------------------------------
 
 
-    /**
-     * Sahne arka plan rengi
-     */
     public setBackgroundColor(
 
-        r: number,
+        r:number,
 
-        g: number,
+        g:number,
 
-        b: number,
+        b:number,
 
-        a = 1.0
+        a:number=1
 
-    ): void {
+    ):void{
 
 
-        this.backgroundColor = {
+        this.backgroundColor={
 
             r,
 
@@ -607,14 +655,16 @@ export class RenderScene {
 
         };
 
+
     }
 
 
 
-    /**
-     * Arka plan rengi
-     */
-    public getBackgroundColor() {
+
+
+    public getBackgroundColor():
+
+    BackgroundColor{
 
 
         return {
@@ -623,7 +673,9 @@ export class RenderScene {
 
         };
 
+
     }
+
 
 
 
@@ -633,14 +685,9 @@ export class RenderScene {
     // ----------------------------------------------------
 
 
-    /**
-     * Render edilecek görünür meshler
-     *
-     * Renderer bunu kullanacak.
-     */
     public getVisibleMeshBodies():
 
-    readonly MeshBody[] {
+    readonly MeshBody[]{
 
 
         return Array.from(
@@ -649,20 +696,20 @@ export class RenderScene {
 
         ).filter(
 
-            body => body.visible
+            body=>body.visible
 
         );
+
 
     }
 
 
 
-    /**
-     * Render edilecek yardımcı objeler
-     */
+
+
     public getVisibleObjects():
 
-    readonly RenderObject[] {
+    readonly RenderObject[]{
 
 
         return Array.from(
@@ -671,11 +718,13 @@ export class RenderScene {
 
         ).filter(
 
-            object => object.visible
+            object=>object.visible
 
         );
 
+
     }
+
 
 
 
@@ -685,40 +734,33 @@ export class RenderScene {
     // ----------------------------------------------------
 
 
-    /**
-     * Sahne istatistikleri
-     *
-     * FPS/debug ekranı için
-     */
-    public getStatistics() {
+    public getStatistics():
+
+    RenderSceneStatistics{
 
 
-        let vertices = 0;
+        let vertices=0;
 
-        let triangles = 0;
+        let triangles=0;
 
 
 
-        for (
+        for(
 
-            const body of
+            const body of this.meshBodies.values()
 
-            this.meshBodies.values()
-
-        ) {
+        ){
 
 
-            vertices +=
-
-                body.getVertexCount();
+            vertices += body.getVertexCount();
 
 
+            triangles += body.getTriangleCount();
 
-            triangles +=
-
-                body.getTriangleCount();
 
         }
+
+
 
 
 
@@ -745,9 +787,12 @@ export class RenderScene {
 
                 this.selection
 
+
         };
 
+
     }
+
 
 
 
@@ -757,8 +802,7 @@ export class RenderScene {
     // ----------------------------------------------------
 
 
-    public debugInfo() {
-
+    public debugInfo(){
 
         return {
 
@@ -787,10 +831,11 @@ export class RenderScene {
 
                 this.backgroundColor
 
+
         };
 
-    }
 
+    }
 
 
 }
