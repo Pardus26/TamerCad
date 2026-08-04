@@ -85,15 +85,8 @@ export class RenderGraphBuilder {
 
 
 
-        const pass =
-
-            new RenderGraphPass(
-
-                name,
-
-                priority
-
-            );
+       const pass = new RenderGraphPass(name);
+pass.setPriority(priority);
 
 
 
@@ -388,7 +381,13 @@ export class RenderGraphBuilder {
 
 
 
+public getResource(
+    name: string
+): RenderGraphResource | undefined {
 
+    return this.resources.get(name);
+
+}
 
 
     public getResources():
