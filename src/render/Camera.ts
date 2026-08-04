@@ -8,39 +8,67 @@ export enum ProjectionType {
 
 }
 
-export class RenderCamera {
+export class Camera {
+
+    // --------------------------------------------------
+    // Projection
+    // --------------------------------------------------
 
     public projection: ProjectionType =
         ProjectionType.Perspective;
 
-    public position: Point3 =
+    // --------------------------------------------------
+    // Camera
+    // --------------------------------------------------
+
+    public position =
         new Point3(0, 0, 10);
 
-    public target: Point3 =
+    public target =
         new Point3(0, 0, 0);
 
-    public up: Point3 =
+    public up =
         new Point3(0, 1, 0);
 
-    /**
-     * Perspective parameters
-     */
+    // --------------------------------------------------
+    // Cached orientation
+    // --------------------------------------------------
+
+    private forward =
+        new Point3(0, 0, -1);
+
+    private right =
+        new Point3(1, 0, 0);
+
+    // --------------------------------------------------
+    // Perspective
+    // --------------------------------------------------
+
     public fov = 45;
 
     public near = 0.01;
 
     public far = 100000;
 
-    /**
-     * Orthographic size
-     */
+    // --------------------------------------------------
+    // Orthographic
+    // --------------------------------------------------
+
     public orthoHeight = 10;
 
-    public aspect = 1.0;
+    public aspect = 1;
 
-    constructor() {}
+    constructor() {
 
-    setPerspective(
+        this.updateVectors();
+
+    }
+
+    // --------------------------------------------------
+    // Projection
+    // --------------------------------------------------
+
+    public setPerspective(
 
         fov: number,
 
@@ -65,7 +93,7 @@ export class RenderCamera {
 
     }
 
-    setOrthographic(
+    public setOrthographic(
 
         height: number,
 
@@ -80,23 +108,31 @@ export class RenderCamera {
         this.projection =
             ProjectionType.Orthographic;
 
-        this.orthoHeight = height;
+        this.orthoHeight =
+            height;
 
-        this.aspect = aspect;
+        this.aspect =
+            aspect;
 
-        this.near = near;
+        this.near =
+            near;
 
-        this.far = far;
+        this.far =
+            far;
 
     }
 
-    lookAt(
+    // --------------------------------------------------
+    // View
+    // --------------------------------------------------
+
+    public lookAt(
 
         eye: Point3,
 
         target: Point3,
 
-        up: Point3 = new Point3(0, 1, 0)
+        up: Point3 = new Point3(0,1,0)
 
     ): void {
 
@@ -106,15 +142,21 @@ export class RenderCamera {
 
         this.up = up;
 
+        this.updateVectors();
+
     }
 
-    translate(
+    // --------------------------------------------------
+    // Translation
+    // --------------------------------------------------
 
-        dx: number,
+    public translate(
 
-        dy: number,
+        dx:number,
 
-        dz: number
+        dy:number,
+
+        dz:number
 
     ): void {
 
@@ -138,59 +180,209 @@ export class RenderCamera {
 
         );
 
+        this.updateVectors();
+
     }
 
-    zoom(
+    // --------------------------------------------------
+    // Zoom
+    // --------------------------------------------------
 
-        factor: number
+    public zoom(
 
-    ): void {
+        factor:number
 
-        if (
+    ):void{
 
-            this.projection ===
+        if(
+
+            this.projection===
 
             ProjectionType.Perspective
 
-        ) {
+        ){
 
-            const dir = new Point3(
+            const dx=
 
-                this.target.x - this.position.x,
+                this.target.x-
 
-                this.target.y - this.position.y,
+                this.position.x;
 
-                this.target.z - this.position.z
+            const dy=
 
-            );
+                this.target.y-
 
-            this.position = new Point3(
+                this.position.y;
 
-                this.position.x + dir.x * factor,
+            const dz=
 
-                this.position.y + dir.y * factor,
+                this.target.z-
 
-                this.position.z + dir.z * factor
+                this.position.z;
+
+            this.position=new Point3(
+
+                this.position.x+
+
+                dx*factor,
+
+                this.position.y+
+
+                dy*factor,
+
+                this.position.z+
+
+                dz*factor
 
             );
 
         }
 
-        else {
+        else{
 
-            this.orthoHeight *= factor;
+            this.orthoHeight*=factor;
 
         }
+
+        this.updateVectors();
 
     }
 
-    getViewMatrix(): number[] {
+    // --------------------------------------------------
+    // Orientation
+    // --------------------------------------------------
 
-        /**
-         * Placeholder.
-         * Daha sonra Matrix4 sınıfı
-         * ile üretilecek.
-         */
+    private updateVectors():void{
+
+        const dx=
+
+            this.target.x-
+
+            this.position.x;
+
+        const dy=
+
+            this.target.y-
+
+            this.position.y;
+
+        const dz=
+
+            this.target.z-
+
+            this.position.z;
+
+        const length=Math.sqrt(
+
+            dx*dx+
+
+            dy*dy+
+
+            dz*dz
+
+        )||1;
+
+        this.forward=new Point3(
+
+            dx/length,
+
+            dy/length,
+
+            dz/length
+
+        );
+
+        const rx=
+
+            this.forward.y*
+
+            this.up.z-
+
+            this.forward.z*
+
+            this.up.y;
+
+        const ry=
+
+            this.forward.z*
+
+            this.up.x-
+
+            this.forward.x*
+
+            this.up.z;
+
+        const rz=
+
+            this.forward.x*
+
+            this.up.y-
+
+            this.forward.y*
+
+            this.up.x;
+
+        const rl=Math.sqrt(
+
+            rx*rx+
+
+            ry*ry+
+
+            rz*rz
+
+        )||1;
+
+        this.right=new Point3(
+
+            rx/rl,
+
+            ry/rl,
+
+            rz/rl
+
+        );
+
+    }
+
+    // --------------------------------------------------
+    // Getters
+    // --------------------------------------------------
+
+    public getForward():Point3{
+
+        return this.forward;
+
+    }
+
+    public getRight():Point3{
+
+        return this.right;
+
+    }
+
+    public getUp():Point3{
+
+        return this.up;
+
+    }
+
+    public getPosition():Point3{
+
+        return this.position;
+
+    }
+
+    public getTarget():Point3{
+
+        return this.target;
+
+    }
+
+    // --------------------------------------------------
+    // Matrix placeholders
+    // --------------------------------------------------
+
+    public getViewMatrix():number[]{
 
         return [
 
@@ -206,13 +398,7 @@ export class RenderCamera {
 
     }
 
-    getProjectionMatrix(): number[] {
-
-        /**
-         * Placeholder.
-         * Matrix4 eklendiğinde
-         * gerçek hesap yapılacak.
-         */
+    public getProjectionMatrix():number[]{
 
         return [
 
@@ -225,67 +411,6 @@ export class RenderCamera {
             0,0,0,1
 
         ];
-
-    }
-
-    clone(): RenderCamera {
-
-        const camera =
-
-            new RenderCamera();
-
-        camera.projection =
-            this.projection;
-
-        camera.position =
-            new Point3(
-
-                this.position.x,
-
-                this.position.y,
-
-                this.position.z
-
-            );
-
-        camera.target =
-            new Point3(
-
-                this.target.x,
-
-                this.target.y,
-
-                this.target.z
-
-            );
-
-        camera.up =
-            new Point3(
-
-                this.up.x,
-
-                this.up.y,
-
-                this.up.z
-
-            );
-
-        camera.fov =
-            this.fov;
-
-        camera.aspect =
-            this.aspect;
-
-        camera.near =
-            this.near;
-
-        camera.far =
-            this.far;
-
-        camera.orthoHeight =
-            this.orthoHeight;
-
-        return camera;
 
     }
 
