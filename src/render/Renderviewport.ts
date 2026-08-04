@@ -1,6 +1,7 @@
 import { RenderCamera } from "./RenderCamera";
 
 
+
 export interface ViewportRectangle {
 
     x:number;
@@ -12,6 +13,7 @@ export interface ViewportRectangle {
     height:number;
 
 }
+
 
 
 export interface ViewportState {
@@ -26,36 +28,41 @@ export interface ViewportState {
 
 
 
+
+
 export class RenderViewport {
 
 
-    private readonly camera:
-        RenderCamera;
+
+    private readonly camera:RenderCamera;
 
 
 
-    private rectangle:
-        ViewportRectangle = {
-
-            x:0,
-
-            y:0,
-
-            width:800,
-
-            height:600
-
-        };
+    private rectangle:ViewportRectangle = {
 
 
+        x:0,
 
-    private pixelRatio =
-        1.0;
+        y:0,
+
+        width:800,
+
+        height:600
+
+
+    };
 
 
 
-    private enabled =
-        true;
+
+    private pixelRatio:number = 1.0;
+
+
+
+    private enabled:boolean = true;
+
+
+
 
 
 
@@ -63,14 +70,14 @@ export class RenderViewport {
 
         camera:RenderCamera,
 
-        width=800,
+        width:number = 800,
 
-        height=600
+        height:number = 600
 
     ){
 
-        this.camera =
-            camera;
+
+        this.camera = camera;
 
 
         this.resize(
@@ -81,16 +88,16 @@ export class RenderViewport {
 
         );
 
+
     }
 
 
 
-    // --------------------------------------------
-    // Size
-    // --------------------------------------------
 
 
-    resize(
+
+
+    public resize(
 
         width:number,
 
@@ -99,24 +106,22 @@ export class RenderViewport {
     ):void{
 
 
-        this.rectangle.width =
-            Math.max(
+        this.rectangle.width = Math.max(
 
-                1,
+            1,
 
-                width
+            width
 
-            );
+        );
 
 
-        this.rectangle.height =
-            Math.max(
+        this.rectangle.height = Math.max(
 
-                1,
+            1,
 
-                height
+            height
 
-            );
+        );
 
 
 
@@ -133,11 +138,16 @@ export class RenderViewport {
 
         );
 
+
     }
 
 
 
-    setPosition(
+
+
+
+
+    public setPosition(
 
         x:number,
 
@@ -146,29 +156,34 @@ export class RenderViewport {
     ):void{
 
 
-        this.rectangle.x = x;
+        this.rectangle.x=x;
 
-        this.rectangle.y = y;
+        this.rectangle.y=y;
+
 
     }
 
 
 
-    setPixelRatio(
+
+
+
+
+    public setPixelRatio(
 
         ratio:number
 
     ):void{
 
 
-        this.pixelRatio =
-            Math.max(
+        this.pixelRatio=Math.max(
 
-                0.1,
+            0.1,
 
-                ratio
+            ratio
 
-            );
+        );
+
 
 
         this.resize(
@@ -179,59 +194,78 @@ export class RenderViewport {
 
         );
 
+
     }
 
 
 
-    getPixelRatio():
 
-    number {
+
+
+
+    public getPixelRatio():number{
+
 
         return this.pixelRatio;
 
+
     }
 
 
 
-    getWidth():
 
-    number {
+
+
+    public getWidth():number{
+
 
         return this.rectangle.width;
 
+
     }
 
 
 
-    getHeight():
 
-    number {
+
+
+    public getHeight():number{
+
 
         return this.rectangle.height;
 
-    }
-
-
-
-    getAspectRatio():
-
-    number {
-
-        return (
-
-            this.rectangle.width /
-
-            this.rectangle.height
-
-        );
 
     }
 
 
 
-    getRectangle():
 
-    ViewportRectangle {
+
+
+    public getAspectRatio():number{
+
+
+        if(this.rectangle.height===0)
+
+            return 1;
+
+
+
+        return this.rectangle.width /
+
+               this.rectangle.height;
+
+
+    }
+
+
+
+
+
+
+
+    public getRectangle():ViewportRectangle{
+
 
         return {
 
@@ -239,135 +273,113 @@ export class RenderViewport {
 
         };
 
-    }
-
-
-
-    // --------------------------------------------
-    // Enable
-    // --------------------------------------------
-
-
-    enable():void{
-
-        this.enabled = true;
 
     }
 
 
 
-    disable():void{
 
-        this.enabled = false;
+
+
+
+
+    public enable():void{
+
+
+        this.enabled=true;
+
 
     }
 
 
 
-    isEnabled():
 
-    boolean {
+
+
+    public disable():void{
+
+
+        this.enabled=false;
+
+
+    }
+
+
+
+
+
+
+    public isEnabled():boolean{
+
 
         return this.enabled;
 
+
     }
 
 
 
-    // --------------------------------------------
-    // GPU Apply
-    // --------------------------------------------
 
 
-    apply(
+
+
+    public apply(
 
         nativeContext:any
 
     ):void{
 
 
-        if(
-
-            !this.enabled
-
-        ){
+        if(!this.enabled)
 
             return;
 
-        }
 
 
-
-        if(
-
-            !nativeContext
-
-        ){
+        if(!nativeContext)
 
             return;
 
-        }
-
-
-
-        /*
-        
-        WebGL:
-
-        gl.viewport(
-            x,
-            y,
-            width,
-            height
-        )
-
-
-        WebGPU:
-
-        viewport state
-
-
-        Vulkan:
-
-        VkViewport
-
-
-        */
 
 
         const x =
+
             this.rectangle.x *
+
             this.pixelRatio;
+
 
 
         const y =
+
             this.rectangle.y *
+
             this.pixelRatio;
+
 
 
         const width =
+
             this.rectangle.width *
+
             this.pixelRatio;
+
 
 
         const height =
+
             this.rectangle.height *
+
             this.pixelRatio;
 
 
 
-        const gl =
-            nativeContext;
 
 
+        if(nativeContext.viewport){
 
-        if(
 
-            gl.viewport
-
-        ){
-
-            gl.viewport(
+            nativeContext.viewport(
 
                 x,
 
@@ -379,38 +391,43 @@ export class RenderViewport {
 
             );
 
+
         }
+
 
     }
 
 
 
 
-    // --------------------------------------------
-    // Helpers
-    // --------------------------------------------
 
 
-    screenCenter(){
+
+
+    public screenCenter(){
+
 
         return {
 
-            x:
-                this.rectangle.width *
-                0.5,
+
+            x:this.rectangle.width*0.5,
 
 
-            y:
-                this.rectangle.height *
-                0.5
+            y:this.rectangle.height*0.5
+
 
         };
+
 
     }
 
 
 
-    contains(
+
+
+
+
+    public contains(
 
         x:number,
 
@@ -425,70 +442,75 @@ export class RenderViewport {
 
             y >= this.rectangle.y &&
 
-            x <=
-                this.rectangle.x +
+            x <= this.rectangle.x +
+
                 this.rectangle.width &&
 
-            y <=
-                this.rectangle.y +
+            y <= this.rectangle.y +
+
                 this.rectangle.height
 
         );
 
+
     }
 
 
 
-    // --------------------------------------------
-    // Serialization
-    // --------------------------------------------
 
 
-    saveState():
 
-    ViewportState {
+
+    public saveState():ViewportState{
 
 
         return {
 
-            rectangle:
-                this.getRectangle(),
+
+            rectangle:this.getRectangle(),
 
 
-            pixelRatio:
-                this.pixelRatio,
+            pixelRatio:this.pixelRatio,
 
 
-            enabled:
-                this.enabled
+            enabled:this.enabled
+
 
         };
+
 
     }
 
 
 
-    restoreState(
+
+
+
+
+    public restoreState(
 
         state:ViewportState
 
     ):void{
 
 
-        this.rectangle =
-            {
+        this.rectangle={
 
-                ...state.rectangle
+            ...state.rectangle
 
-            };
+        };
+
 
 
         this.pixelRatio =
-            state.pixelRatio;
+
+            state.pixelRatio ?? 1;
+
 
 
         this.enabled =
-            state.enabled;
+
+            state.enabled ?? true;
 
 
 
@@ -500,19 +522,30 @@ export class RenderViewport {
 
         );
 
+
     }
 
 
 
-    toJSON(){
+
+
+
+
+    public toJSON(){
+
 
         return this.saveState();
 
+
     }
 
 
 
-    static fromJSON(
+
+
+
+
+    public static fromJSON(
 
         camera:RenderCamera,
 
@@ -522,6 +555,7 @@ export class RenderViewport {
 
 
         const viewport =
+
             new RenderViewport(
 
                 camera,
@@ -543,6 +577,7 @@ export class RenderViewport {
 
 
         return viewport;
+
 
     }
 
