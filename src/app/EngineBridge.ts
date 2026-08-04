@@ -1,161 +1,138 @@
 // src/app/EngineBridge.ts
 
-import {
-    KernelBootstrap,
-    KernelState
-} from "./KernelBootstrap";
-
-import { DocumentManager } from "../document/DocumentManager";
-import { Renderer } from "../render/Renderer";
-import { Scene } from "../render/Scene";
+import { KernelBootstrap } from "./KernelBootstrap";
 
 export class EngineBridge {
 
     private static initialized = false;
 
-    /**
-     * Kernel başlatılır
-     */
-    static initialize(): void {
+    public static initialize(): void {
 
-        if (this.initialized) {
+        if (EngineBridge.initialized) {
             return;
         }
 
         KernelBootstrap.initialize();
 
-        this.initialized = true;
+        EngineBridge.initialized = true;
+
+        console.info("[Engine] Initialized");
     }
 
-    /**
-     * Kernel durumu
-     */
-    static state(): KernelState {
-
-        return KernelBootstrap.getState();
-
-    }
-
-    /**
-     * Hazır mı?
-     */
-    static ready(): boolean {
-
-        return KernelBootstrap.isReady();
-
-    }
-
-    /**
-     * Renderer erişimi
-     */
-    static renderer(): Renderer {
-
-        return KernelBootstrap
-            .getSubsystems()
-            .renderer;
-
-    }
-
-    /**
-     * Scene erişimi
-     */
-    static scene(): Scene {
-
-        return KernelBootstrap
-            .getSubsystems()
-            .scene;
-
-    }
-
-    /**
-     * Document Manager erişimi
-     */
-    static documents(): DocumentManager {
-
-        return KernelBootstrap
-            .getSubsystems()
-            .documents;
-
-    }
-
-    /**
-     * Yeni proje
-     */
-    static newProject(): void {
-
-        this.documents().createNewDocument();
-
-    }
-
-    /**
-     * Render isteği
-     */
-    static render(): void {
-
-        this.renderer().render();
-
-    }
-
-    /**
-     * Güncelleme (Render Loop)
-     */
-    static update(deltaTime: number): void {
-
-        this.renderer().update(deltaTime);
-
-    }
-
-    /**
-     * Komut çalıştırma
-     */
-    static executeCommand(
-        name: string,
-        payload?: unknown
+    public static resize(
+        width: number,
+        height: number
     ): void {
 
-        console.log(
-            "[Engine Command]",
-            name,
-            payload
-        );
+        if (!EngineBridge.initialized) {
+            return;
+        }
 
-        // ileride CommandManager
+        const ctx = KernelBootstrap.context();
+
+        ctx.viewport.resize(width, height);
+
+        ctx.camera.setViewport(width, height);
     }
 
-    /**
-     * Dosya açma
-     */
-    static openDocument(path: string): void {
+    public static update(
+        deltaTime: number
+    ): void {
 
-        console.log(
-            "Opening:",
-            path
-        );
+        if (!EngineBridge.initialized) {
+            return;
+        }
 
-        // ileride Serializer
+        KernelBootstrap.update(deltaTime);
     }
 
-    /**
-     * Dosya kaydetme
-     */
-    static saveDocument(path: string): void {
+    public static render(): void {
 
-        console.log(
-            "Saving:",
-            path
-        );
+        if (!EngineBridge.initialized) {
+            return;
+        }
 
-        // ileride Serializer
+        KernelBootstrap.render();
     }
 
-    /**
-     * Kernel kapatma
-     */
-    static shutdown(): void {
+    public static shutdown(): void {
+
+        if (!EngineBridge.initialized) {
+            return;
+        }
 
         KernelBootstrap.shutdown();
 
-        this.initialized = false;
-
+        EngineBridge.initialized = false;
     }
+
+    // --------------------------------------------------------
+    // Camera Controls
+    // --------------------------------------------------------
+
+    public static orbit(
+        dx: number,
+        dy: number
+    ): void {
+
+        const camera = KernelBootstrap.context().camera;
+
+        camera.orbit(dx, dy);
+    }
+
+    public static pan(
+        dx: number,
+        dy: number
+    ): void {
+
+        const camera = KernelBootstrap.context().camera;
+
+        camera.pan(dx, dy);
+    }
+
+    public static zoom(
+        amount: number
+    ): void {
+
+        const camera = KernelBootstrap.context().camera;
+
+        camera.zoom(amount);
+    }
+
+    // --------------------------------------------------------
+    // Stylus
+    // --------------------------------------------------------
+
+    public static pointerDown(
+        x: number,
+        y: number,
+        pressure: number = 1.0
+    ): void {
+
+        const scene = KernelBootstrap.context().scene;
+
+        scene.pointerDown(x, y, pressure);
+    }
+
+    public static pointerMove(
+        x: number,
+        y: number,
+        pressure: number = 1.0
+    ): void {
+
+        const scene = KernelBootstrap.context().scene;
+
+        scene.pointerMove(x, y, pressure);
+    }
+
+    public static pointerUp(
+        x: number,
+        y: number
+    ): void {
+
+        const scene = KernelBootstrap.context().scene;
+
+        scene.pointerUp(x, y);
+    }
+
 }
