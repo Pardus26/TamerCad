@@ -1,13 +1,19 @@
+// src/geometry/mesh/Mesh.ts
+
+
 import { MeshVertex } from "./MeshVertex";
 import { MeshTriangle } from "./MeshTriangle";
-import { Vector3 } from "../../math/vector/Vector3";
+import { Point3 } from "../point/Point3";
 
 
-export interface MeshBoundingBox {
 
-    min:Vector3;
+export interface MeshStatistics {
 
-    max:Vector3;
+    vertices:number;
+
+    triangles:number;
+
+    area:number;
 
 }
 
@@ -15,6 +21,10 @@ export interface MeshBoundingBox {
 
 
 export class Mesh {
+
+
+
+    public readonly id:string;
 
 
     public name:string;
@@ -33,23 +43,29 @@ export class Mesh {
 
 
 
-    private normals:
-
-        Vector3[] = [];
-
-
-
-
-
-    private surfaceAreaCache:
-
-        number | null = null;
+    private triangleCounter = 0;
 
 
 
     private boundingBoxCache:
 
-        MeshBoundingBox | null = null;
+        {
+
+            min:Point3;
+
+            max:Point3;
+
+        } | null = null;
+
+
+
+
+
+
+    private areaCache:
+
+        number | null = null;
+
 
 
 
@@ -64,6 +80,10 @@ export class Mesh {
 
         this.name=name;
 
+        this.id=
+
+            Mesh.generateId();
+
     }
 
 
@@ -72,16 +92,16 @@ export class Mesh {
 
 
 
-    // ------------------------------------------------
+    // ---------------------------------------
     // Vertex
-    // ------------------------------------------------
+    // ---------------------------------------
 
 
     public addVertex(
 
         vertex:MeshVertex
 
-    ):number{
+    ):number {
 
 
         this.vertices.push(
@@ -109,15 +129,42 @@ export class Mesh {
 
 
 
+    public createVertex(
+
+        point:Point3
+
+    ):number {
+
+
+        return this.addVertex(
+
+            new MeshVertex(
+
+                Date.now(),
+
+                point
+
+            )
+
+        );
+
+
+    }
+
+
+
+
+
+
+
     public getVertex(
 
         index:number
 
-    ):MeshVertex{
+    ):MeshVertex {
 
 
         return this.vertices[index];
-
 
     }
 
@@ -145,11 +192,10 @@ export class Mesh {
 
     public vertexCount():
 
-    number{
+    number {
 
 
         return this.vertices.length;
-
 
     }
 
@@ -159,21 +205,45 @@ export class Mesh {
 
 
 
-    // ------------------------------------------------
+    // ---------------------------------------
     // Triangle
-    // ------------------------------------------------
+    // ---------------------------------------
 
 
     public addTriangle(
 
-        triangle:MeshTriangle
+        v1:number,
 
-    ):void{
+        v2:number,
+
+        v3:number
+
+    ):MeshTriangle {
+
+
+        const triangle =
+
+            new MeshTriangle(
+
+                this.triangleCounter++,
+
+                v1,
+
+                v2,
+
+                v3
+
+            );
+
 
 
         if(
 
-            !this.validTriangle(triangle)
+            !triangle.isValid(
+
+                this.vertices.length
+
+            )
 
         ){
 
@@ -194,8 +264,10 @@ export class Mesh {
         );
 
 
-
         this.invalidate();
+
+
+        return triangle;
 
 
     }
@@ -210,7 +282,7 @@ export class Mesh {
 
         index:number
 
-    ):MeshTriangle{
+    ):MeshTriangle {
 
 
         return this.triangles[index];
@@ -242,12 +314,11 @@ export class Mesh {
 
     public triangleCount():
 
-    number{
+    number {
 
 
         return this.triangles.length;
 
-
     }
 
 
@@ -256,201 +327,23 @@ export class Mesh {
 
 
 
-    // ------------------------------------------------
-    // Normals
-    // ------------------------------------------------
-
-
-    public computeNormals():
-
-    void{
-
-
-        this.normals=[];
-
-
-
-        for(
-
-            let i=0;
-
-            i<this.vertices.length;
-
-            i++
-
-        ){
-
-            this.normals.push(
-
-                new Vector3(
-
-                    0,
-
-                    0,
-
-                    0
-
-                )
-
-            );
-
-        }
-
-
-
-        for(
-
-            const triangle of this.triangles
-
-        ){
-
-
-            const a=
-
-                this.vertices[
-
-                    triangle.a
-
-                ].position;
-
-
-
-            const b=
-
-                this.vertices[
-
-                    triangle.b
-
-                ].position;
-
-
-
-            const c=
-
-                this.vertices[
-
-                    triangle.c
-
-                ].position;
-
-
-
-            const normal =
-
-                b.subtract(a)
-
-                .cross(
-
-                    c.subtract(a)
-
-                )
-
-                .normalize();
-
-
-
-
-
-            this.normals[triangle.a] =
-
-                this.normals[triangle.a]
-
-                .add(normal);
-
-
-
-            this.normals[triangle.b] =
-
-                this.normals[triangle.b]
-
-                .add(normal);
-
-
-
-            this.normals[triangle.c] =
-
-                this.normals[triangle.c]
-
-                .add(normal);
-
-
-        }
-
-
-
-
-        for(
-
-            let i=0;
-
-            i<this.normals.length;
-
-            i++
-
-        ){
-
-            this.normals[i]=
-
-                this.normals[i]
-
-                .normalize();
-
-
-        }
-
-
-    }
-
-
-
-
-
-
-
-    public getNormals():
-
-    readonly Vector3[]{
-
-
-        if(
-
-            this.normals.length===0
-
-        ){
-
-            this.computeNormals();
-
-        }
-
-
-        return this.normals;
-
-
-    }
-
-
-
-
-
-
-
-    // ------------------------------------------------
-    // Surface
-    // ------------------------------------------------
+    // ---------------------------------------
+    // Geometry
+    // ---------------------------------------
 
 
     public computeSurfaceArea():
 
-    number{
+    number {
 
 
         if(
 
-            this.surfaceAreaCache!==null
+            this.areaCache!==null
 
         ){
 
-            return this.surfaceAreaCache;
+            return this.areaCache;
 
         }
 
@@ -466,7 +359,6 @@ export class Mesh {
 
         ){
 
-
             area +=
 
                 triangle.computeArea(
@@ -475,14 +367,11 @@ export class Mesh {
 
                 );
 
-
         }
 
 
 
-        this.surfaceAreaCache=
-
-            area;
+        this.areaCache=area;
 
 
 
@@ -497,14 +386,7 @@ export class Mesh {
 
 
 
-    // ------------------------------------------------
-    // Bounding Box
-    // ------------------------------------------------
-
-
-    public getBoundingBox():
-
-    MeshBoundingBox | null{
+    public getBoundingBox(){
 
 
         if(
@@ -531,20 +413,19 @@ export class Mesh {
 
 
 
-        let min=
+        let minX=Infinity;
 
-            this.vertices[0]
+        let minY=Infinity;
 
-            .position.clone();
+        let minZ=Infinity;
 
 
 
-        let max=
+        let maxX=-Infinity;
 
-            this.vertices[0]
+        let maxY=-Infinity;
 
-            .position.clone();
-
+        let maxZ=-Infinity;
 
 
 
@@ -562,19 +443,59 @@ export class Mesh {
 
 
 
-            min.x=Math.min(min.x,p.x);
+            minX=Math.min(
 
-            min.y=Math.min(min.y,p.y);
+                minX,
 
-            min.z=Math.min(min.z,p.z);
+                p.x
+
+            );
+
+
+            minY=Math.min(
+
+                minY,
+
+                p.y
+
+            );
+
+
+            minZ=Math.min(
+
+                minZ,
+
+                p.z
+
+            );
 
 
 
-            max.x=Math.max(max.x,p.x);
+            maxX=Math.max(
 
-            max.y=Math.max(max.y,p.y);
+                maxX,
 
-            max.z=Math.max(max.z,p.z);
+                p.x
+
+            );
+
+
+            maxY=Math.max(
+
+                maxY,
+
+                p.y
+
+            );
+
+
+            maxZ=Math.max(
+
+                maxZ,
+
+                p.z
+
+            );
 
 
         }
@@ -584,9 +505,29 @@ export class Mesh {
 
         this.boundingBoxCache={
 
-            min,
 
-            max
+            min:new Point3(
+
+                minX,
+
+                minY,
+
+                minZ
+
+            ),
+
+
+
+            max:new Point3(
+
+                maxX,
+
+                maxY,
+
+                maxZ
+
+            )
+
 
         };
 
@@ -603,14 +544,77 @@ export class Mesh {
 
 
 
-    // ------------------------------------------------
-    // Utility
-    // ------------------------------------------------
+    // ---------------------------------------
+    // Editing
+    // ---------------------------------------
+
+
+    public removeTriangle(
+
+        index:number
+
+    ):boolean {
+
+
+        if(
+
+            index<0 ||
+
+            index>=this.triangles.length
+
+        ){
+
+            return false;
+
+        }
+
+
+        this.triangles.splice(
+
+            index,
+
+            1
+
+        );
+
+
+        this.invalidate();
+
+
+        return true;
+
+
+    }
+
+
+
+
+
+
+
+    public clear():
+
+    void {
+
+
+        this.vertices.length=0;
+
+        this.triangles.length=0;
+
+        this.invalidate();
+
+
+    }
+
+
+
+
+
 
 
     public isEmpty():
 
-    boolean{
+    boolean {
 
 
         return (
@@ -630,88 +634,14 @@ export class Mesh {
 
 
 
-    public validate():
-
-    boolean{
-
-
-        for(
-
-            const triangle of this.triangles
-
-        ){
-
-
-            if(
-
-                !this.validTriangle(triangle)
-
-            ){
-
-                return false;
-
-            }
-
-
-        }
-
-
-
-        return true;
-
-
-    }
-
-
-
-
-
-
-
-    private validTriangle(
-
-        triangle:MeshTriangle
-
-    ):
-
-
-    boolean{
-
-
-        return (
-
-            triangle.a>=0 &&
-
-            triangle.b>=0 &&
-
-            triangle.c>=0 &&
-
-
-            triangle.a<this.vertices.length &&
-
-            triangle.b<this.vertices.length &&
-
-            triangle.c<this.vertices.length
-
-        );
-
-
-    }
-
-
-
-
-
-
-
-    // ------------------------------------------------
+    // ---------------------------------------
     // Clone
-    // ------------------------------------------------
+    // ---------------------------------------
 
 
     public clone():
 
-    Mesh{
+    Mesh {
 
 
         const mesh=
@@ -736,6 +666,7 @@ export class Mesh {
 
             );
 
+
         }
 
 
@@ -746,7 +677,7 @@ export class Mesh {
 
         ){
 
-            mesh.addTriangle(
+            mesh.triangles.push(
 
                 triangle.clone()
 
@@ -767,15 +698,57 @@ export class Mesh {
 
 
 
-    // ------------------------------------------------
+    // ---------------------------------------
+    // Statistics
+    // ---------------------------------------
+
+
+    public statistics():
+
+    MeshStatistics {
+
+
+        return {
+
+
+            vertices:
+
+                this.vertexCount(),
+
+
+            triangles:
+
+                this.triangleCount(),
+
+
+            area:
+
+                this.computeSurfaceArea()
+
+
+        };
+
+
+    }
+
+
+
+
+
+
+
+    // ---------------------------------------
     // Serialization
-    // ------------------------------------------------
+    // ---------------------------------------
 
 
     public toJSON(){
 
 
         return {
+
+
+            id:this.id,
 
 
             name:this.name,
@@ -788,7 +761,6 @@ export class Mesh {
                     v=>v.toJSON()
 
                 ),
-
 
 
             triangles:
@@ -815,10 +787,7 @@ export class Mesh {
 
         data:any
 
-    ):
-
-
-    Mesh{
+    ):Mesh {
 
 
         const mesh=
@@ -833,11 +802,11 @@ export class Mesh {
 
         for(
 
-            const vertex of data.vertices
+            const vertex of data.vertices ?? []
 
         ){
 
-            mesh.addVertex(
+            mesh.vertices.push(
 
                 MeshVertex.fromJSON(
 
@@ -847,19 +816,17 @@ export class Mesh {
 
             );
 
-
         }
-
 
 
 
         for(
 
-            const triangle of data.triangles
+            const triangle of data.triangles ?? []
 
         ){
 
-            mesh.addTriangle(
+            mesh.triangles.push(
 
                 MeshTriangle.fromJSON(
 
@@ -869,9 +836,11 @@ export class Mesh {
 
             );
 
-
         }
 
+
+
+        mesh.invalidate();
 
 
 
@@ -886,46 +855,53 @@ export class Mesh {
 
 
 
-    public clear():
-
-    void{
-
-
-        this.vertices.length=0;
-
-
-        this.triangles.length=0;
-
-
-        this.normals.length=0;
-
-
-        this.invalidate();
-
-
-    }
-
-
-
-
-
+    // ---------------------------------------
+    // Internal
+    // ---------------------------------------
 
 
     private invalidate():
 
-    void{
+    void {
 
 
-        this.surfaceAreaCache=null;
-
+        this.areaCache=null;
 
         this.boundingBoxCache=null;
 
 
-        this.normals=[];
+    }
+
+
+
+
+
+
+
+    private static generateId():
+
+    string {
+
+
+        return (
+
+            "mesh_" +
+
+            Date.now() +
+
+            "_" +
+
+            Math.floor(
+
+                Math.random()*1000000
+
+            )
+
+        );
 
 
     }
+
 
 
 }
