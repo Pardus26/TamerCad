@@ -1,3 +1,6 @@
+// src/render/graph/RenderGraphCompiler.ts
+
+
 import {
     RenderGraphPass
 } from "./RenderGraphPass";
@@ -20,7 +23,10 @@ export interface RenderGraphBarrier {
 
     after:string;
 
+
 }
+
+
 
 
 
@@ -35,7 +41,10 @@ export interface RenderGraphResourceLifetime {
 
     lastUse:number;
 
+
 }
+
+
 
 
 
@@ -64,23 +73,43 @@ export class RenderGraphCompiler {
 
 
 
-    compile(
+    public compile(
 
-        passes:RenderGraphPass[],
+        passes:
 
-        resources:RenderGraphResource[]
+            RenderGraphPass[],
+
+        resources:
+
+            RenderGraphResource[]
 
     ):RenderGraphCompileResult {
 
 
 
-        const executionOrder =
+        const dependencies =
 
-            this.sortPasses(
+            this.buildDependencies(
 
                 passes
 
             );
+
+
+
+
+
+        const executionOrder =
+
+            this.topologicalSort(
+
+                passes,
+
+                dependencies
+
+            );
+
+
 
 
 
@@ -94,6 +123,8 @@ export class RenderGraphCompiler {
 
 
 
+
+
         const lifetimes =
 
             this.calculateLifetime(
@@ -103,6 +134,8 @@ export class RenderGraphCompiler {
                 resources
 
             );
+
+
 
 
 
@@ -120,21 +153,192 @@ export class RenderGraphCompiler {
 
         };
 
+
     }
 
 
 
 
-    // --------------------------------------------------
-    // Dependency sorting
-    // --------------------------------------------------
 
 
-    private sortPasses(
 
-        passes:RenderGraphPass[]
+    // =================================================
+    // Dependency Builder
+    // =================================================
 
-    ):RenderGraphPass[] {
+
+
+    private buildDependencies(
+
+        passes:
+
+            RenderGraphPass[]
+
+    ):
+
+
+
+    Map<RenderGraphPass, RenderGraphPass[]> {
+
+
+
+        const map =
+
+            new Map<
+
+                RenderGraphPass,
+
+                RenderGraphPass[]
+
+            >();
+
+
+
+
+
+        for(
+
+            const pass of passes
+
+        ){
+
+
+            map.set(
+
+                pass,
+
+                []
+
+            );
+
+
+        }
+
+
+
+
+
+
+
+        for(
+
+            const writer of passes
+
+        ){
+
+
+
+            const writes =
+
+                writer.resources.writes;
+
+
+
+
+
+            for(
+
+                const reader of passes
+
+            ){
+
+
+
+                if(
+
+                    writer === reader
+
+                ){
+
+                    continue;
+
+                }
+
+
+
+
+
+                const conflict =
+
+                    writes.some(
+
+                        resource =>
+
+                            reader.resources.reads
+
+                            .includes(resource)
+
+                    );
+
+
+
+
+
+                if(
+
+                    conflict
+
+                ){
+
+
+
+                    map
+
+                    .get(reader)!
+
+                    .push(
+
+                        writer
+
+                    );
+
+
+                }
+
+
+
+            }
+
+
+
+        }
+
+
+
+        return map;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =================================================
+    // Topological Sort
+    // =================================================
+
+
+
+    private topologicalSort(
+
+        passes:
+
+            RenderGraphPass[],
+
+        dependencies:
+
+            Map<RenderGraphPass,RenderGraphPass[]>
+
+    ):
+
+
+
+    RenderGraphPass[] {
 
 
 
@@ -144,9 +348,13 @@ export class RenderGraphCompiler {
 
 
 
+
+
         const visited =
 
             new Set<RenderGraphPass>();
+
+
 
 
 
@@ -157,86 +365,110 @@ export class RenderGraphCompiler {
 
 
 
+
+
+
         const visit =
 
             (
 
-                pass:RenderGraphPass
+                pass:
+
+                    RenderGraphPass
 
             ) => {
 
 
 
-                if(
+            if(
 
-                    visiting.has(pass)
+                visiting.has(pass)
 
-                ){
-
-                    throw new Error(
-
-                        "RenderGraph cycle detected: "
-
-                        +
-
-                        pass.name
-
-                    );
-
-                }
+            ){
 
 
+                throw new Error(
 
-                if(
+                    "RenderGraph cycle detected: "
 
-                    visited.has(pass)
+                    +
 
-                ){
-
-                    return;
-
-                }
-
-
-
-                visiting.add(pass);
-
-
-
-                for(
-
-                    const dependency of
-
-                    pass.getDependencies()
-
-                ){
-
-                    visit(
-
-                        dependency
-
-                    );
-
-                }
-
-
-
-                visiting.delete(pass);
-
-
-
-                visited.add(pass);
-
-
-
-                result.push(
-
-                    pass
+                    pass.name
 
                 );
 
 
-            };
+            }
+
+
+
+
+
+
+
+            if(
+
+                visited.has(pass)
+
+            ){
+
+
+                return;
+
+
+            }
+
+
+
+
+
+
+
+            visiting.add(pass);
+
+
+
+
+
+            for(
+
+                const dependency of
+
+                dependencies.get(pass) ?? []
+
+            ){
+
+
+
+                visit(
+
+                    dependency
+
+                );
+
+
+            }
+
+
+
+
+
+            visiting.delete(pass);
+
+
+
+            visited.add(pass);
+
+
+
+            result.push(pass);
+
+
+
+        };
+
+
+
 
 
 
@@ -247,26 +479,35 @@ export class RenderGraphCompiler {
 
         ){
 
-            visit(
 
-                pass
+            visit(pass);
 
-            );
 
         }
 
 
 
+
+
+
+
         return result;
+
 
     }
 
 
 
 
-    // --------------------------------------------------
-    // Resource barriers
-    // --------------------------------------------------
+
+
+
+
+
+    // =================================================
+    // Barrier Generation
+    // =================================================
+
 
 
     private buildBarriers(
@@ -275,7 +516,11 @@ export class RenderGraphCompiler {
 
             RenderGraphPass[]
 
-    ):RenderGraphBarrier[] {
+    ):
+
+
+
+    RenderGraphBarrier[] {
 
 
 
@@ -285,9 +530,15 @@ export class RenderGraphCompiler {
 
 
 
+
+
         const states =
 
             new Map<string,string>();
+
+
+
+
 
 
 
@@ -299,11 +550,13 @@ export class RenderGraphCompiler {
 
 
 
+
+
             for(
 
                 const resource of
 
-                pass.getReads()
+                pass.resources.reads
 
             ){
 
@@ -311,11 +564,9 @@ export class RenderGraphCompiler {
 
                 const previous =
 
-                    states.get(
+                    states.get(resource);
 
-                        resource.name
 
-                    );
 
 
 
@@ -329,36 +580,37 @@ export class RenderGraphCompiler {
 
                     barriers.push({
 
-                        resource:
+                        resource,
 
-                            resource.name,
+                        before:"Write",
 
-
-                        before:
-
-                            "Write",
-
-
-                        after:
-
-                            "Read"
+                        after:"Read"
 
 
                     });
+
 
                 }
 
 
 
+
+
+
+
                 states.set(
 
-                    resource.name,
+                    resource,
 
                     "Read"
 
                 );
 
+
+
             }
+
+
 
 
 
@@ -368,7 +620,7 @@ export class RenderGraphCompiler {
 
                 const resource of
 
-                pass.getWrites()
+                pass.resources.writes
 
             ){
 
@@ -376,11 +628,9 @@ export class RenderGraphCompiler {
 
                 const previous =
 
-                    states.get(
+                    states.get(resource);
 
-                        resource.name
 
-                    );
 
 
 
@@ -394,43 +644,45 @@ export class RenderGraphCompiler {
 
                     barriers.push({
 
-                        resource:
+                        resource,
 
-                            resource.name,
+                        before:"Read",
 
-
-                        before:
-
-                            "Read",
-
-
-                        after:
-
-                            "Write"
+                        after:"Write"
 
 
                     });
+
 
                 }
 
 
 
+
+
+
+
                 states.set(
 
-                    resource.name,
+                    resource,
 
                     "Write"
 
                 );
 
+
             }
+
 
 
         }
 
 
 
+
+
         return barriers;
+
 
     }
 
@@ -438,9 +690,14 @@ export class RenderGraphCompiler {
 
 
 
-    // --------------------------------------------------
-    // Lifetime analysis
-    // --------------------------------------------------
+
+
+
+
+    // =================================================
+    // Lifetime Analysis
+    // =================================================
+
 
 
     private calculateLifetime(
@@ -448,7 +705,6 @@ export class RenderGraphCompiler {
         passes:
 
             RenderGraphPass[],
-
 
         resources:
 
@@ -465,6 +721,10 @@ export class RenderGraphCompiler {
         const result:
 
             RenderGraphResourceLifetime[] = [];
+
+
+
+
 
 
 
@@ -489,6 +749,9 @@ export class RenderGraphCompiler {
 
 
 
+
+
+
             for(
 
                 let i=0;
@@ -507,23 +770,25 @@ export class RenderGraphCompiler {
 
 
 
+
+
                 const used =
 
 
 
-                    pass
+                    pass.resources.reads
 
-                    .getReads()
-
-                    .includes(resource)
+                    .includes(resource.name)
 
                     ||
 
-                    pass
+                    pass.resources.writes
 
-                    .getWrites()
+                    .includes(resource.name);
 
-                    .includes(resource);
+
+
+
 
 
 
@@ -547,6 +812,8 @@ export class RenderGraphCompiler {
 
 
 
+
+
                     lastUse =
 
                         Math.max(
@@ -557,9 +824,16 @@ export class RenderGraphCompiler {
 
                         );
 
+
+
                 }
 
+
+
             }
+
+
+
 
 
 
@@ -584,28 +858,42 @@ export class RenderGraphCompiler {
 
                     lastUse
 
+
                 });
 
+
             }
+
 
 
         }
 
 
 
+
+
+
+
         return result;
+
 
     }
 
 
 
 
-    // --------------------------------------------------
+
+
+
+
+
+    // =================================================
     // Debug
-    // --------------------------------------------------
+    // =================================================
 
 
-    debugInfo(
+
+    public debugInfo(
 
         result:
 
@@ -624,15 +912,20 @@ export class RenderGraphCompiler {
 
                 .map(
 
-                    p => p.name
+                    pass =>
+
+                        pass.name
 
                 ),
+
 
 
 
             barriers:
 
                 result.barriers,
+
+
 
 
 
@@ -644,7 +937,9 @@ export class RenderGraphCompiler {
 
         };
 
+
     }
+
 
 
 }
