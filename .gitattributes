@@ -1,0 +1,15 @@
+* text=auto
+
+*.ts text eol=lf
+*.md text eol=lf
+*.kt text eol=lf
+*.gradle text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+
+*.apk binary
+*.aab binary
+*.zip binary
