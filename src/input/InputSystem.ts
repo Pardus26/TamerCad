@@ -1,4 +1,5 @@
- // src/input/InputSystem.ts
+// src/input/InputSystem.ts
+
 
 import {
     PointerEvent,
@@ -7,125 +8,229 @@ import {
 } from "./PointerEvent";
 
 
-export type PointerListener =
-    (event: PointerEvent) => void;
+
+
+
+
+
+
+export type PointerListener = (
+
+    pointerId:number,
+
+    event:PointerEvent
+
+)=>void;
+
+
+
+
+
+
 
 
 
 export class InputSystem {
 
 
-    private static initialized = false;
+
+    private static initialized =
+        false;
+
+
 
 
     private static listeners:
-        PointerListener[] = [];
+        PointerListener[]
+        =
+        [];
 
 
 
-    public static initialize(): void {
 
 
-        if (InputSystem.initialized) {
+    private static activePointers:
+        Map<number,PointerEvent>
+        =
+        new Map();
 
+
+
+
+
+
+
+
+
+    public static initialize():
+
+        void {
+
+
+
+        if(
+            this.initialized
+        )
             return;
-        }
 
 
-        InputSystem.initialized = true;
+
+        this.initialized =
+            true;
+
 
 
         console.info(
-            "[Input] System Initialized"
+            "[InputSystem] Initialized"
         );
+
+
     }
+
+
+
+
+
 
 
 
 
     public static subscribe(
-        listener: PointerListener
-    ): void {
+
+        listener:PointerListener
+
+    ):void{
 
 
-        InputSystem.listeners.push(
+        this.listeners.push(
             listener
         );
-    }
 
 
-
-
-    public static unsubscribe(
-        listener: PointerListener
-    ): void {
-
-
-        InputSystem.listeners =
-            InputSystem.listeners.filter(
-                item =>
-                    item !== listener
-            );
     }
 
 
 
 
 
-    private static dispatch(
-        event: PointerEvent
-    ): void {
 
 
-        for (
+
+
+    private static emit(
+
+        id:number,
+
+        event:PointerEvent
+
+    ):void{
+
+
+        for(
             const listener
-            of InputSystem.listeners
+            of
+            this.listeners
         ){
 
-            listener(event);
+
+            listener(
+                id,
+                event
+            );
+
+
         }
+
+
     }
+
+
+
+
 
 
 
 
 
     public static pointerDown(
+
+        id:number,
+
         x:number,
+
         y:number,
-        pressure:number = 1.0,
+
+        pressure:number = 1,
+
         type:PointerType =
             PointerType.Stylus
+
     ):void{
 
 
-        const event =
-            new PointerEvent({
 
-                type,
-
-                action:
-                    PointerAction.Down,
+        const event:PointerEvent = {
 
 
-                position:{
-                    x,
-                    y
-                },
+            action:
+                PointerAction.Down,
 
 
-                pressure,
+            type,
 
 
-                timestamp:
-                    performance.now()
-            });
+            position:{
 
 
-        InputSystem.dispatch(
+                x,
+
+                y
+
+
+            },
+
+
+            pressure,
+
+
+            timestamp:
+                performance.now()
+
+
+        };
+
+
+
+
+
+
+
+        this.activePointers.set(
+
+            id,
+
             event
+
         );
+
+
+
+
+
+
+        this.emit(
+
+            id,
+
+            event
+
+        );
+
+
     }
+
+
+
 
 
 
@@ -133,41 +238,83 @@ export class InputSystem {
 
 
     public static pointerMove(
+
+        id:number,
+
         x:number,
+
         y:number,
-        pressure:number = 1.0,
+
+        pressure:number = 1,
+
         type:PointerType =
             PointerType.Stylus
+
     ):void{
 
 
-        const event =
-            new PointerEvent({
 
-                type,
-
-                action:
-                    PointerAction.Move,
+        const event:PointerEvent = {
 
 
-                position:{
-                    x,
-                    y
-                },
+            action:
+                PointerAction.Move,
 
 
-                pressure,
+            type,
 
 
-                timestamp:
-                    performance.now()
-            });
+            position:{
 
 
-        InputSystem.dispatch(
+                x,
+
+                y
+
+
+            },
+
+
+            pressure,
+
+
+            timestamp:
+                performance.now()
+
+
+        };
+
+
+
+
+
+
+
+        this.activePointers.set(
+
+            id,
+
             event
+
         );
+
+
+
+
+
+
+        this.emit(
+
+            id,
+
+            event
+
+        );
+
+
     }
+
+
 
 
 
@@ -176,39 +323,77 @@ export class InputSystem {
 
 
     public static pointerUp(
+
+        id:number,
+
         x:number,
+
         y:number,
+
         type:PointerType =
             PointerType.Stylus
+
     ):void{
 
 
-        const event =
-            new PointerEvent({
 
-                type,
-
-                action:
-                    PointerAction.Up,
+        const event:PointerEvent = {
 
 
-                position:{
-                    x,
-                    y
-                },
+            action:
+                PointerAction.Up,
 
 
-                pressure:0,
+            type,
 
 
-                timestamp:
-                    performance.now()
-            });
+            position:{
 
 
-        InputSystem.dispatch(
-            event
+                x,
+
+                y
+
+
+            },
+
+
+            pressure:0,
+
+
+            timestamp:
+                performance.now()
+
+
+        };
+
+
+
+
+
+
+
+        this.activePointers.delete(
+
+            id
+
         );
+
+
+
+
+
+
+
+        this.emit(
+
+            id,
+
+            event
+
+        );
+
+
     }
 
 
@@ -216,22 +401,92 @@ export class InputSystem {
 
 
 
-    public static clear():void{
 
 
-        InputSystem.listeners = [];
+
+    public static getPointer(
+
+        id:number
+
+    ):
+
+    PointerEvent | undefined {
 
 
-        InputSystem.initialized = false;
+        return this.activePointers.get(
+            id
+        );
+
     }
 
 
 
 
-    public static isInitialized():boolean{
 
 
-        return InputSystem.initialized;
+
+
+
+    public static getActivePointers():
+
+        PointerEvent[] {
+
+
+        return Array.from(
+
+            this.activePointers.values()
+
+        );
+
+
     }
+
+
+
+
+
+
+
+
+
+    public static getPointerCount():
+
+        number {
+
+
+        return this.activePointers.size;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    public static clear():
+
+        void {
+
+
+
+        this.activePointers.clear();
+
+
+        this.listeners = [];
+
+
+
+        this.initialized =
+            false;
+
+
+    }
+
+
+
 
 }
