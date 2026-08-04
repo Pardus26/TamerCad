@@ -2,48 +2,46 @@
 
 
 import {
-    InputHandler
-} from "../InputRouter";
 
+    PointerEvent,
 
-import {
-    PointerEvent
+    PointerAction,
+
+    PointerType
+
 } from "../PointerEvent";
 
 
 import {
+
     GestureEvent,
+
     GestureType
+
 } from "../GestureRecognizer";
 
 
+import {
 
+    KernelBootstrap
 
+} from "../../app/KernelBootstrap";
 
 
 
-export interface SelectionResult {
 
 
-    id:string;
 
 
-    type:
-        "vertex"
-        |
-        "edge"
-        |
-        "face"
-        |
-        "feature";
 
 
+export class SelectionInputHandler {
 
-    distance:number;
 
-}
 
+    private selectedId:
 
+        string | null = null;
 
 
 
@@ -51,224 +49,69 @@ export interface SelectionResult {
 
 
 
-export interface SelectionEngine {
 
 
+    public handlePointer(
 
-    select(
-        x:number,
-        y:number
-    ):
-    SelectionResult | null;
-
-
-
-
-
-    clear():void;
-
-
-
-
-
-    setActive(
-        result:SelectionResult
-    ):void;
-
-
-
-
-
-    toggle(
-        result:SelectionResult
-    ):void;
-
-
-}
-
-
-
-
-
-
-
-
-
-export class SelectionInputHandler
-    implements InputHandler {
-
-
-
-
-    private selection:
-        SelectionEngine;
-
-
-
-    private pointerDownX =
-        0;
-
-
-
-    private pointerDownY =
-        0;
-
-
-
-    private dragging =
-        false;
-
-
-
-    private selected:
-        SelectionResult | null =
-        null;
-
-
-
-
-
-
-    constructor(
-        selectionEngine:SelectionEngine
-    ){
-
-        this.selection =
-            selectionEngine;
-
-    }
-
-
-
-
-
-
-
-
-
-    public onPointerDown(
         event:PointerEvent
-    ):void {
 
-
-
-        this.pointerDownX =
-            event.position.x;
-
-
-
-        this.pointerDownY =
-            event.position.y;
-
-
-
-        this.dragging =
-            false;
-
-    }
-
-
-
-
-
-
-
-
-
-    public onPointerMove(
-        event:PointerEvent
-    ):void {
-
-
-
-        const dx =
-            event.position.x -
-            this.pointerDownX;
-
-
-
-        const dy =
-            event.position.y -
-            this.pointerDownY;
-
-
-
-        const distance =
-            Math.sqrt(
-                dx * dx +
-                dy * dy
-            );
-
-
-
-        if(distance > 5){
-
-            this.dragging =
-                true;
-
-        }
-
-    }
-
-
-
-
-
-
-
-
-
-    public onPointerUp(
-        event:PointerEvent
     ):void {
 
 
 
         /*
-         * Eğer hareket yoksa
-         * seçim yap
-         */
-        if(!this.dragging){
+            Stylus çizim içindir.
+            Seçim parmak ile yapılır.
+        */
 
 
-            const result =
-                this.selection.select(
+        if(
 
-                    event.position.x,
+            event.type ===
 
-                    event.position.y
+            PointerType.Stylus
 
-                );
+        ){
 
-
-
-            if(result){
-
-
-                this.selected =
-                    result;
-
-
-
-                this.selection.setActive(
-                    result
-                );
-
-
-            }
-
-            else {
-
-
-                this.selection.clear();
-
-
-                this.selected =
-                    null;
-
-            }
+            return;
 
         }
+
+
+
+
+
+
+
+
+
+        if(
+
+            event.action !==
+
+            PointerAction.Up
+
+        ){
+
+            return;
+
+        }
+
+
+
+
+
+
+
+
+        this.pick(
+
+            event.position.x,
+
+            event.position.y
+
+        );
+
 
     }
 
@@ -280,58 +123,155 @@ export class SelectionInputHandler
 
 
 
-    public onGesture(
-        event:GestureEvent
+    private pick(
+
+        x:number,
+
+        y:number
+
     ):void {
 
 
-        switch(
-            event.type
+
+        const context =
+
+            KernelBootstrap
+
+            .context();
+
+
+
+
+
+
+
+
+        const ray =
+
+            context.camera.pickRay(
+
+                x,
+
+                y
+
+            );
+
+
+
+
+
+
+
+
+
+        /*
+            İlk aşama:
+
+            Scene selection API
+
+            Sonraki aşama:
+
+            BVH
+            Octree
+            Topology picker
+
+        */
+
+
+
+
+
+        const result =
+
+            context.scene.pick(
+
+                ray.origin,
+
+                ray.direction
+
+            );
+
+
+
+
+
+
+
+
+        if(
+
+            result
+
         ){
 
 
+            this.selectedId =
 
-
-            case GestureType.DoubleTap:
-
-
-                if(this.selected){
-
-
-                    this.selection.toggle(
-                        this.selected
-                    );
-
-                }
-
-
-                break;
+                result.id;
 
 
 
 
 
+            context.scene.select(
 
-            case GestureType.LongPress:
+                result.id
 
-
-                /*
-                 * Context menu
-                 *
-                 * Face properties
-                 * Feature edit
-                 * Delete
-                 *
-                 */
-
-
-                break;
-
-
+            );
 
 
 
         }
+
+        else{
+
+
+            this.clear();
+
+
+        }
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+    public handleGesture(
+
+        event:GestureEvent
+
+    ):void {
+
+
+
+        if(
+
+            event.type ===
+
+            GestureType.Tap
+
+        ){
+
+
+            this.pick(
+
+                event.x,
+
+                event.y
+
+            );
+
+
+        }
+
+
 
     }
 
@@ -345,12 +285,59 @@ export class SelectionInputHandler
 
     public getSelected():
 
-        SelectionResult | null {
+        string | null{
 
 
-        return this.selected;
+        return this.selectedId;
+
 
     }
+
+
+
+
+
+
+
+
+
+    public clear():void{
+
+
+        this.selectedId =
+
+            null;
+
+
+
+        KernelBootstrap
+
+            .context()
+
+            .scene.clearSelection();
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+    public dispose():void{
+
+
+        this.selectedId =
+
+            null;
+
+
+    }
+
 
 
 }
