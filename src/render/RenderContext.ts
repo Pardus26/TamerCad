@@ -624,17 +624,21 @@ export class RenderContext {
         ) {
 
 
-            this.camera.aspect =
+            if (
 
-                width /
+    this.camera
 
-                Math.max(
+){
 
-                    height,
+    this.camera.setAspectRatio?.(
 
-                    1
+        width /
 
-                );
+        Math.max(height,1)
+
+    );
+
+}
 
         }
 
