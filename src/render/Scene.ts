@@ -1,146 +1,145 @@
 // src/render/Scene.ts
 
-export interface SceneNode {
+export interface SceneObject {
 
     id: string;
 
-    name: string;
-
     visible: boolean;
 
-    selectable: boolean;
-
-    render(): void;
+    selected: boolean;
 
     update(deltaTime: number): void;
+
+    render(): void;
 }
 
 export class Scene {
 
-    private nodes: Map<string, SceneNode>;
+    private readonly objects: SceneObject[] = [];
 
-    constructor() {
+    private activeObject: SceneObject | null = null;
 
-        this.nodes = new Map();
+    private pointerPressed = false;
 
-        this.initializeDefaults();
+    public add(object: SceneObject): void {
+
+        this.objects.push(object);
     }
 
-    /**
-     * Varsayılan sahne
-     */
-    private initializeDefaults(): void {
+    public remove(id: string): void {
 
-        /*
-            Future:
+        const index = this.objects.findIndex(o => o.id === id);
 
-            Grid
+        if (index >= 0) {
 
-            World Axis
-
-            Origin
-
-            Construction Plane
-        */
-    }
-
-    /**
-     * Node ekle
-     */
-    public add(node: SceneNode): void {
-
-        this.nodes.set(
-            node.id,
-            node
-        );
-    }
-
-    /**
-     * Node kaldır
-     */
-    public remove(id: string): boolean {
-
-        return this.nodes.delete(id);
-    }
-
-    /**
-     * Node bul
-     */
-    public find(id: string): SceneNode | undefined {
-
-        return this.nodes.get(id);
-    }
-
-    /**
-     * Sahneyi güncelle
-     */
-    public update(deltaTime: number): void {
-
-        for (const node of this.nodes.values()) {
-
-            node.update(deltaTime);
-
+            this.objects.splice(index, 1);
         }
     }
 
-    /**
-     * Sahneyi render et
-     */
-    public render(): void {
-
-        for (const node of this.nodes.values()) {
-
-            if (!node.visible) {
-                continue;
-            }
-
-            node.render();
-        }
-    }
-
-    /**
-     * Tüm node'lar
-     */
-    public getNodes(): SceneNode[] {
-
-        return Array.from(
-            this.nodes.values()
-        );
-    }
-
-    /**
-     * Temizle
-     */
     public clear(): void {
 
-        this.nodes.clear();
+        this.objects.length = 0;
 
-        this.initializeDefaults();
+        this.activeObject = null;
     }
 
-    /**
-     * Görünür node sayısı
-     */
-    public visibleCount(): number {
+    public getObjects(): readonly SceneObject[] {
 
-        let count = 0;
+        return this.objects;
+    }
 
-        for (const node of this.nodes.values()) {
+    public update(deltaTime: number): void {
 
-            if (node.visible) {
-                count++;
-            }
+        for (const object of this.objects) {
 
+            if (!object.visible) continue;
+
+            object.update(deltaTime);
+        }
+    }
+
+    public render(): void {
+
+        for (const object of this.objects) {
+
+            if (!object.visible) continue;
+
+            object.render();
+        }
+    }
+
+    // -------------------------------------------------
+    // Stylus / Pointer
+    // -------------------------------------------------
+
+    public pointerDown(
+        x: number,
+        y: number,
+        pressure: number
+    ): void {
+
+        this.pointerPressed = true;
+
+        console.debug(
+            "PointerDown",
+            x,
+            y,
+            pressure
+        );
+    }
+
+    public pointerMove(
+        x: number,
+        y: number,
+        pressure: number
+    ): void {
+
+        if (!this.pointerPressed) return;
+
+        console.debug(
+            "PointerMove",
+            x,
+            y,
+            pressure
+        );
+    }
+
+    public pointerUp(
+        x: number,
+        y: number
+    ): void {
+
+        this.pointerPressed = false;
+
+        console.debug(
+            "PointerUp",
+            x,
+            y
+        );
+    }
+
+    // -------------------------------------------------
+    // Selection
+    // -------------------------------------------------
+
+    public select(object: SceneObject | null): void {
+
+        if (this.activeObject) {
+
+            this.activeObject.selected = false;
         }
 
-        return count;
+        this.activeObject = object;
+
+        if (this.activeObject) {
+
+            this.activeObject.selected = true;
+        }
     }
 
-    /**
-     * Toplam node sayısı
-     */
-    public size(): number {
+    public getSelection(): SceneObject | null {
 
-        return this.nodes.size;
+        return this.activeObject;
     }
+
 }
