@@ -1,47 +1,45 @@
-import { MeshBody } from "../geometry/mesh/MeshBody";
-import { Vector3 } from "../math/vector/Vector3";
+// src/render/RenderScene.ts
 
-export interface ScenePickResult {
+
+import { MeshBody } from "../geometry/mesh/MeshBody";
+
+
+
+
+
+export interface RenderObject {
 
     id:string;
 
-    type:
-        | "MeshBody"
-        | "Object";
-
-    distance:number;
-
-}
-/**
- * Mesh dışı render objeleri
- */
-export interface RenderObject {
-
-    id: string;
-
-    visible: boolean;
+    visible:boolean;
 
 }
 
 
-/**
- * Sahne seçim bilgisi
- */
+
+
+
 export interface SceneSelection {
 
-    id: string;
+
+    id:string;
+
 
     type:
+
         | "MeshBody"
+
         | "Object";
+
 
 }
 
 
-/**
- * Arka plan rengi
- */
+
+
+
 export interface BackgroundColor {
+
 
     r:number;
 
@@ -51,13 +49,15 @@ export interface BackgroundColor {
 
     a:number;
 
+
 }
 
 
-/**
- * Sahne istatistikleri
- */
+
+
+
 export interface RenderSceneStatistics {
+
 
     meshBodies:number;
 
@@ -69,21 +69,17 @@ export interface RenderSceneStatistics {
 
     selected:SceneSelection | null;
 
+
 }
 
 
-/**
- * CAD Render Scene
- *
- * Scene
- * |
- * MeshBody
- * |
- * DisplayMesh
- * |
- * Renderer
- */
+
+
+
 export class RenderScene {
+
+
+
 
 
     private readonly meshBodies:
@@ -94,6 +90,8 @@ export class RenderScene {
 
 
 
+
+
     private readonly objects:
 
         Map<string,RenderObject> =
@@ -101,106 +99,22 @@ export class RenderScene {
             new Map();
 
 
-private sketchStrokes:
 
-    Vector3[][] = [];
+
+
     private selection:
 
         SceneSelection | null = null;
 
-// ----------------------------------------------------
-// Picking
-// ----------------------------------------------------
-
-public pick(
-
-    origin:any,
-
-    direction:any
-
-):ScenePickResult | null{
-
-
-    let closest:
-
-        ScenePickResult | null = null;
-
-
-
-    let minDistance =
-
-        Number.MAX_VALUE;
-
-
-
-    /*
-        İlk aşama:
-
-        Basit bounding test
-
-        İleride:
-
-        BVH
-        KD Tree
-        Topology Picker
-
-    */
-
-
-
-    for(
-
-        const body of this.meshBodies.values()
-
-    ){
-
-
-        const hit =
-
-            body.intersectRay(
-
-                origin,
-
-                direction
-
-            );
-
-
-
-        if(hit && hit.distance < minDistance){
-
-
-            minDistance = hit.distance;
-
-
-            closest={
-
-
-                id:body.id,
-
-
-                type:"MeshBody",
-
-
-                distance:hit.distance
-
-
-            };
-
-
-        }
-
-
-    }
 
 
 
 
+    private revision:number = 0;
 
-    return closest;
 
 
-}
+
 
     private backgroundColor:
 
@@ -220,22 +134,31 @@ public pick(
 
 
 
+
+
+
+
     constructor(){}
 
 
 
 
 
-    // ----------------------------------------------------
-    // Mesh Bodies
-    // ----------------------------------------------------
+
+
+    // =================================================
+    // MeshBody
+    // =================================================
+
+
+
 
 
     public addMeshBody(
 
         body:MeshBody
 
-    ):void{
+    ):void {
 
 
         this.meshBodies.set(
@@ -247,7 +170,12 @@ public pick(
         );
 
 
+        this.touch();
+
+
     }
+
+
 
 
 
@@ -257,12 +185,20 @@ public pick(
 
         id:string
 
-    ):boolean{
+    ):boolean {
+
+
+        const removed =
+
+            this.meshBodies.delete(id);
+
 
 
         if(
 
-            this.selection?.id === id
+            removed &&
+
+            this.selection?.id===id
 
         ){
 
@@ -272,10 +208,15 @@ public pick(
 
 
 
-        return this.meshBodies.delete(id);
+        this.touch();
+
+
+        return removed;
 
 
     }
+
+
 
 
 
@@ -285,13 +226,17 @@ public pick(
 
         id:string
 
-    ):MeshBody | undefined{
+    ):
+
+    MeshBody | undefined {
 
 
         return this.meshBodies.get(id);
 
 
     }
+
+
 
 
 
@@ -315,14 +260,20 @@ public pick(
 
 
 
-    public clearMeshBodies():
-
-    void{
 
 
-        this.meshBodies.clear();
+    public getVisibleMeshBodies():
 
-        this.clearSelection();
+    readonly MeshBody[]{
+
+
+        return this.getMeshBodies()
+
+            .filter(
+
+                b=>b.visible
+
+            );
 
 
     }
@@ -331,16 +282,43 @@ public pick(
 
 
 
-    // ----------------------------------------------------
+
+
+    public clearMeshBodies():
+
+    void {
+
+
+        this.meshBodies.clear();
+
+
+        this.clearSelection();
+
+
+        this.touch();
+
+
+    }
+
+
+
+
+
+
+
+    // =================================================
     // Render Objects
-    // ----------------------------------------------------
+    // =================================================
+
+
+
 
 
     public addObject(
 
         object:RenderObject
 
-    ):void{
+    ):void {
 
 
         this.objects.set(
@@ -352,7 +330,12 @@ public pick(
         );
 
 
+        this.touch();
+
+
     }
+
+
 
 
 
@@ -362,12 +345,20 @@ public pick(
 
         id:string
 
-    ):boolean{
+    ):boolean {
+
+
+        const removed =
+
+            this.objects.delete(id);
+
 
 
         if(
 
-            this.selection?.id === id
+            removed &&
+
+            this.selection?.id===id
 
         ){
 
@@ -376,27 +367,15 @@ public pick(
         }
 
 
-
-        return this.objects.delete(id);
-
-
-    }
+        this.touch();
 
 
-
-
-
-    public getObject(
-
-        id:string
-
-    ):RenderObject | undefined{
-
-
-        return this.objects.get(id);
+        return removed;
 
 
     }
+
+
 
 
 
@@ -420,12 +399,20 @@ public pick(
 
 
 
-    public clearObjects():
-
-    void{
 
 
-        this.objects.clear();
+    public getVisibleObjects():
+
+    readonly RenderObject[]{
+
+
+        return this.getObjects()
+
+            .filter(
+
+                o=>o.visible
+
+            );
 
 
     }
@@ -434,16 +421,25 @@ public pick(
 
 
 
-    // ----------------------------------------------------
+
+
+    // =================================================
     // Selection
-    // ----------------------------------------------------
+    // =================================================
+
+
+
 
 
     public select(
 
         selection:SceneSelection | null
 
-    ):void{
+    ):void {
+
+
+        this.clearBodySelection();
+
 
 
         if(selection===null){
@@ -456,75 +452,51 @@ public pick(
 
 
 
+
         if(
 
-            selection.type==="MeshBody" &&
-
-            !this.meshBodies.has(selection.id)
+            selection.type==="MeshBody"
 
         ){
 
-            return;
+            const body =
+
+                this.meshBodies.get(
+
+                    selection.id
+
+                );
+
+
+            if(!body)
+
+                return;
+
+
+
+            body.selected=true;
+
 
         }
 
 
 
-        if(
 
-            selection.type==="Object" &&
-
-            !this.objects.has(selection.id)
-
-        ){
-
-            return;
-
-        }
-
-
-
-        this.selection = {
-
+        this.selection={
 
             id:selection.id,
 
-
             type:selection.type
-
 
         };
 
 
-    }
-
-
-
-
-
-    public clearSelection():
-
-    void{
-
-
-        this.selection=null;
+        this.touch();
 
 
     }
 
 
-
-
-
-    public getSelection():
-
-    SceneSelection | null{
-
-
-        return this.selection;
-
-
-    }
 
 
 
@@ -534,18 +506,26 @@ public pick(
 
         id:string
 
-    ):boolean{
+    ):boolean {
 
 
-        if(
+        const body =
 
-            !this.meshBodies.has(id)
+            this.meshBodies.get(id);
 
-        ){
+
+
+        if(!body)
 
             return false;
 
-        }
+
+
+        this.clearBodySelection();
+
+
+
+        body.selected=true;
 
 
 
@@ -562,6 +542,10 @@ public pick(
 
 
 
+        this.touch();
+
+
+
         return true;
 
 
@@ -571,39 +555,98 @@ public pick(
 
 
 
-    public selectObject(
 
-        id:string
 
-    ):boolean{
+    public clearSelection():
+
+    void {
+
+
+        this.clearBodySelection();
+
+
+        this.selection=null;
+
+
+        this.touch();
+
+
+    }
+
+
+
+
+
+
+
+    private clearBodySelection():
+
+    void {
+
+
+        for(
+
+            const body of this.meshBodies.values()
+
+        ){
+
+            body.selected=false;
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+    public getSelection():
+
+    SceneSelection | null {
+
+
+        return this.selection;
+
+
+    }
+
+
+
+
+
+
+
+    public getSelectedBody():
+
+    MeshBody | null {
 
 
         if(
 
-            !this.objects.has(id)
+            !this.selection ||
+
+            this.selection.type!=="MeshBody"
 
         ){
 
-            return false;
+            return null;
 
         }
 
 
 
-        this.selection={
+        return (
 
+            this.meshBodies.get(
 
-            id,
+                this.selection.id
 
+            ) ?? null
 
-            type:"Object"
-
-
-        };
-
-
-
-        return true;
+        );
 
 
     }
@@ -612,9 +655,14 @@ public pick(
 
 
 
-    // ----------------------------------------------------
+
+
+    // =================================================
     // Visibility
-    // ----------------------------------------------------
+    // =================================================
+
+
+
 
 
     public setMeshVisibility(
@@ -623,7 +671,7 @@ public pick(
 
         visible:boolean
 
-    ):boolean{
+    ):boolean {
 
 
         const body =
@@ -632,21 +680,24 @@ public pick(
 
 
 
-        if(!body){
+        if(!body)
 
             return false;
 
-        }
 
 
+        body.visible=visible;
 
-        body.visible = visible;
+
+        this.touch();
 
 
         return true;
 
 
     }
+
+
 
 
 
@@ -658,24 +709,25 @@ public pick(
 
         visible:boolean
 
-    ):boolean{
+    ):boolean {
 
 
-        const object =
+        const object=
 
             this.objects.get(id);
 
 
 
-        if(!object){
+        if(!object)
 
             return false;
 
-        }
 
 
+        object.visible=visible;
 
-        object.visible = visible;
+
+        this.touch();
 
 
         return true;
@@ -684,47 +736,63 @@ public pick(
     }
 
 
-// ----------------------------------------------------
-// Sketch Input
-// ----------------------------------------------------
-
-public addSketchStroke(
-
-    points:Vector3[]
-
-):void{
 
 
-    this.sketchStrokes.push(
-
-        points
-
-    );
 
 
-}
+
+    // =================================================
+    // Renderer Access
+    // =================================================
 
 
-    // ----------------------------------------------------
+
+
+
+    public getRenderables():
+
+    readonly MeshBody[]{
+
+
+        return this.getVisibleMeshBodies();
+
+
+    }
+
+
+
+
+
+
+
+    // =================================================
     // Scene
-    // ----------------------------------------------------
+    // =================================================
+
+
+
 
 
     public clear():
 
-void{
+    void {
 
 
-    this.meshBodies.clear();
-
-    this.objects.clear();
-
-    this.sketchStrokes=[];
-
-    this.selection=null;
+        this.meshBodies.clear();
 
 
-}
+        this.objects.clear();
+
+
+        this.selection=null;
+
+
+        this.touch();
+
+
+    }
+
+
 
 
 
@@ -732,7 +800,7 @@ void{
 
     public isEmpty():
 
-    boolean{
+    boolean {
 
 
         return (
@@ -750,9 +818,14 @@ void{
 
 
 
-    // ----------------------------------------------------
+
+
+    // =================================================
     // Background
-    // ----------------------------------------------------
+    // =================================================
+
+
+
 
 
     public setBackgroundColor(
@@ -765,7 +838,7 @@ void{
 
         a:number=1
 
-    ):void{
+    ):void {
 
 
         this.backgroundColor={
@@ -787,9 +860,11 @@ void{
 
 
 
+
+
     public getBackgroundColor():
 
-    BackgroundColor{
+    BackgroundColor {
 
 
         return {
@@ -805,63 +880,19 @@ void{
 
 
 
-    // ----------------------------------------------------
-    // Render Queries
-    // ----------------------------------------------------
 
 
-    public getVisibleMeshBodies():
-
-    readonly MeshBody[]{
-
-
-        return Array.from(
-
-            this.meshBodies.values()
-
-        ).filter(
-
-            body=>body.visible
-
-        );
-
-
-    }
-
-
-
-
-
-    public getVisibleObjects():
-
-    readonly RenderObject[]{
-
-
-        return Array.from(
-
-            this.objects.values()
-
-        ).filter(
-
-            object=>object.visible
-
-        );
-
-
-    }
-
-
-
-
-
-    // ----------------------------------------------------
+    // =================================================
     // Statistics
-    // ----------------------------------------------------
+    // =================================================
+
+
+
 
 
     public getStatistics():
 
-    RenderSceneStatistics{
+    RenderSceneStatistics {
 
 
         let vertices=0;
@@ -876,12 +907,15 @@ void{
 
         ){
 
+            vertices +=
 
-            vertices += body.getVertexCount();
+                body.getVertexCount();
 
 
-            triangles += body.getTriangleCount();
 
+            triangles +=
+
+                body.getTriangleCount();
 
         }
 
@@ -922,12 +956,42 @@ void{
 
 
 
-    // ----------------------------------------------------
-    // Debug
-    // ----------------------------------------------------
+
+
+    public getRevision():
+
+    number {
+
+
+        return this.revision;
+
+
+    }
+
+
+
+
+
+
+
+    private touch():
+
+    void {
+
+
+        this.revision++;
+
+
+    }
+
+
+
+
+
 
 
     public debugInfo(){
+
 
         return {
 
@@ -935,6 +999,11 @@ void{
             type:
 
                 "RenderScene",
+
+
+            revision:
+
+                this.revision,
 
 
             meshBodies:
@@ -949,18 +1018,14 @@ void{
 
             selection:
 
-                this.selection,
-
-
-            background:
-
-                this.backgroundColor
+                this.selection
 
 
         };
 
 
     }
+
 
 
 }
