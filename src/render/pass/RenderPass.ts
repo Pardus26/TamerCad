@@ -1,165 +1,493 @@
-import { RenderContext } from "../RenderContext";
-import { RenderScene } from "../RenderScene";
-import { RenderCamera } from "../RenderCamera";
+import {
+    RenderContext
+} from "../RenderContext";
+
+
+import {
+    RenderScene
+} from "../RenderScene";
+
+
+import {
+    RenderCamera
+} from "../RenderCamera";
+
+
 
 export interface RenderPassOptions {
 
+
     enabled?: boolean;
+
 
     priority?: number;
 
+
     clearColor?: boolean;
+
 
     clearDepth?: boolean;
 
+
     clearStencil?: boolean;
+
 
     name?: string;
 
+
 }
+
+
+
+
 
 export abstract class RenderPass {
 
-    public readonly name: string;
+
+    public readonly name:string;
+
+
 
     public enabled = true;
 
+
+
     public priority = 0;
+
+
 
     public clearColor = false;
 
+
+
     public clearDepth = false;
+
+
 
     public clearStencil = false;
 
+
+
     protected initialized = false;
 
+
+
+
+
     constructor(
-        options: RenderPassOptions = {}
-    ) {
+
+        options:RenderPassOptions = {}
+
+    ){
+
+
 
         this.name =
+
             options.name ??
+
             this.constructor.name;
 
-        if (options.enabled !== undefined) {
-            this.enabled = options.enabled;
+
+
+
+
+        if(
+
+            options.enabled !== undefined
+
+        ){
+
+            this.enabled =
+
+                options.enabled;
+
         }
 
-        if (options.priority !== undefined) {
-            this.priority = options.priority;
+
+
+
+
+        if(
+
+            options.priority !== undefined
+
+        ){
+
+            this.priority =
+
+                options.priority;
+
         }
 
-        if (options.clearColor !== undefined) {
-            this.clearColor = options.clearColor;
+
+
+
+
+        if(
+
+            options.clearColor !== undefined
+
+        ){
+
+            this.clearColor =
+
+                options.clearColor;
+
         }
 
-        if (options.clearDepth !== undefined) {
-            this.clearDepth = options.clearDepth;
+
+
+
+
+        if(
+
+            options.clearDepth !== undefined
+
+        ){
+
+            this.clearDepth =
+
+                options.clearDepth;
+
         }
 
-        if (options.clearStencil !== undefined) {
-            this.clearStencil = options.clearStencil;
+
+
+
+
+        if(
+
+            options.clearStencil !== undefined
+
+        ){
+
+            this.clearStencil =
+
+                options.clearStencil;
+
         }
+
 
     }
 
-    initialize(
-        context: RenderContext
-    ): void {
 
-        if (this.initialized) {
+
+
+
+    // ----------------------------------------------------
+    // Lifecycle
+    // ----------------------------------------------------
+
+
+
+    initialize(
+
+        context:RenderContext
+
+    ):void{
+
+
+        if(
+
+            this.initialized
+
+        ){
+
             return;
+
         }
 
-        this.onInitialize(context);
+
+
+        this.onInitialize(
+
+            context
+
+        );
+
+
 
         this.initialized = true;
 
+
     }
 
-    dispose(
-        context: RenderContext
-    ): void {
 
-        if (!this.initialized) {
+
+
+
+    dispose(
+
+        context:RenderContext
+
+    ):void{
+
+
+        if(
+
+            !this.initialized
+
+        ){
+
             return;
+
         }
 
-        this.onDispose(context);
+
+
+        this.onDispose(
+
+            context
+
+        );
+
+
 
         this.initialized = false;
 
+
     }
+
+
+
+
+
+    // ----------------------------------------------------
+    // Render Entry
+    // ----------------------------------------------------
+
+
 
     render(
-        context: RenderContext,
-        scene: RenderScene,
-        camera: RenderCamera
-    ): void {
 
-        if (!this.enabled) {
+        context:RenderContext,
+
+        scene:RenderScene,
+
+        camera:RenderCamera
+
+    ):void{
+
+
+
+        if(
+
+            !this.enabled
+
+        ){
+
             return;
+
         }
 
-        this.begin(context);
 
-        this.execute(
-            context,
-            scene,
-            camera
+
+
+
+        this.begin(
+
+            context
+
         );
 
-        this.end(context);
+
+
+
+
+        this.execute(
+
+            context,
+
+            scene,
+
+            camera
+
+        );
+
+
+
+
+
+        this.end(
+
+            context
+
+        );
+
 
     }
 
+
+
+
+
+    // ----------------------------------------------------
+    // Begin / End
+    // ----------------------------------------------------
+
+
+
     protected begin(
-        context: RenderContext
-    ): void {
 
-        if (
+        context:RenderContext
+
+    ):void{
+
+
+
+        if(
+
             this.clearColor ||
+
             this.clearDepth ||
+
             this.clearStencil
-        ) {
 
-            context.clear?.({
+        ){
 
-                color: this.clearColor,
 
-                depth: this.clearDepth,
 
-                stencil: this.clearStencil
+            context.clear({
+
+                color:
+
+                    this.clearColor,
+
+
+                depth:
+
+                    this.clearDepth,
+
+
+                stencil:
+
+                    this.clearStencil
+
 
             });
 
+
         }
 
+
     }
+
+
+
+
 
     protected end(
-        context: RenderContext
-    ): void {
-        // override if necessary
+
+        context:RenderContext
+
+    ):void{
+
+
+        void context;
+
+
     }
+
+
+
+
+
+    // ----------------------------------------------------
+    // Initialization Hooks
+    // ----------------------------------------------------
+
+
 
     protected onInitialize(
-        context: RenderContext
-    ): void {
-        // optional
+
+        context:RenderContext
+
+    ):void{
+
+
+        void context;
+
+
     }
+
+
+
+
 
     protected onDispose(
-        context: RenderContext
-    ): void {
-        // optional
+
+        context:RenderContext
+
+    ):void{
+
+
+        void context;
+
+
     }
 
+
+
+
+
+    // ----------------------------------------------------
+    // Debug
+    // ----------------------------------------------------
+
+
+
+    debugInfo(){
+
+
+
+        return {
+
+
+            name:
+
+                this.name,
+
+
+            enabled:
+
+                this.enabled,
+
+
+            priority:
+
+                this.priority,
+
+
+            initialized:
+
+                this.initialized
+
+
+        };
+
+
+    }
+
+
+
+
+
+    // ----------------------------------------------------
+    // Render Implementation
+    // ----------------------------------------------------
+
+
+
     protected abstract execute(
-        context: RenderContext,
-        scene: RenderScene,
-        camera: RenderCamera
-    ): void;
+
+        context:RenderContext,
+
+        scene:RenderScene,
+
+        camera:RenderCamera
+
+    ):void;
+
 
 }
