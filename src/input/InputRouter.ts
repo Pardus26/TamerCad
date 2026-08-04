@@ -3,13 +3,32 @@
 
 import {
     PointerEvent,
-    PointerAction
+    PointerType
 } from "./PointerEvent";
 
 
 import {
-    GestureEvent
+    GestureEvent,
+    GestureType
 } from "./GestureRecognizer";
+
+
+import {
+    CameraInputHandler
+} from "./handlers/CameraInputHandler";
+
+
+import {
+    SketchInputHandler
+} from "./handlers/SketchInputHandler";
+
+
+import {
+    SelectionInputHandler
+} from "./handlers/SelectionInputHandler";
+
+
+
 
 
 
@@ -18,88 +37,17 @@ import {
 export enum InputMode {
 
 
-    /**
-     * Kamera görüntüleme modu
-     */
-    View = "view",
+    Select = "select",
 
 
-
-    /**
-     * Sketch çizim modu
-     */
     Sketch = "sketch",
 
 
+    Camera = "camera"
 
-    /**
-     * Seçim modu
-     */
-    Selection = "selection",
-
-
-
-    /**
-     * Feature düzenleme
-     */
-    FeatureEdit = "feature-edit",
-
-
-
-    /**
-     * Assembly hareket modu
-     */
-    Assembly = "assembly"
-
-}
-
-
-
-
-
-
-
-
-export interface InputHandler {
-
-
-
-    onPointerDown?(
-        event: PointerEvent
-    ): void;
-
-
-
-
-    onPointerMove?(
-        event: PointerEvent
-    ): void;
-
-
-
-
-    onPointerUp?(
-        event: PointerEvent
-    ): void;
-
-
-
-
-    /**
-     * Gesture olayları
-     *
-     * Pan
-     * Pinch
-     * Rotate
-     * DoubleTap
-     */
-    onGesture?(
-        event: GestureEvent
-    ): void;
 
 
 }
-
 
 
 
@@ -114,15 +62,10 @@ export class InputRouter {
 
 
     private mode:
+
         InputMode =
-        InputMode.View;
 
-
-
-    private handlers:
-        Map<InputMode, InputHandler>
-        =
-        new Map();
+        InputMode.Select;
 
 
 
@@ -130,18 +73,53 @@ export class InputRouter {
 
 
 
+    private readonly camera:
+
+        CameraInputHandler;
 
 
 
-    /**
-     * Aktif çalışma modunu değiştirir
-     */
-    public setMode(
-        mode: InputMode
-    ): void {
 
 
-        this.mode = mode;
+    private readonly sketch:
+
+        SketchInputHandler;
+
+
+
+
+
+    private readonly selection:
+
+        SelectionInputHandler;
+
+
+
+
+
+
+
+
+
+    constructor(){
+
+
+        this.camera =
+
+            new CameraInputHandler();
+
+
+
+        this.sketch =
+
+            new SketchInputHandler();
+
+
+
+        this.selection =
+
+            new SelectionInputHandler();
+
 
     }
 
@@ -153,38 +131,44 @@ export class InputRouter {
 
 
 
-    /**
-     * Aktif modu döndürür
-     */
+    public setMode(
+
+        mode:InputMode
+
+    ):void{
+
+
+        this.mode =
+
+            mode;
+
+
+        console.info(
+
+            "[InputRouter] Mode:",
+
+            mode
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
     public getMode():
-        InputMode {
+
+        InputMode{
 
 
         return this.mode;
 
-    }
-
-
-
-
-
-
-
-
-
-    /**
-     * Input handler kayıt eder
-     */
-    public register(
-        mode: InputMode,
-        handler: InputHandler
-    ): void {
-
-
-        this.handlers.set(
-            mode,
-            handler
-        );
 
     }
 
@@ -196,45 +180,35 @@ export class InputRouter {
 
 
 
-    /**
-     * Handler kaldırır
-     */
-    public remove(
-        mode: InputMode
-    ): void {
-
-
-        this.handlers.delete(
-            mode
-        );
-
-    }
-
-
-
-
-
-
-
-
-
-    /**
-     * Pointer olaylarını yönlendirir
-     */
     public route(
-        event: PointerEvent
-    ): void {
+
+        event:PointerEvent
+
+    ):void{
 
 
 
-        const handler =
-            this.handlers.get(
-                this.mode
+        /*
+            Öncelik:
+            Stylus = CAD çizim
+        */
+
+
+        if(
+
+            event.type ===
+
+            PointerType.Stylus
+
+        ){
+
+
+            this.sketch.handlePointer(
+
+                event
+
             );
 
-
-
-        if (!handler) {
 
             return;
 
@@ -245,118 +219,70 @@ export class InputRouter {
 
 
 
-        switch (
-            event.action
-        ) {
 
+        switch(
 
-
-            case PointerAction.Down:
-
-
-                handler.onPointerDown?.(
-                    event
-                );
-
-                break;
-
-
-
-
-
-            case PointerAction.Move:
-
-
-                handler.onPointerMove?.(
-                    event
-                );
-
-                break;
-
-
-
-
-
-            case PointerAction.Up:
-
-
-                handler.onPointerUp?.(
-                    event
-                );
-
-                break;
-
-        }
-
-    }
-
-
-
-
-
-
-
-
-
-    /**
-     * Gesture olaylarını yönlendirir
-     *
-     * Tablet:
-     *
-     * iki parmak pan
-     * pinch zoom
-     * rotate
-     * double tap
-     *
-     */
-    public routeGesture(
-        event: GestureEvent
-    ): void {
-
-
-
-        const handler =
-            this.handlers.get(
-                this.mode
-            );
-
-
-
-        if (!handler) {
-
-            return;
-
-        }
-
-
-
-
-
-
-        handler.onGesture?.(
-            event
-        );
-
-    }
-
-
-
-
-
-
-
-
-
-    /**
-     * Aktif handler var mı?
-     */
-    public hasHandler():
-        boolean {
-
-
-        return this.handlers.has(
             this.mode
-        );
+
+        ){
+
+
+
+            case InputMode.Camera:
+
+
+
+                this.camera.handlePointer(
+
+                    event
+
+                );
+
+
+                break;
+
+
+
+
+
+
+
+            case InputMode.Sketch:
+
+
+
+                this.sketch.handlePointer(
+
+                    event
+
+                );
+
+
+                break;
+
+
+
+
+
+
+
+            case InputMode.Select:
+
+
+
+                this.selection.handlePointer(
+
+                    event
+
+                );
+
+
+                break;
+
+
+        }
+
+
 
     }
 
@@ -368,13 +294,119 @@ export class InputRouter {
 
 
 
-    /**
-     * Tüm handlerları temizler
-     */
-    public clear(): void {
+    public routeGesture(
+
+        event:GestureEvent
+
+    ):void{
 
 
-        this.handlers.clear();
+
+        switch(
+
+            event.type
+
+        ){
+
+
+
+            case GestureType.Pan:
+
+
+
+            case GestureType.Rotate:
+
+
+
+            case GestureType.Zoom:
+
+
+
+                this.camera.handleGesture(
+
+                    event
+
+                );
+
+
+                break;
+
+
+
+
+
+            case GestureType.Tap:
+
+
+
+                this.selection.handleGesture(
+
+                    event
+
+                );
+
+
+                break;
+
+
+
+
+            case GestureType.Stroke:
+
+
+
+                this.sketch.handleGesture(
+
+                    event
+
+                );
+
+
+                break;
+
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+
+
+    public reset():void{
+
+
+        this.mode =
+
+            InputMode.Select;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    public dispose():void{
+
+
+        this.camera.dispose();
+
+
+        this.sketch.dispose();
+
+
+        this.selection.dispose();
+
 
     }
 
