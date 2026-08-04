@@ -1,9 +1,53 @@
-import { RenderContext } from "../RenderContext";
-import { RenderGraphPass } from "./RenderGraphPass";
-import { RenderGraphCompileResult } from "./RenderGraphCompiler";
+// src/render/graph/RenderGraphExecutor.ts
+
+
+import {
+    RenderContext
+} from "../RenderContext";
+
+
+import {
+    RenderScene
+} from "../RenderScene";
+
+
+import {
+    RenderCamera
+} from "../RenderCamera";
+
+
+import {
+    RenderGraphPass
+} from "./RenderGraphPass";
+
+
+import {
+    RenderGraphCompileResult
+} from "./RenderGraphCompiler";
+
+
+
+
+
+export interface RenderGraphExecutionOptions {
+
+
+    scene?: RenderScene;
+
+
+    camera?: RenderCamera;
+
+
+}
+
+
+
+
+
 
 
 export class RenderGraphExecutor {
+
 
 
     private lastExecution:
@@ -14,34 +58,79 @@ export class RenderGraphExecutor {
 
     private executionTime:
 
-        Map<string, number> = new Map();
+        Map<string,number> =
+
+        new Map();
 
 
 
-    execute(
 
-        context: RenderContext,
 
-        compileResult: RenderGraphCompileResult
-
-    ): void {
+    private barrierCount = 0;
 
 
 
-        this.lastExecution.length = 0;
-
-        this.executionTime.clear();
 
 
 
-        for (
-
-            const pass of compileResult.executionOrder
-
-        ) {
 
 
-            const start = performance.now();
+
+    public execute(
+
+        context:
+
+            RenderContext,
+
+
+        compileResult:
+
+            RenderGraphCompileResult,
+
+
+        options:
+
+            RenderGraphExecutionOptions = {}
+
+    ):void {
+
+
+
+        this.reset();
+
+
+
+
+
+        this.applyBarriers(
+
+            context,
+
+            compileResult
+
+        );
+
+
+
+
+
+
+
+        for(
+
+            const pass of
+
+            compileResult.executionOrder
+
+        ){
+
+
+
+            const start =
+
+                performance.now();
+
+
 
 
 
@@ -55,19 +144,28 @@ export class RenderGraphExecutor {
 
 
 
+
+
             try {
+
 
 
                 pass.execute(
 
-                    context
+                    context,
+
+                    options.scene,
+
+                    options.camera
 
                 );
+
 
 
             }
 
             finally {
+
 
 
                 this.endPass(
@@ -83,9 +181,19 @@ export class RenderGraphExecutor {
 
 
 
+
+
+
+
             const elapsed =
 
-                performance.now() - start;
+                performance.now()
+
+                -
+
+                start;
+
+
 
 
 
@@ -99,6 +207,8 @@ export class RenderGraphExecutor {
 
 
 
+
+
             this.lastExecution.push(
 
                 pass
@@ -109,7 +219,121 @@ export class RenderGraphExecutor {
         }
 
 
+
     }
+
+
+
+
+
+
+
+
+
+    private reset():void {
+
+
+
+        this.lastExecution.length = 0;
+
+
+        this.executionTime.clear();
+
+
+        this.barrierCount = 0;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =================================================
+    // Resource Barrier Handling
+    // =================================================
+
+
+    private applyBarriers(
+
+        context:
+
+            RenderContext,
+
+
+        result:
+
+            RenderGraphCompileResult
+
+    ):void {
+
+
+
+        for(
+
+            const barrier of
+
+            result.barriers
+
+        ){
+
+
+
+            this.barrierCount++;
+
+
+
+
+
+            const anyContext =
+
+                context as any;
+
+
+
+
+
+            anyContext.resourceBarrier?.(
+
+                {
+
+
+                    resource:
+
+                        barrier.resource,
+
+
+
+                    before:
+
+                        barrier.before,
+
+
+
+                    after:
+
+                        barrier.after
+
+
+
+                }
+
+            );
+
+
+        }
+
+
+
+    }
+
+
+
+
 
 
 
@@ -117,9 +341,14 @@ export class RenderGraphExecutor {
 
     private beginPass(
 
-        context: RenderContext,
+        context:
 
-        pass: RenderGraphPass
+            RenderContext,
+
+
+        pass:
+
+            RenderGraphPass
 
     ):void {
 
@@ -128,6 +357,8 @@ export class RenderGraphExecutor {
         const anyContext =
 
             context as any;
+
+
 
 
 
@@ -138,7 +369,12 @@ export class RenderGraphExecutor {
         );
 
 
+
     }
+
+
+
+
 
 
 
@@ -146,9 +382,14 @@ export class RenderGraphExecutor {
 
     private endPass(
 
-        context: RenderContext,
+        context:
 
-        pass: RenderGraphPass
+            RenderContext,
+
+
+        pass:
+
+            RenderGraphPass
 
     ):void {
 
@@ -157,6 +398,8 @@ export class RenderGraphExecutor {
         const anyContext =
 
             context as any;
+
+
 
 
 
@@ -169,9 +412,14 @@ export class RenderGraphExecutor {
 
 
 
-    getLastExecution():
+
+
+
+
+    public getLastExecution():
 
     readonly RenderGraphPass[] {
+
 
 
         return this.lastExecution;
@@ -183,11 +431,16 @@ export class RenderGraphExecutor {
 
 
 
-    getExecutionTime(
+
+
+
+
+    public getExecutionTime(
 
         passName:string
 
     ):number {
+
 
 
         return (
@@ -196,7 +449,11 @@ export class RenderGraphExecutor {
 
                 passName
 
-            ) ?? 0
+            )
+
+            ??
+
+            0
 
         );
 
@@ -207,7 +464,12 @@ export class RenderGraphExecutor {
 
 
 
-    debugInfo(){
+
+
+
+
+    public debugInfo(){
+
 
 
         return {
@@ -215,9 +477,13 @@ export class RenderGraphExecutor {
 
             executed:
 
-                this.lastExecution.map(
+                this.lastExecution
 
-                    p=>p.name
+                .map(
+
+                    pass =>
+
+                        pass.name
 
                 ),
 
@@ -229,12 +495,21 @@ export class RenderGraphExecutor {
 
                     this.executionTime
 
-                )
+                ),
+
+
+
+            barriers:
+
+                this.barrierCount
+
 
 
         };
 
 
     }
+
+
 
 }
