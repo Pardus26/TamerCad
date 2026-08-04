@@ -1,0 +1,21 @@
+{
+    "version": "0.1.0",
+
+    "build": 1,
+
+    "channel": "dev",
+
+    "kernel": "0.1.0",
+
+    "geometry": "0.1.0",
+
+    "brep": "0.1.0",
+
+    "render": "0.1.0",
+
+    "exchange": "0.1.0",
+
+    "simulation": "0.1.0",
+
+    "android": "0.1.0"
+}
