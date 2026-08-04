@@ -1,3 +1,6 @@
+// src/render/graph/RenderGraphPass.ts
+
+
 import {
     RenderGraphResource
 } from "./RenderGraphResource";
@@ -19,6 +22,8 @@ import {
 
 
 
+
+
 export type RenderGraphExecuteCallback = (
 
     context: RenderContext,
@@ -33,29 +38,25 @@ export type RenderGraphExecuteCallback = (
 
 
 
-export enum RenderResourceState {
-
-    Undefined = "Undefined",
-
-    Read = "Read",
-
-    Write = "Write"
-
-}
-
-
-
-
 
 
 export class RenderGraphPass {
+
+
+
 
 
     public readonly name:string;
 
 
 
+
+
     public priority:number = 0;
+
+
+
+
 
 
 
@@ -65,15 +66,21 @@ export class RenderGraphPass {
 
 
 
+
+
     private readonly writes:
 
         RenderGraphResource[] = [];
 
 
 
+
+
     private readonly dependencies:
 
         RenderGraphPass[] = [];
+
+
 
 
 
@@ -84,11 +91,6 @@ export class RenderGraphPass {
 
 
 
-    private state:
-
-        RenderResourceState =
-
-            RenderResourceState.Undefined;
 
 
 
@@ -96,16 +98,12 @@ export class RenderGraphPass {
 
     constructor(
 
-        name:string,
-
-        priority:number = 0
+        name:string
 
     ){
 
         this.name = name;
 
-        this.priority = priority;
-
     }
 
 
@@ -113,23 +111,26 @@ export class RenderGraphPass {
 
 
 
-    /*
-    ============================================
-        Priority
-    ============================================
-    */
 
 
-    setPriority(
+
+    // ==================================================
+    // Priority
+    // ==================================================
+
+
+    public setPriority(
 
         priority:number
 
-    ):this
-    {
+    ):this {
+
 
         this.priority = priority;
 
+
         return this;
+
 
     }
 
@@ -139,30 +140,33 @@ export class RenderGraphPass {
 
 
 
-    /*
-    ============================================
-        Resource Read
-    ============================================
-    */
 
 
-    read(
+    // ==================================================
+    // Resource Read
+    // ==================================================
+
+
+    public read(
 
         resource:RenderGraphResource
 
-    ):this
-    {
+    ):this {
+
 
 
         if(
 
             !this.reads.includes(resource)
 
-        )
-        {
+        ){
 
 
-            this.reads.push(resource);
+            this.reads.push(
+
+                resource
+
+            );
 
 
 
@@ -179,6 +183,7 @@ export class RenderGraphPass {
 
         return this;
 
+
     }
 
 
@@ -188,30 +193,33 @@ export class RenderGraphPass {
 
 
 
-    /*
-    ============================================
-        Resource Write
-    ============================================
-    */
+
+    // ==================================================
+    // Resource Write
+    // ==================================================
 
 
-    write(
+    public write(
 
         resource:RenderGraphResource
 
-    ):this
-    {
+    ):this {
+
 
 
         if(
 
             !this.writes.includes(resource)
 
-        )
-        {
+        ){
 
 
-            this.writes.push(resource);
+
+            this.writes.push(
+
+                resource
+
+            );
 
 
 
@@ -228,6 +236,7 @@ export class RenderGraphPass {
 
         return this;
 
+
     }
 
 
@@ -236,27 +245,26 @@ export class RenderGraphPass {
 
 
 
-    /*
-    ============================================
-        Dependency
-    ============================================
-    */
 
 
-    dependsOn(
+    // ==================================================
+    // Dependency
+    // ==================================================
+
+
+    public dependsOn(
 
         pass:RenderGraphPass
 
-    ):this
-    {
+    ):this {
+
 
 
         if(
 
             pass === this
 
-        )
-        {
+        ){
 
             throw new Error(
 
@@ -269,91 +277,18 @@ export class RenderGraphPass {
 
 
 
+
         if(
 
             !this.dependencies.includes(pass)
 
-        )
-        {
-
-            this.dependencies.push(pass);
-
-        }
+        ){
 
 
 
-        return this;
+            this.dependencies.push(
 
-    }
-
-
-
-
-
-
-
-    /*
-    ============================================
-        Execute Callback
-    ============================================
-    */
-
-
-    setExecute(
-
-        callback:RenderGraphExecuteCallback
-
-    ):this
-    {
-
-
-        this.executeCallback = callback;
-
-
-        return this;
-
-    }
-
-
-
-
-
-
-
-    /*
-    ============================================
-        Runtime Execute
-    ============================================
-    */
-
-
-    execute(
-
-        context:RenderContext,
-
-        scene?:RenderScene,
-
-        camera?:RenderCamera
-
-    ):void
-    {
-
-
-        if(
-
-            this.executeCallback
-
-        )
-        {
-
-
-            this.executeCallback(
-
-                context,
-
-                scene,
-
-                camera
+                pass
 
             );
 
@@ -361,53 +296,11 @@ export class RenderGraphPass {
         }
 
 
-    }
 
 
 
+        return this;
 
-
-
-
-    /*
-    ============================================
-        Resource Access
-    ============================================
-    */
-
-
-    getReads():
-
-    readonly RenderGraphResource[]
-    {
-
-        return this.reads;
-
-    }
-
-
-
-
-
-    getWrites():
-
-    readonly RenderGraphResource[]
-    {
-
-        return this.writes;
-
-    }
-
-
-
-
-
-    getDependencies():
-
-    readonly RenderGraphPass[]
-    {
-
-        return this.dependencies;
 
     }
 
@@ -417,33 +310,26 @@ export class RenderGraphPass {
 
 
 
-    /*
-    ============================================
-        State
-    ============================================
-    */
 
 
-    setState(
+    // ==================================================
+    // Execute
+    // ==================================================
 
-        state:RenderResourceState
 
-    ):void
-    {
+    public setExecute(
 
-        this.state = state;
+        callback:RenderGraphExecuteCallback
 
-    }
+    ):this {
 
 
 
+        this.executeCallback = callback;
 
-    getState():
 
-    RenderResourceState
-    {
+        return this;
 
-        return this.state;
 
     }
 
@@ -453,35 +339,44 @@ export class RenderGraphPass {
 
 
 
-    /*
-    ============================================
-        Validation
-    ============================================
-    */
 
 
-    validate():
+    public execute(
 
-    boolean
-    {
+        context:RenderContext,
+
+        scene?:RenderScene,
+
+        camera?:RenderCamera
+
+    ):void {
+
 
 
         if(
 
-            this.writes.length === 0 &&
+            !this.executeCallback
 
-            this.reads.length === 0
+        ){
 
-        )
-        {
-
-            return false;
+            return;
 
         }
 
 
 
-        return true;
+
+
+        this.executeCallback(
+
+            context,
+
+            scene,
+
+            camera
+
+        );
+
 
     }
 
@@ -491,15 +386,104 @@ export class RenderGraphPass {
 
 
 
-    /*
-    ============================================
-        Debug
-    ============================================
-    */
 
 
-    debugInfo()
-    {
+    // ==================================================
+    // Resource Access
+    // ==================================================
+
+
+    public getReads():
+
+    readonly RenderGraphResource[] {
+
+
+        return this.reads;
+
+
+    }
+
+
+
+
+
+
+
+    public getWrites():
+
+    readonly RenderGraphResource[] {
+
+
+        return this.writes;
+
+
+    }
+
+
+
+
+
+
+
+    public getDependencies():
+
+    readonly RenderGraphPass[] {
+
+
+        return this.dependencies;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // ==================================================
+    // Compiler compatibility
+    // ==================================================
+
+
+    public get resources(){
+
+
+        return {
+
+
+            reads:
+
+                this.reads,
+
+
+            writes:
+
+                this.writes
+
+
+        };
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // ==================================================
+    // Debug
+    // ==================================================
+
+
+    public debugInfo(){
+
 
         return {
 
@@ -520,7 +504,9 @@ export class RenderGraphPass {
 
                 this.reads.map(
 
-                    r=>r.name
+                    resource =>
+
+                        resource.name
 
                 ),
 
@@ -530,7 +516,9 @@ export class RenderGraphPass {
 
                 this.writes.map(
 
-                    r=>r.name
+                    resource =>
+
+                        resource.name
 
                 ),
 
@@ -540,18 +528,15 @@ export class RenderGraphPass {
 
                 this.dependencies.map(
 
-                    d=>d.name
+                    pass =>
 
-                ),
+                        pass.name
 
-
-
-            state:
-
-                this.state
+                )
 
 
         };
+
 
     }
 
