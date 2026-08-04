@@ -1,37 +1,15 @@
 import { MeshVertex } from "./MeshVertex";
 import { MeshTriangle } from "./MeshTriangle";
+import { Vector3 } from "../../math/vector/Vector3";
 
 
 export interface MeshBoundingBox {
 
-    min:{
-        x:number;
-        y:number;
-        z:number;
-    };
+    min:Vector3;
 
-    max:{
-        x:number;
-        y:number;
-        z:number;
-    };
+    max:Vector3;
 
 }
-
-
-
-export interface MeshBoundingSphere {
-
-    center:{
-        x:number;
-        y:number;
-        z:number;
-    };
-
-    radius:number;
-
-}
-
 
 
 
@@ -39,13 +17,17 @@ export interface MeshBoundingSphere {
 export class Mesh {
 
 
-    private readonly vertices:
+    public name:string;
+
+
+
+    private vertices:
 
         MeshVertex[] = [];
 
 
 
-    private readonly triangles:
+    private triangles:
 
         MeshTriangle[] = [];
 
@@ -53,13 +35,22 @@ export class Mesh {
 
     private normals:
 
-        number[][] = [];
+        Vector3[] = [];
 
 
 
-    private uvs:
 
-        number[][] = [];
+
+    private surfaceAreaCache:
+
+        number | null = null;
+
+
+
+    private boundingBoxCache:
+
+        MeshBoundingBox | null = null;
+
 
 
 
@@ -67,9 +58,15 @@ export class Mesh {
 
     constructor(
 
-        public name:string="Mesh"
+        name:string="Mesh"
 
-    ){}
+    ){
+
+        this.name=name;
+
+    }
+
+
 
 
 
@@ -80,7 +77,6 @@ export class Mesh {
     // ------------------------------------------------
 
 
-
     public addVertex(
 
         vertex:MeshVertex
@@ -88,7 +84,14 @@ export class Mesh {
     ):number{
 
 
-        this.vertices.push(vertex);
+        this.vertices.push(
+
+            vertex
+
+        );
+
+
+        this.invalidate();
 
 
         return (
@@ -99,6 +102,7 @@ export class Mesh {
 
 
     }
+
 
 
 
@@ -122,6 +126,7 @@ export class Mesh {
 
 
 
+
     public getVertices():
 
     readonly MeshVertex[]{
@@ -137,10 +142,26 @@ export class Mesh {
 
 
 
+
+    public vertexCount():
+
+    number{
+
+
+        return this.vertices.length;
+
+
+    }
+
+
+
+
+
+
+
     // ------------------------------------------------
     // Triangle
     // ------------------------------------------------
-
 
 
     public addTriangle(
@@ -150,6 +171,22 @@ export class Mesh {
     ):void{
 
 
+        if(
+
+            !this.validTriangle(triangle)
+
+        ){
+
+            throw new Error(
+
+                "Invalid triangle"
+
+            );
+
+        }
+
+
+
         this.triangles.push(
 
             triangle
@@ -157,7 +194,12 @@ export class Mesh {
         );
 
 
+
+        this.invalidate();
+
+
     }
+
 
 
 
@@ -181,6 +223,7 @@ export class Mesh {
 
 
 
+
     public getTriangles():
 
     readonly MeshTriangle[]{
@@ -191,20 +234,6 @@ export class Mesh {
 
     }
 
-
-
-
-
-
-    public vertexCount():
-
-    number{
-
-
-        return this.vertices.length;
-
-
-    }
 
 
 
@@ -226,15 +255,205 @@ export class Mesh {
 
 
 
+
     // ------------------------------------------------
-    // Geometry
+    // Normals
     // ------------------------------------------------
 
+
+    public computeNormals():
+
+    void{
+
+
+        this.normals=[];
+
+
+
+        for(
+
+            let i=0;
+
+            i<this.vertices.length;
+
+            i++
+
+        ){
+
+            this.normals.push(
+
+                new Vector3(
+
+                    0,
+
+                    0,
+
+                    0
+
+                )
+
+            );
+
+        }
+
+
+
+        for(
+
+            const triangle of this.triangles
+
+        ){
+
+
+            const a=
+
+                this.vertices[
+
+                    triangle.a
+
+                ].position;
+
+
+
+            const b=
+
+                this.vertices[
+
+                    triangle.b
+
+                ].position;
+
+
+
+            const c=
+
+                this.vertices[
+
+                    triangle.c
+
+                ].position;
+
+
+
+            const normal =
+
+                b.subtract(a)
+
+                .cross(
+
+                    c.subtract(a)
+
+                )
+
+                .normalize();
+
+
+
+
+
+            this.normals[triangle.a] =
+
+                this.normals[triangle.a]
+
+                .add(normal);
+
+
+
+            this.normals[triangle.b] =
+
+                this.normals[triangle.b]
+
+                .add(normal);
+
+
+
+            this.normals[triangle.c] =
+
+                this.normals[triangle.c]
+
+                .add(normal);
+
+
+        }
+
+
+
+
+        for(
+
+            let i=0;
+
+            i<this.normals.length;
+
+            i++
+
+        ){
+
+            this.normals[i]=
+
+                this.normals[i]
+
+                .normalize();
+
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+    public getNormals():
+
+    readonly Vector3[]{
+
+
+        if(
+
+            this.normals.length===0
+
+        ){
+
+            this.computeNormals();
+
+        }
+
+
+        return this.normals;
+
+
+    }
+
+
+
+
+
+
+
+    // ------------------------------------------------
+    // Surface
+    // ------------------------------------------------
 
 
     public computeSurfaceArea():
 
     number{
+
+
+        if(
+
+            this.surfaceAreaCache!==null
+
+        ){
+
+            return this.surfaceAreaCache;
+
+        }
+
 
 
         let area=0;
@@ -260,6 +479,13 @@ export class Mesh {
         }
 
 
+
+        this.surfaceAreaCache=
+
+            area;
+
+
+
         return area;
 
 
@@ -270,115 +496,27 @@ export class Mesh {
 
 
 
-    public computeVolume():
 
-    number{
-
-
-        let volume=0;
-
-
-
-        for(
-
-            const triangle of this.triangles
-
-        ){
-
-
-            const a =
-
-                this.vertices[
-
-                    triangle.a
-
-                ].position;
-
-
-
-            const b =
-
-                this.vertices[
-
-                    triangle.b
-
-                ].position;
-
-
-
-            const c =
-
-                this.vertices[
-
-                    triangle.c
-
-                ].position;
-
-
-
-            volume +=
-
-                (
-
-                    a.x *
-
-                    (
-
-                        b.y*c.z -
-
-                        b.z*c.y
-
-                    )
-
-                    -
-
-                    a.y *
-
-                    (
-
-                        b.x*c.z -
-
-                        b.z*c.x
-
-                    )
-
-                    +
-
-                    a.z *
-
-                    (
-
-                        b.x*c.y -
-
-                        b.y*c.x
-
-                    )
-
-                );
-
-
-        }
-
-
-
-        return Math.abs(
-
-            volume / 6
-
-        );
-
-
-    }
-
-
-
-
-
+    // ------------------------------------------------
+    // Bounding Box
+    // ------------------------------------------------
 
 
     public getBoundingBox():
 
     MeshBoundingBox | null{
+
+
+        if(
+
+            this.boundingBoxCache
+
+        ){
+
+            return this.boundingBoxCache;
+
+        }
+
 
 
         if(
@@ -393,20 +531,19 @@ export class Mesh {
 
 
 
+        let min=
 
-        let minX=Infinity;
+            this.vertices[0]
 
-        let minY=Infinity;
-
-        let minZ=Infinity;
-
+            .position.clone();
 
 
-        let maxX=-Infinity;
 
-        let maxY=-Infinity;
+        let max=
 
-        let maxZ=-Infinity;
+            this.vertices[0]
+
+            .position.clone();
 
 
 
@@ -414,195 +551,48 @@ export class Mesh {
 
         for(
 
-            const v of this.vertices
+            const vertex of this.vertices
 
         ){
 
 
-            minX=Math.min(
+            const p=
 
-                minX,
-
-                v.position.x
-
-            );
-
-
-            minY=Math.min(
-
-                minY,
-
-                v.position.y
-
-            );
-
-
-            minZ=Math.min(
-
-                minZ,
-
-                v.position.z
-
-            );
+                vertex.position;
 
 
 
-            maxX=Math.max(
+            min.x=Math.min(min.x,p.x);
 
-                maxX,
+            min.y=Math.min(min.y,p.y);
 
-                v.position.x
-
-            );
+            min.z=Math.min(min.z,p.z);
 
 
-            maxY=Math.max(
 
-                maxY,
+            max.x=Math.max(max.x,p.x);
 
-                v.position.y
+            max.y=Math.max(max.y,p.y);
 
-            );
-
-
-            maxZ=Math.max(
-
-                maxZ,
-
-                v.position.z
-
-            );
+            max.z=Math.max(max.z,p.z);
 
 
         }
 
 
 
-        return {
 
+        this.boundingBoxCache={
 
-            min:{
+            min,
 
-                x:minX,
-
-                y:minY,
-
-                z:minZ
-
-            },
-
-
-            max:{
-
-                x:maxX,
-
-                y:maxY,
-
-                z:maxZ
-
-            }
-
-
-        };
-
-
-    }
-
-
-
-
-
-
-
-    public getBoundingSphere():
-
-    MeshBoundingSphere | null{
-
-
-        const box=
-
-            this.getBoundingBox();
-
-
-
-        if(!box)
-
-            return null;
-
-
-
-        const center={
-
-
-            x:(box.min.x+box.max.x)/2,
-
-            y:(box.min.y+box.max.y)/2,
-
-            z:(box.min.z+box.max.z)/2
-
+            max
 
         };
 
 
 
-        let radius=0;
-
-
-
-        for(
-
-            const v of this.vertices
-
-        ){
-
-
-            const dx=
-
-                v.position.x-center.x;
-
-
-            const dy=
-
-                v.position.y-center.y;
-
-
-            const dz=
-
-                v.position.z-center.z;
-
-
-
-            radius=Math.max(
-
-                radius,
-
-                Math.sqrt(
-
-                    dx*dx+
-
-                    dy*dy+
-
-                    dz*dz
-
-                )
-
-            );
-
-
-        }
-
-
-
-        return {
-
-
-            center,
-
-
-            radius
-
-
-        };
+        return this.boundingBoxCache;
 
 
     }
@@ -612,79 +602,10 @@ export class Mesh {
 
 
 
-    public validate():
 
-    boolean{
-
-
-        for(
-
-            const t of this.triangles
-
-        ){
-
-
-            if(
-
-                t.a<0 ||
-
-                t.b<0 ||
-
-                t.c<0
-
-            )
-
-                return false;
-
-
-
-            if(
-
-                t.a>=this.vertices.length ||
-
-                t.b>=this.vertices.length ||
-
-                t.c>=this.vertices.length
-
-            )
-
-                return false;
-
-
-        }
-
-
-        return true;
-
-
-    }
-
-
-
-
-
-
-
-    public clear():
-
-    void{
-
-
-        this.vertices.length=0;
-
-        this.triangles.length=0;
-
-        this.normals.length=0;
-
-        this.uvs.length=0;
-
-
-    }
-
-
-
-
-
+    // ------------------------------------------------
+    // Utility
+    // ------------------------------------------------
 
 
     public isEmpty():
@@ -709,6 +630,85 @@ export class Mesh {
 
 
 
+    public validate():
+
+    boolean{
+
+
+        for(
+
+            const triangle of this.triangles
+
+        ){
+
+
+            if(
+
+                !this.validTriangle(triangle)
+
+            ){
+
+                return false;
+
+            }
+
+
+        }
+
+
+
+        return true;
+
+
+    }
+
+
+
+
+
+
+
+    private validTriangle(
+
+        triangle:MeshTriangle
+
+    ):
+
+
+    boolean{
+
+
+        return (
+
+            triangle.a>=0 &&
+
+            triangle.b>=0 &&
+
+            triangle.c>=0 &&
+
+
+            triangle.a<this.vertices.length &&
+
+            triangle.b<this.vertices.length &&
+
+            triangle.c<this.vertices.length
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+    // ------------------------------------------------
+    // Clone
+    // ------------------------------------------------
+
+
     public clone():
 
     Mesh{
@@ -726,58 +726,33 @@ export class Mesh {
 
         for(
 
-            const v of this.vertices
+            const vertex of this.vertices
 
         ){
 
-
             mesh.addVertex(
 
-                v.clone()
+                vertex.clone()
 
             );
 
-
         }
-
 
 
 
         for(
 
-            const t of this.triangles
+            const triangle of this.triangles
 
         ){
 
-
             mesh.addTriangle(
 
-                t.clone()
+                triangle.clone()
 
             );
-
 
         }
-
-
-
-        mesh.normals =
-
-            this.normals.map(
-
-                n=>[...n]
-
-            );
-
-
-
-        mesh.uvs =
-
-            this.uvs.map(
-
-                uv=>[...uv]
-
-            );
 
 
 
@@ -790,6 +765,11 @@ export class Mesh {
 
 
 
+
+
+    // ------------------------------------------------
+    // Serialization
+    // ------------------------------------------------
 
 
     public toJSON(){
@@ -817,14 +797,7 @@ export class Mesh {
 
                     t=>t.toJSON()
 
-                ),
-
-
-
-            normals:this.normals,
-
-
-            uvs:this.uvs
+                )
 
 
         };
@@ -844,6 +817,7 @@ export class Mesh {
 
     ):
 
+
     Mesh{
 
 
@@ -859,49 +833,45 @@ export class Mesh {
 
         for(
 
-            const v of data.vertices ?? []
+            const vertex of data.vertices
 
         ){
 
-
             mesh.addVertex(
 
-                MeshVertex.fromJSON(v)
+                MeshVertex.fromJSON(
+
+                    vertex
+
+                )
 
             );
 
 
         }
+
 
 
 
         for(
 
-            const t of data.triangles ?? []
+            const triangle of data.triangles
 
         ){
 
-
             mesh.addTriangle(
 
-                MeshTriangle.fromJSON(t)
+                MeshTriangle.fromJSON(
+
+                    triangle
+
+                )
 
             );
 
 
         }
 
-
-
-        mesh.normals=
-
-            data.normals ?? [];
-
-
-
-        mesh.uvs=
-
-            data.uvs ?? [];
 
 
 
@@ -911,6 +881,51 @@ export class Mesh {
     }
 
 
+
+
+
+
+
+    public clear():
+
+    void{
+
+
+        this.vertices.length=0;
+
+
+        this.triangles.length=0;
+
+
+        this.normals.length=0;
+
+
+        this.invalidate();
+
+
+    }
+
+
+
+
+
+
+
+    private invalidate():
+
+    void{
+
+
+        this.surfaceAreaCache=null;
+
+
+        this.boundingBoxCache=null;
+
+
+        this.normals=[];
+
+
+    }
 
 
 }
