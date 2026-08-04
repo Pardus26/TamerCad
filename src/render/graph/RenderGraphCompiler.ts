@@ -1,8 +1,41 @@
-import { RenderGraphPass } from "./RenderGraphPass";
+import {
+    RenderGraphPass
+} from "./RenderGraphPass";
 
-import { 
-    RenderGraphResource 
+
+import {
+    RenderGraphResource
 } from "./RenderGraphResource";
+
+
+
+export interface RenderGraphBarrier {
+
+
+    resource:string;
+
+
+    before:string;
+
+
+    after:string;
+
+}
+
+
+
+export interface RenderGraphResourceLifetime {
+
+
+    resource:string;
+
+
+    firstUse:number;
+
+
+    lastUse:number;
+
+}
 
 
 
@@ -14,54 +47,30 @@ export interface RenderGraphCompileResult {
         RenderGraphPass[];
 
 
-    resources:
+    barriers:
 
-        RenderGraphResource[];
+        RenderGraphBarrier[];
 
+
+    lifetimes:
+
+        RenderGraphResourceLifetime[];
 
 }
-
 
 
 
 export class RenderGraphCompiler {
 
 
-    private compiled = false;
 
-
-
-    constructor() {}
-
-
-
-    // ----------------------------------------------------
-    // Compile
-    // ----------------------------------------------------
-
-
-    
     compile(
 
-        passes:
+        passes:RenderGraphPass[],
 
-            readonly RenderGraphPass[],
+        resources:RenderGraphResource[]
 
-        resources:
-
-            readonly RenderGraphResource[]
-
-    ): RenderGraphCompileResult {
-
-
-
-        this.validateResources(
-
-            passes,
-
-            resources
-
-        );
+    ):RenderGraphCompileResult {
 
 
 
@@ -75,7 +84,25 @@ export class RenderGraphCompiler {
 
 
 
-        this.compiled = true;
+        const barriers =
+
+            this.buildBarriers(
+
+                executionOrder
+
+            );
+
+
+
+        const lifetimes =
+
+            this.calculateLifetime(
+
+                executionOrder,
+
+                resources
+
+            );
 
 
 
@@ -85,28 +112,29 @@ export class RenderGraphCompiler {
             executionOrder,
 
 
-            resources:
+            barriers,
 
-                [...resources]
+
+            lifetimes
 
 
         };
 
-
     }
 
-    // ----------------------------------------------------
-    // Topological Sort
-    // ----------------------------------------------------
+
+
+
+    // --------------------------------------------------
+    // Dependency sorting
+    // --------------------------------------------------
 
 
     private sortPasses(
 
-        passes:
+        passes:RenderGraphPass[]
 
-            readonly RenderGraphPass[]
-
-    ): RenderGraphPass[] {
+    ):RenderGraphPass[] {
 
 
 
@@ -129,382 +157,271 @@ export class RenderGraphCompiler {
 
 
 
+        const visit =
 
-        for (
+            (
+
+                pass:RenderGraphPass
+
+            ) => {
+
+
+
+                if(
+
+                    visiting.has(pass)
+
+                ){
+
+                    throw new Error(
+
+                        "RenderGraph cycle detected: "
+
+                        +
+
+                        pass.name
+
+                    );
+
+                }
+
+
+
+                if(
+
+                    visited.has(pass)
+
+                ){
+
+                    return;
+
+                }
+
+
+
+                visiting.add(pass);
+
+
+
+                for(
+
+                    const dependency of
+
+                    pass.getDependencies()
+
+                ){
+
+                    visit(
+
+                        dependency
+
+                    );
+
+                }
+
+
+
+                visiting.delete(pass);
+
+
+
+                visited.add(pass);
+
+
+
+                result.push(
+
+                    pass
+
+                );
+
+
+            };
+
+
+
+
+        for(
 
             const pass of passes
 
-        ) {
+        ){
 
+            visit(
 
-
-            this.visit(
-
-                pass,
-
-                visited,
-
-                visiting,
-
-                result
+                pass
 
             );
 
-
         }
-
-
 
 
 
         return result;
 
-
     }
 
 
 
 
+    // --------------------------------------------------
+    // Resource barriers
+    // --------------------------------------------------
 
-    // ----------------------------------------------------
-    // Dependency Visit
-    // ----------------------------------------------------
 
-
-    private visit(
-
-        pass:
-
-            RenderGraphPass,
-
-
-        visited:
-
-            Set<RenderGraphPass>,
-
-
-        visiting:
-
-            Set<RenderGraphPass>,
-
-
-        result:
-
-            RenderGraphPass[]
-
-
-    ): void {
-
-
-
-        if (
-
-            visited.has(
-
-                pass
-
-            )
-
-        ) {
-
-
-            return;
-
-
-        }
-
-
-
-
-
-        if (
-
-            visiting.has(
-
-                pass
-
-            )
-
-        ) {
-
-
-            throw new Error(
-
-                "RenderGraph cycle detected: " +
-
-                pass.name
-
-            );
-
-
-        }
-
-
-
-
-
-        visiting.add(
-
-            pass
-
-        );
-
-
-
-
-
-        for (
-
-            const dependency of
-
-            pass.getDependencies()
-
-        ) {
-
-
-
-            this.visit(
-
-                dependency,
-
-                visited,
-
-                visiting,
-
-                result
-
-            );
-
-
-        }
-
-
-
-
-
-        visiting.delete(
-
-            pass
-
-        );
-
-
-
-        visited.add(
-
-            pass
-
-        );
-
-
-
-        result.push(
-
-            pass
-
-        );
-
-
-    }
-
-
-    // ----------------------------------------------------
-    // Resource Validation
-    // ----------------------------------------------------
-
-
-    private validateResources(
+    private buildBarriers(
 
         passes:
 
-            readonly RenderGraphPass[],
+            RenderGraphPass[]
 
-        resources:
-
-            readonly RenderGraphResource[]
-
-    ): void {
+    ):RenderGraphBarrier[] {
 
 
 
-        const resourceNames =
+        const barriers:
 
-            new Set<string>();
-
-
+            RenderGraphBarrier[] = [];
 
 
 
-        for (
+        const states =
 
-            const resource of resources
-
-        ) {
+            new Map<string,string>();
 
 
 
-            if (
-
-                resourceNames.has(
-
-                    resource.name
-
-                )
-
-            ) {
-
-
-
-                throw new Error(
-
-                    "Duplicate RenderGraph resource: " +
-
-                    resource.name
-
-                );
-
-
-            }
-
-
-
-
-
-            resourceNames.add(
-
-                resource.name
-
-            );
-
-
-        }
-
-
-
-
-
-        for (
+        for(
 
             const pass of passes
 
-        ) {
+        ){
 
 
 
-            this.validatePassResources(
+            for(
 
-                pass
+                const resource of
 
-            );
+                pass.getReads()
 
+            ){
 
-        }
 
 
-    }
+                const previous =
 
+                    states.get(
 
+                        resource.name
 
+                    );
 
 
-    // ----------------------------------------------------
-    // Pass Resource Validation
-    // ----------------------------------------------------
 
+                if(
 
-    private validatePassResources(
+                    previous === "Write"
 
-        pass:
+                ){
 
-            RenderGraphPass
 
-    ): void {
 
+                    barriers.push({
 
+                        resource:
 
-        const writes =
+                            resource.name,
 
-            new Set<string>();
 
+                        before:
 
+                            "Write",
 
-        for (
 
-            const resource of
+                        after:
 
-            pass.getWrites()
+                            "Read"
 
-        ) {
 
+                    });
 
+                }
 
-            writes.add(
 
-                resource.name
 
-            );
+                states.set(
 
+                    resource.name,
 
-        }
-
-
-
-
-
-        for (
-
-            const resource of
-
-            pass.getReads()
-
-        ) {
-
-
-
-            /*
-                Aynı pass içinde:
-
-                READ + WRITE
-
-                şu an desteklenmiyor.
-
-
-                Daha sonra:
-
-                Vulkan Image Barrier
-
-                WebGPU Resource Transition
-
-                olarak geliştirilecek.
-            */
-
-
-            if (
-
-                writes.has(
-
-                    resource.name
-
-                )
-
-            ) {
-
-
-
-                throw new Error(
-
-                    "RenderGraph hazard: pass '" +
-
-                    pass.name +
-
-                    "' reads and writes resource '" +
-
-                    resource.name +
-
-                    "'"
+                    "Read"
 
                 );
 
+            }
+
+
+
+
+
+            for(
+
+                const resource of
+
+                pass.getWrites()
+
+            ){
+
+
+
+                const previous =
+
+                    states.get(
+
+                        resource.name
+
+                    );
+
+
+
+                if(
+
+                    previous === "Read"
+
+                ){
+
+
+
+                    barriers.push({
+
+                        resource:
+
+                            resource.name,
+
+
+                        before:
+
+                            "Read",
+
+
+                        after:
+
+                            "Write"
+
+
+                    });
+
+                }
+
+
+
+                states.set(
+
+                    resource.name,
+
+                    "Write"
+
+                );
 
             }
 
@@ -512,25 +429,8 @@ export class RenderGraphCompiler {
         }
 
 
-    }
 
-
-
-
-
-    // ----------------------------------------------------
-    // Compile State
-    // ----------------------------------------------------
-
-
-    isCompiled():
-
-    boolean {
-
-
-
-        return this.compiled;
-
+        return barriers;
 
     }
 
@@ -538,42 +438,213 @@ export class RenderGraphCompiler {
 
 
 
-    reset(): void {
+    // --------------------------------------------------
+    // Lifetime analysis
+    // --------------------------------------------------
+
+
+    private calculateLifetime(
+
+        passes:
+
+            RenderGraphPass[],
+
+
+        resources:
+
+            RenderGraphResource[]
+
+    ):
 
 
 
-        this.compiled = false;
+    RenderGraphResourceLifetime[] {
 
+
+
+        const result:
+
+            RenderGraphResourceLifetime[] = [];
+
+
+
+        for(
+
+            const resource of resources
+
+        ){
+
+
+
+            let firstUse =
+
+                Number.MAX_SAFE_INTEGER;
+
+
+
+            let lastUse =
+
+                -1;
+
+
+
+
+            for(
+
+                let i=0;
+
+                i<passes.length;
+
+                i++
+
+            ){
+
+
+
+                const pass =
+
+                    passes[i];
+
+
+
+                const used =
+
+
+
+                    pass
+
+                    .getReads()
+
+                    .includes(resource)
+
+                    ||
+
+                    pass
+
+                    .getWrites()
+
+                    .includes(resource);
+
+
+
+                if(
+
+                    used
+
+                ){
+
+
+
+                    firstUse =
+
+                        Math.min(
+
+                            firstUse,
+
+                            i
+
+                        );
+
+
+
+                    lastUse =
+
+                        Math.max(
+
+                            lastUse,
+
+                            i
+
+                        );
+
+                }
+
+            }
+
+
+
+
+            if(
+
+                lastUse >= 0
+
+            ){
+
+
+
+                result.push({
+
+                    resource:
+
+                        resource.name,
+
+
+                    firstUse,
+
+
+                    lastUse
+
+                });
+
+            }
+
+
+        }
+
+
+
+        return result;
 
     }
 
 
-    // ----------------------------------------------------
+
+
+    // --------------------------------------------------
     // Debug
-    // ----------------------------------------------------
+    // --------------------------------------------------
 
 
-    debugInfo() {
+    debugInfo(
+
+        result:
+
+            RenderGraphCompileResult
+
+    ){
+
 
 
         return {
 
 
-            type:
+            executionOrder:
 
-                "RenderGraphCompiler",
+                result.executionOrder
+
+                .map(
+
+                    p => p.name
+
+                ),
 
 
-            compiled:
 
-                this.compiled
+            barriers:
+
+                result.barriers,
+
+
+
+            lifetimes:
+
+                result.lifetimes
+
 
 
         };
 
-
     }
-
 
 
 }
