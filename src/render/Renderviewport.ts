@@ -1,71 +1,150 @@
-// src/render/Viewport.ts
+import { RenderCamera } from "./RenderCamera";
 
-import { Camera } from "./Camera";
 
 export interface ViewportRectangle {
 
-    x: number;
+    x:number;
 
-    y: number;
+    y:number;
 
-    width: number;
+    width:number;
 
-    height: number;
+    height:number;
 
 }
 
-export class Viewport {
 
-    private readonly camera: Camera;
+export interface ViewportState {
 
-    private rectangle: ViewportRectangle = {
+    rectangle:ViewportRectangle;
 
-        x: 0,
+    pixelRatio:number;
 
-        y: 0,
+    enabled:boolean;
 
-        width: 800,
+}
 
-        height: 600
 
-    };
 
-    private pixelRatio = 1.0;
+export class RenderViewport {
 
-    private enabled = true;
+
+    private readonly camera:
+        RenderCamera;
+
+
+
+    private rectangle:
+        ViewportRectangle = {
+
+            x:0,
+
+            y:0,
+
+            width:800,
+
+            height:600
+
+        };
+
+
+
+    private pixelRatio =
+        1.0;
+
+
+
+    private enabled =
+        true;
+
+
 
     constructor(
-        camera: Camera,
-        width = 800,
-        height = 600
-    ) {
 
-        this.camera = camera;
+        camera:RenderCamera,
 
-        this.resize(width, height);
+        width=800,
 
-    }
+        height=600
 
-    public resize(
-        width: number,
-        height: number
-    ): void {
+    ){
 
-        this.rectangle.width = Math.max(1, width);
+        this.camera =
+            camera;
 
-        this.rectangle.height = Math.max(1, height);
 
-        this.camera.setViewport(
-            this.rectangle.width,
-            this.rectangle.height
+        this.resize(
+
+            width,
+
+            height
+
         );
 
     }
 
-    public setPosition(
-        x: number,
-        y: number
-    ): void {
+
+
+    // --------------------------------------------
+    // Size
+    // --------------------------------------------
+
+
+    resize(
+
+        width:number,
+
+        height:number
+
+    ):void{
+
+
+        this.rectangle.width =
+            Math.max(
+
+                1,
+
+                width
+
+            );
+
+
+        this.rectangle.height =
+            Math.max(
+
+                1,
+
+                height
+
+            );
+
+
+
+        this.camera.setViewport(
+
+            this.rectangle.width *
+
+            this.pixelRatio,
+
+
+            this.rectangle.height *
+
+            this.pixelRatio
+
+        );
+
+    }
+
+
+
+    setPosition(
+
+        x:number,
+
+        y:number
+
+    ):void{
+
 
         this.rectangle.x = x;
 
@@ -73,171 +152,400 @@ export class Viewport {
 
     }
 
-    public setPixelRatio(
-        ratio: number
-    ): void {
 
-        this.pixelRatio = Math.max(0.1, ratio);
+
+    setPixelRatio(
+
+        ratio:number
+
+    ):void{
+
+
+        this.pixelRatio =
+            Math.max(
+
+                0.1,
+
+                ratio
+
+            );
+
+
+        this.resize(
+
+            this.rectangle.width,
+
+            this.rectangle.height
+
+        );
 
     }
 
-    public getPixelRatio(): number {
+
+
+    getPixelRatio():
+
+    number {
 
         return this.pixelRatio;
 
     }
 
-    public getWidth(): number {
+
+
+    getWidth():
+
+    number {
 
         return this.rectangle.width;
 
     }
 
-    public getHeight(): number {
+
+
+    getHeight():
+
+    number {
 
         return this.rectangle.height;
 
     }
 
-    public getAspectRatio(): number {
 
-        return this.rectangle.width / this.rectangle.height;
+
+    getAspectRatio():
+
+    number {
+
+        return (
+
+            this.rectangle.width /
+
+            this.rectangle.height
+
+        );
 
     }
 
-    public getRectangle(): ViewportRectangle {
 
-        return { ...this.rectangle };
+
+    getRectangle():
+
+    ViewportRectangle {
+
+        return {
+
+            ...this.rectangle
+
+        };
 
     }
 
-    public enable(): void {
+
+
+    // --------------------------------------------
+    // Enable
+    // --------------------------------------------
+
+
+    enable():void{
 
         this.enabled = true;
 
     }
 
-    public disable(): void {
+
+
+    disable():void{
 
         this.enabled = false;
 
     }
 
-    public isEnabled(): boolean {
+
+
+    isEnabled():
+
+    boolean {
 
         return this.enabled;
 
     }
 
-    public render(): void {
 
-        if (!this.enabled) {
+
+    // --------------------------------------------
+    // GPU Apply
+    // --------------------------------------------
+
+
+    apply(
+
+        nativeContext:any
+
+    ):void{
+
+
+        if(
+
+            !this.enabled
+
+        ){
 
             return;
 
         }
 
-        /*
-            Burada ileride:
 
-            Android
-                GLES30.glViewport()
 
-            Vulkan
-                vkCmdSetViewport()
+        if(
 
-            WebGL
-                gl.viewport()
+            !nativeContext
 
-            çağrıları yapılacak.
-        */
+        ){
 
-    }
-
-    public screenCenter(): {
-
-        x: number;
-
-        y: number;
-
-    } {
-
-        return {
-
-            x: this.rectangle.width * 0.5,
-
-            y: this.rectangle.height * 0.5
-
-        };
-
-    }
-
-    public invalidate(): void {
-
-        /*
-            Gelecekte:
-
-            Renderer yeniden çizsin.
-
-            Android:
-
-            GLSurfaceView.requestRender()
-
-        */
-
-    }
-
-    public toJSON() {
-
-        return {
-
-            rectangle: this.rectangle,
-
-            pixelRatio: this.pixelRatio,
-
-            enabled: this.enabled
-
-        };
-
-    }
-
-    public static fromJSON(
-        camera: Camera,
-        json: any
-    ): Viewport {
-
-        const vp = new Viewport(
-
-            camera,
-
-            json.rectangle.width,
-
-            json.rectangle.height
-
-        );
-
-        vp.setPosition(
-
-            json.rectangle.x,
-
-            json.rectangle.y
-
-        );
-
-        vp.setPixelRatio(
-
-            json.pixelRatio
-
-        );
-
-        if (!json.enabled) {
-
-            vp.disable();
+            return;
 
         }
 
-        return vp;
+
+
+        /*
+        
+        WebGL:
+
+        gl.viewport(
+            x,
+            y,
+            width,
+            height
+        )
+
+
+        WebGPU:
+
+        viewport state
+
+
+        Vulkan:
+
+        VkViewport
+
+
+        */
+
+
+        const x =
+            this.rectangle.x *
+            this.pixelRatio;
+
+
+        const y =
+            this.rectangle.y *
+            this.pixelRatio;
+
+
+        const width =
+            this.rectangle.width *
+            this.pixelRatio;
+
+
+        const height =
+            this.rectangle.height *
+            this.pixelRatio;
+
+
+
+        const gl =
+            nativeContext;
+
+
+
+        if(
+
+            gl.viewport
+
+        ){
+
+            gl.viewport(
+
+                x,
+
+                y,
+
+                width,
+
+                height
+
+            );
+
+        }
 
     }
+
+
+
+
+    // --------------------------------------------
+    // Helpers
+    // --------------------------------------------
+
+
+    screenCenter(){
+
+        return {
+
+            x:
+                this.rectangle.width *
+                0.5,
+
+
+            y:
+                this.rectangle.height *
+                0.5
+
+        };
+
+    }
+
+
+
+    contains(
+
+        x:number,
+
+        y:number
+
+    ):boolean{
+
+
+        return (
+
+            x >= this.rectangle.x &&
+
+            y >= this.rectangle.y &&
+
+            x <=
+                this.rectangle.x +
+                this.rectangle.width &&
+
+            y <=
+                this.rectangle.y +
+                this.rectangle.height
+
+        );
+
+    }
+
+
+
+    // --------------------------------------------
+    // Serialization
+    // --------------------------------------------
+
+
+    saveState():
+
+    ViewportState {
+
+
+        return {
+
+            rectangle:
+                this.getRectangle(),
+
+
+            pixelRatio:
+                this.pixelRatio,
+
+
+            enabled:
+                this.enabled
+
+        };
+
+    }
+
+
+
+    restoreState(
+
+        state:ViewportState
+
+    ):void{
+
+
+        this.rectangle =
+            {
+
+                ...state.rectangle
+
+            };
+
+
+        this.pixelRatio =
+            state.pixelRatio;
+
+
+        this.enabled =
+            state.enabled;
+
+
+
+        this.resize(
+
+            this.rectangle.width,
+
+            this.rectangle.height
+
+        );
+
+    }
+
+
+
+    toJSON(){
+
+        return this.saveState();
+
+    }
+
+
+
+    static fromJSON(
+
+        camera:RenderCamera,
+
+        json:any
+
+    ):RenderViewport{
+
+
+        const viewport =
+            new RenderViewport(
+
+                camera,
+
+                json.rectangle.width,
+
+                json.rectangle.height
+
+            );
+
+
+
+        viewport.restoreState(
+
+            json
+
+        );
+
+
+
+        return viewport;
+
+    }
+
+
 
 }
