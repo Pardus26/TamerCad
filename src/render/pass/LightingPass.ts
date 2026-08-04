@@ -5,11 +5,8 @@ import { RenderScene } from "../RenderScene";
 import { RenderCamera } from "../RenderCamera";
 
 import { GBuffer } from "../postprocess/GBuffer";
-
 import { EnvironmentMap } from "../postprocess/EnvironmentMap";
-
 import { ReflectionProbeBuffer } from "../postprocess/ReflectionProbeBuffer";
-
 import { SSRComposite } from "../postprocess/SSRComposite";
 
 import { MeshRenderer } from "../renderer/MeshRenderer";
@@ -20,237 +17,157 @@ import { Light } from "../light/Light";
 
 export interface LightingPassOptions {
 
-    renderer?: MeshRenderer;
+    renderer?:MeshRenderer;
 
-    gBuffer?: GBuffer;
+    gBuffer?:GBuffer;
 
-    environment?: EnvironmentMap;
+    environment?:EnvironmentMap;
 
-    reflectionProbe?: ReflectionProbeBuffer;
+    reflectionProbe?:ReflectionProbeBuffer;
 
-    ssrComposite?: SSRComposite;
+    ssrComposite?:SSRComposite;
 
 }
+
 
 
 
 export class LightingPass extends RenderPass {
 
-    private renderer:
 
-        MeshRenderer | null = null;
+    private renderer:
+        MeshRenderer|null=null;
+
 
     private gBuffer:
+        GBuffer|null=null;
 
-        GBuffer | null = null;
 
     private environment:
+        EnvironmentMap|null=null;
 
-        EnvironmentMap | null = null;
 
     private reflectionProbe:
+        ReflectionProbeBuffer|null=null;
 
-        ReflectionProbeBuffer | null = null;
 
     private ssrComposite:
+        SSRComposite|null=null;
 
-        SSRComposite | null = null;
+
+
 
     constructor(
-    options: LightingPassOptions = {}
-) {
-
-    super({
-
-        name:"LightingPass",
-
-        priority:200
-
-    });
-
-
-    this
-    .reads(
-
-        "Depth",
-
-        "GBuffer",
-
-        "Shadow",
-
-        "SSAO"
-
+        options:LightingPassOptions={}
     )
-    .writes(
+    {
 
-        "HDR"
+        super({
 
-    );
+            name:"LightingPass",
 
+            priority:200
 
-    this.renderer =
-        options.renderer ?? null;
-
-
-    this.gBuffer =
-        options.gBuffer ?? null;
+        });
 
 
-}
-
-    public setRenderer(
-
-        renderer:
-
-            MeshRenderer
-
-    ): void {
 
         this.renderer =
+            options.renderer ?? null;
 
-            renderer;
-
-    }
-
-    public setGBuffer(
-
-        gbuffer:
-
-            GBuffer
-
-    ): void {
 
         this.gBuffer =
+            options.gBuffer ?? null;
 
-            gbuffer;
-
-    }
-
-    public setEnvironmentMap(
-
-        map:
-
-            EnvironmentMap
-
-    ): void {
 
         this.environment =
+            options.environment ?? null;
 
-            map;
-
-    }
-
-    public setReflectionProbe(
-
-        probe:
-
-            ReflectionProbeBuffer
-
-    ): void {
 
         this.reflectionProbe =
+            options.reflectionProbe ?? null;
 
-            probe;
-
-    }
-
-    public setSSRComposite(
-
-        composite:
-
-            SSRComposite
-
-    ): void {
 
         this.ssrComposite =
-
-            composite;
+            options.ssrComposite ?? null;
 
     }
+
+
+
+
+
+    reads():string[]
+    {
+
+        return [
+
+            "Depth",
+
+            "GBuffer_Position",
+
+            "GBuffer_Normal",
+
+            "GBuffer_Albedo",
+
+            "GBuffer_Material",
+
+            "SSAO",
+
+            "SSR"
+
+        ];
+
+    }
+
+
+
+
+
+    writes():string[]
+    {
+
+        return [
+
+            "HDR_Lighting"
+
+        ];
+
+    }
+
+
+
+
 
     protected execute(
 
-        context:
+        context:RenderContext,
 
-            RenderContext,
+        scene:RenderScene,
 
-        scene:
+        camera:RenderCamera
 
-            RenderScene,
+    )
+    {
 
-        camera:
-
-            RenderCamera
-
-    ): void {
-
-        if (
-
-            !this.gBuffer
-
-        ) {
-
+        if(!this.gBuffer)
             return;
 
-        }
 
-        this.bindInputs();
 
-        this.renderLights(
+        this.gBuffer.bind();
 
-            context,
 
-            scene,
 
-            camera
-
-        );
-
-        this.renderEnvironment();
-
-        this.renderReflections();
-
-    }
-
-    private bindInputs(): void {
-
-        this.gBuffer?.bind();
-
-    }
-
-    private renderLights(
-
-        context:
-
-            RenderContext,
-
-        scene:
-
-            RenderScene,
-
-        camera:
-
-            RenderCamera
-
-    ): void {
-
-        const lights:
-
-            Light[] =
-
+        const lights =
             scene.getLights
+            ? scene.getLights()
+            : [];
 
-                ? scene.getLights()
 
-                : [];
 
-        for (
-
-            const light of
-
-            lights
-
-        ) {
+        for(const light of lights)
+        {
 
             this.renderer?.renderLight?.(
 
@@ -264,66 +181,33 @@ export class LightingPass extends RenderPass {
 
         }
 
-    }
 
-    private renderEnvironment(): void {
 
-        if (
+        this.environment?.bind?.();
 
-            !this.environment
-
-        ) {
-
-            return;
-
-        }
-
-        this.environment.bind?.();
 
     }
 
-    private renderReflections(): void {
 
-        if (
 
-            !this.ssrComposite
 
-        ) {
 
-            return;
-
-        }
-
-        this.ssrComposite.debugInfo();
-
-    }
-
-    public debugInfo() {
+    debugInfo()
+    {
 
         return {
 
-            type:
+            type:"LightingPass",
 
-                "LightingPass",
+            gBuffer:
+                this.gBuffer!==null,
 
-            hasGBuffer:
-
-                this.gBuffer !== null,
-
-            hasEnvironment:
-
-                this.environment !== null,
-
-            hasReflectionProbe:
-
-                this.reflectionProbe !== null,
-
-            hasSSRComposite:
-
-                this.ssrComposite !== null
+            environment:
+                this.environment!==null
 
         };
 
     }
+
 
 }
