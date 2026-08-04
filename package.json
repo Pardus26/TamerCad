@@ -1,16 +1,31 @@
 {
   "name": "tamercad",
   "version": "0.1.0",
+  "description": "TamerCAD - Professional CAD Kernel for Android",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "clean": "rm -rf dist",
-    "start": "node dist/index.js"
+    "clean": "rimraf dist",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write .",
+    "check-format": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"Tests will be added\"",
+    "prepare-release": "npm run lint && npm run typecheck && npm run build"
   },
   "devDependencies": {
-    "typescript": "^5.8.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.4.2",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.3"
   }
 }
