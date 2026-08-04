@@ -1,231 +1,336 @@
 import { MeshVertex } from "./MeshVertex";
 import { MeshTriangle } from "./MeshTriangle";
 
+
+
+export interface MeshBoundingBox {
+
+    min:{
+        x:number;
+        y:number;
+        z:number;
+    };
+
+    max:{
+        x:number;
+        y:number;
+        z:number;
+    };
+
+}
+
+
+
+
 export class Mesh {
 
-    private readonly vertices: MeshVertex[] = [];
 
-    private readonly triangles: MeshTriangle[] = [];
+    private readonly vertices:MeshVertex[]=[];
+
+
+    private readonly triangles:MeshTriangle[]=[];
+
+
 
     constructor(
 
-        public name: string = "Mesh"
+        public name:string="Mesh"
 
-    ) {}
+    ){}
 
-    addVertex(
 
-        vertex: MeshVertex
 
-    ): number {
+
+
+    public addVertex(
+
+        vertex:MeshVertex
+
+    ):number{
+
 
         this.vertices.push(vertex);
 
-        return this.vertices.length - 1;
+
+        return this.vertices.length-1;
+
 
     }
 
-    addTriangle(
 
-        triangle: MeshTriangle
 
-    ): void {
+
+
+
+    public addTriangle(
+
+        triangle:MeshTriangle
+
+    ):void{
+
 
         this.triangles.push(triangle);
 
+
     }
 
-    getVertex(
 
-        index: number
 
-    ): MeshVertex {
+
+
+
+    public getVertex(
+
+        index:number
+
+    ):MeshVertex{
+
 
         return this.vertices[index];
 
+
     }
 
-    getTriangle(
 
-        index: number
 
-    ): MeshTriangle {
+
+
+
+    public getTriangle(
+
+        index:number
+
+    ):MeshTriangle{
+
 
         return this.triangles[index];
 
+
     }
 
-    getVertices(): readonly MeshVertex[] {
+
+
+
+
+
+    public getVertices():
+
+    readonly MeshVertex[]{
+
 
         return this.vertices;
 
+
     }
 
-    getTriangles(): readonly MeshTriangle[] {
+
+
+
+
+
+    public getTriangles():
+
+    readonly MeshTriangle[]{
+
 
         return this.triangles;
 
+
     }
 
-    vertexCount(): number {
+
+
+
+
+
+    public vertexCount():number{
+
 
         return this.vertices.length;
 
+
     }
 
-    triangleCount(): number {
+
+
+
+
+
+    public triangleCount():number{
+
 
         return this.triangles.length;
 
-    }
-
-    clear(): void {
-
-        this.vertices.length = 0;
-
-        this.triangles.length = 0;
 
     }
 
-    isEmpty(): boolean {
+
+
+
+
+
+    public clear():void{
+
+
+        this.vertices.length=0;
+
+
+        this.triangles.length=0;
+
+
+    }
+
+
+
+
+
+
+    public isEmpty():boolean{
+
 
         return (
 
-            this.vertices.length === 0 ||
+            this.vertices.length===0 ||
 
-            this.triangles.length === 0
+            this.triangles.length===0
 
         );
 
+
     }
 
-    computeSurfaceArea(): number {
 
-        let area = 0;
 
-        for (
+
+
+
+    public computeSurfaceArea():number{
+
+
+        let area=0;
+
+
+        for(
 
             const triangle of this.triangles
 
-        ) {
+        ){
 
-            area += triangle.computeArea(
 
-                this.vertices
+            area +=
 
-            );
+                triangle.computeArea(
+
+                    this.vertices
+
+                );
+
 
         }
 
+
         return area;
+
 
     }
 
-    getBoundingBox() {
 
-        if (
 
-            this.vertices.length === 0
 
-        ) {
+
+
+    public getBoundingBox():
+
+    MeshBoundingBox | null{
+
+
+        if(this.vertices.length===0){
 
             return null;
 
         }
 
-        let minX = Number.POSITIVE_INFINITY;
-        let minY = Number.POSITIVE_INFINITY;
-        let minZ = Number.POSITIVE_INFINITY;
 
-        let maxX = Number.NEGATIVE_INFINITY;
-        let maxY = Number.NEGATIVE_INFINITY;
-        let maxZ = Number.NEGATIVE_INFINITY;
 
-        for (
+        let minX=Infinity;
+        let minY=Infinity;
+        let minZ=Infinity;
 
-            const v of this.vertices
 
-        ) {
+        let maxX=-Infinity;
+        let maxY=-Infinity;
+        let maxZ=-Infinity;
 
-            minX = Math.min(
 
-                minX,
 
-                v.position.x
+        for(
 
-            );
+            const vertex of this.vertices
 
-            minY = Math.min(
+        ){
 
-                minY,
 
-                v.position.y
+            const p=
 
-            );
+                vertex.position;
 
-            minZ = Math.min(
 
-                minZ,
 
-                v.position.z
+            minX=Math.min(minX,p.x);
 
-            );
+            minY=Math.min(minY,p.y);
 
-            maxX = Math.max(
+            minZ=Math.min(minZ,p.z);
 
-                maxX,
 
-                v.position.x
 
-            );
+            maxX=Math.max(maxX,p.x);
 
-            maxY = Math.max(
+            maxY=Math.max(maxY,p.y);
 
-                maxY,
+            maxZ=Math.max(maxZ,p.z);
 
-                v.position.y
-
-            );
-
-            maxZ = Math.max(
-
-                maxZ,
-
-                v.position.z
-
-            );
 
         }
 
+
+
+
+
         return {
 
-            min: {
+            min:{
 
-                x: minX,
-
-                y: minY,
-
-                z: minZ
+                x:minX,
+                y:minY,
+                z:minZ
 
             },
 
-            max: {
 
-                x: maxX,
+            max:{
 
-                y: maxY,
-
-                z: maxZ
+                x:maxX,
+                y:maxY,
+                z:maxZ
 
             }
 
+
         };
+
 
     }
 
-    clone(): Mesh {
 
-        const mesh =
+
+
+
+
+    public clone():Mesh{
+
+
+        const mesh=
 
             new Mesh(
 
@@ -233,71 +338,97 @@ export class Mesh {
 
             );
 
-        for (
 
-            const v of this.vertices
 
-        ) {
+        for(
+
+            const vertex of this.vertices
+
+        ){
 
             mesh.addVertex(
 
-                v.clone()
+                vertex.clone()
 
             );
 
         }
 
-        for (
 
-            const t of this.triangles
 
-        ) {
+
+        for(
+
+            const triangle of this.triangles
+
+        ){
 
             mesh.addTriangle(
 
-                t.clone()
+                triangle.clone()
 
             );
 
         }
 
+
+
         return mesh;
+
 
     }
 
-    toJSON() {
+
+
+
+
+
+    public toJSON(){
+
 
         return {
 
-            name: this.name,
+
+            name:this.name,
+
 
             vertices:
 
                 this.vertices.map(
 
-                    v => v.toJSON()
+                    v=>v.toJSON()
 
                 ),
+
+
 
             triangles:
 
                 this.triangles.map(
 
-                    t => t.toJSON()
+                    t=>t.toJSON()
 
                 )
 
+
         };
+
 
     }
 
-    static fromJSON(
 
-        data: any
 
-    ): Mesh {
 
-        const mesh =
+
+
+    public static fromJSON(
+
+        data:any
+
+    ):Mesh{
+
+
+        const mesh=
 
             new Mesh(
 
@@ -305,36 +436,44 @@ export class Mesh {
 
             );
 
-        for (
 
-            const v of data.vertices
 
-        ) {
+        for(
+
+            const vertex of data.vertices
+
+        ){
 
             mesh.addVertex(
 
-                MeshVertex.fromJSON(v)
+                MeshVertex.fromJSON(vertex)
 
             );
 
         }
 
-        for (
 
-            const t of data.triangles
 
-        ) {
+        for(
+
+            const triangle of data.triangles
+
+        ){
 
             mesh.addTriangle(
 
-                MeshTriangle.fromJSON(t)
+                MeshTriangle.fromJSON(triangle)
 
             );
 
         }
 
+
+
         return mesh;
 
+
     }
+
 
 }
