@@ -1,0 +1,60 @@
+name: Version Manager
+
+on:
+
+  workflow_run:
+
+    workflows:
+      - TamerCAD Build
+
+    types:
+      - completed
+
+jobs:
+
+  version:
+
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    runs-on: ubuntu-latest
+
+    permissions:
+
+      contents: write
+
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm version patch --no-git-tag-version
+
+      - name: Read Version
+        id: version
+
+        run: |
+
+          VERSION=$(node -p "require('./package.json').version")
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - run: |
+
+          git config user.name "github-actions"
+
+          git config user.email "actions@github.com"
+
+          git add package.json
+
+          git commit -m "ci: bump version to ${{ steps.version.outputs.version }}"
+
+          git tag v${{ steps.version.outputs.version }}
+
+          git push
+
+          git push origin v${{ steps.version.outputs.version }}
