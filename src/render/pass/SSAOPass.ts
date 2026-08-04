@@ -8,108 +8,88 @@ import { GBuffer } from "../postprocess/GBuffer";
 import { SSAOBuffer } from "../postprocess/SSAOBuffer";
 
 import { ShaderProgram } from "../shader/ShaderProgram";
-import { RenderViewport } from "../RenderViewport";
 
-export interface SSAOPassOptions {
 
-    gBuffer?: GBuffer;
-
-    output?: SSAOBuffer;
-
-    shader?: ShaderProgram;
-
-    viewport?: RenderViewport;
-
-}
 
 export class SSAOPass extends RenderPass {
 
-    private gBuffer: GBuffer | null = null;
 
-    private output: SSAOBuffer | null = null;
-
-    private shader: ShaderProgram | null = null;
-
-    private viewport: RenderViewport | null = null;
-
-    public radius = 0.5;
-
-    public bias = 0.025;
-
-    public power = 1.5;
-
-    constructor(
-    options: SSAOPassOptions = {}
-) {
-
-    super({
-
-        name:"SSAOPass",
-
-        priority:175
-
-    });
+    private gBuffer:
+        GBuffer|null=null;
 
 
-    this
-    .reads(
+    private output:
+        SSAOBuffer|null=null;
 
-        "Depth",
 
-        "GBuffer"
+    private shader:
+        ShaderProgram|null=null;
 
+
+
+    public radius=0.5;
+
+    public bias=0.025;
+
+    public power=1.5;
+
+
+
+
+
+    constructor()
+    {
+
+        super({
+
+            name:"SSAOPass",
+
+            priority:175
+
+        });
+
+    }
+
+
+
+
+
+    reads():string[]
+    {
+
+        return [
+
+            "GBuffer_Position",
+
+            "GBuffer_Normal"
+
+        ];
+
+    }
+
+
+
+
+
+    writes():string[]
+    {
+
+        return [
+
+            "SSAO"
+
+        ];
+
+    }
+
+
+
+
+
+    protected begin(
+        context:RenderContext
     )
-    .writes(
-
-        "SSAO"
-
-    );
-
-
-    this.gBuffer =
-        options.gBuffer ?? null;
-
-
-    this.output =
-        options.output ?? null;
-
-
-}
-    public setGBuffer(
-        buffer: GBuffer
-    ): void {
-
-        this.gBuffer = buffer;
-
-    }
-
-    public setOutput(
-        buffer: SSAOBuffer
-    ): void {
-
-        this.output = buffer;
-
-    }
-
-    public setShader(
-        shader: ShaderProgram
-    ): void {
-
-        this.shader = shader;
-
-    }
-
-    public setViewport(
-        viewport: RenderViewport
-    ): void {
-
-        this.viewport = viewport;
-
-    }
-
-    protected override begin(
-        context: RenderContext
-    ): void {
+    {
 
         this.output?.bind();
 
@@ -117,31 +97,39 @@ export class SSAOPass extends RenderPass {
 
     }
 
+
+
+
+
     protected execute(
 
-        context: RenderContext,
+        context:RenderContext,
 
-        scene: RenderScene,
+        scene:RenderScene,
 
-        camera: RenderCamera
+        camera:RenderCamera
 
-    ): void {
+    )
+    {
 
-        if (
+        if(
 
             !this.shader ||
 
             !this.gBuffer
 
-        ) {
-
+        )
             return;
 
-        }
+
 
         this.shader.bind();
 
+
+
         this.gBuffer.bind();
+
+
 
         this.shader.setUniform?.(
 
@@ -151,6 +139,8 @@ export class SSAOPass extends RenderPass {
 
         );
 
+
+
         this.shader.setUniform?.(
 
             "uBias",
@@ -158,6 +148,8 @@ export class SSAOPass extends RenderPass {
             this.bias
 
         );
+
+
 
         this.shader.setUniform?.(
 
@@ -167,58 +159,24 @@ export class SSAOPass extends RenderPass {
 
         );
 
+
+
         context.drawFullscreenQuad?.();
 
     }
 
-    protected override end(
-        context: RenderContext
-    ): void {
+
+
+
+
+    protected end(
+        context:RenderContext
+    )
+    {
 
         this.output?.unbind();
 
     }
 
-    public resize(
-
-        width: number,
-
-        height: number
-
-    ): void {
-
-        this.output?.resize?.(
-
-            width,
-
-            height
-
-        );
-
-    }
-
-    public debugInfo() {
-
-        return {
-
-            type: "SSAOPass",
-
-            radius: this.radius,
-
-            bias: this.bias,
-
-            power: this.power,
-
-            hasShader:
-
-                this.shader !== null,
-
-            hasGBuffer:
-
-                this.gBuffer !== null
-
-        };
-
-    }
 
 }
