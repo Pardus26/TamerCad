@@ -992,43 +992,23 @@ export class DeferredRenderer {
 
 
 
-        for(
+        for (const resource of reads) {
 
-            const resource of reads
+    this.graphBuilder.read(
+        graphPass,
+        resource
+    );
 
-        ){
+}
 
+for (const resource of writes) {
 
-            this.graphBuilder.connectRead(
+    this.graphBuilder.write(
+        graphPass,
+        resource
+    );
 
-                graphPass,
-
-                resource
-
-            );
-
-
-        }
-
-
-
-
-
-        for(
-
-            const resource of writes
-
-        ){
-
-
-            this.graphBuilder.connectWrite(
-
-                graphPass,
-
-                resource
-
-            );
-
+}
 
         }
 
