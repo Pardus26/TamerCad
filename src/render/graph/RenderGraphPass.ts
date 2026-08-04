@@ -2,23 +2,40 @@ import {
     RenderGraphResource
 } from "./RenderGraphResource";
 
+
 import {
     RenderContext
 } from "../RenderContext";
 
 
+import {
+    RenderScene
+} from "../RenderScene";
+
+
+import {
+    RenderCamera
+} from "../RenderCamera";
+
+
 
 export type RenderGraphExecuteCallback = (
 
-    context: RenderContext
+    context: RenderContext,
+
+    scene?: RenderScene,
+
+    camera?: RenderCamera
 
 ) => void;
 
 
 
+
 export class RenderGraphPass {
 
-    public readonly name: string;
+
+    public readonly name:string;
 
 
 
@@ -46,11 +63,12 @@ export class RenderGraphPass {
 
 
 
+
     constructor(
 
-        name: string
+        name:string
 
-    ) {
+    ){
 
         this.name = name;
 
@@ -58,58 +76,30 @@ export class RenderGraphPass {
 
 
 
-    public read(
 
-        resource:
+    read(
 
-            RenderGraphResource
+        resource:RenderGraphResource
 
-    ): this {
-
-        this.reads.push(
-
-            resource
-
-        );
+    ):this{
 
 
+        if(
 
-        resource.addConsumer(
+            !this.reads.includes(resource)
 
-            this.name
+        ){
 
-        );
-
-
-
-        return this;
-
-    }
+            this.reads.push(resource);
 
 
+            resource.addConsumer(
 
-    public write(
+                this.name
 
-        resource:
+            );
 
-            RenderGraphResource
-
-    ): this {
-
-        this.writes.push(
-
-            resource
-
-        );
-
-
-
-        resource.setProducer(
-
-            this.name
-
-        );
-
+        }
 
 
         return this;
@@ -118,29 +108,76 @@ export class RenderGraphPass {
 
 
 
-    public dependsOn(
 
-        pass:
 
-            RenderGraphPass
+    write(
 
-    ): this {
+        resource:RenderGraphResource
 
-        if (
+    ):this{
+
+
+        if(
+
+            !this.writes.includes(resource)
+
+        ){
+
+            this.writes.push(resource);
+
+
+            resource.setProducer(
+
+                this.name
+
+            );
+
+        }
+
+
+        return this;
+
+    }
+
+
+
+
+
+    dependsOn(
+
+        pass:RenderGraphPass
+
+    ):this{
+
+
+        if(
 
             !this.dependencies.includes(pass)
 
-        ) {
+        ){
 
-            this.dependencies.push(
-
-                pass
-
-            );
+            this.dependencies.push(pass);
 
         }
 
 
+        return this;
+
+    }
+
+
+
+
+
+    setExecute(
+
+        callback:RenderGraphExecuteCallback
+
+    ):this{
+
+
+        this.executeCallback = callback;
+
 
         return this;
 
@@ -148,41 +185,32 @@ export class RenderGraphPass {
 
 
 
-    public setExecute(
-
-        callback:
-
-            RenderGraphExecuteCallback
-
-    ): this {
-
-        this.executeCallback =
-
-            callback;
-
-        return this;
-
-    }
 
 
+    execute(
 
-    public execute(
+        context:RenderContext,
 
-        context:
+        scene?:RenderScene,
 
-            RenderContext
+        camera?:RenderCamera
 
-    ): void {
+    ):void{
 
-        if (
+
+        if(
 
             this.executeCallback
 
-        ) {
+        ){
 
             this.executeCallback(
 
-                context
+                context,
+
+                scene,
+
+                camera
 
             );
 
@@ -192,9 +220,12 @@ export class RenderGraphPass {
 
 
 
-    public getReads():
 
-    readonly RenderGraphResource[] {
+
+    getReads():
+
+    readonly RenderGraphResource[]{
+
 
         return this.reads;
 
@@ -202,9 +233,12 @@ export class RenderGraphPass {
 
 
 
-    public getWrites():
 
-    readonly RenderGraphResource[] {
+
+    getWrites():
+
+    readonly RenderGraphResource[]{
+
 
         return this.writes;
 
@@ -212,9 +246,12 @@ export class RenderGraphPass {
 
 
 
-    public getDependencies():
 
-    readonly RenderGraphPass[] {
+
+    getDependencies():
+
+    readonly RenderGraphPass[]{
+
 
         return this.dependencies;
 
@@ -222,40 +259,48 @@ export class RenderGraphPass {
 
 
 
-    public debugInfo() {
+
+
+    debugInfo(){
+
 
         return {
 
-            name:
 
-                this.name,
+            name:this.name,
+
 
             reads:
 
                 this.reads.map(
 
-                    r => r.name
+                    r=>r.name
 
                 ),
+
 
             writes:
 
                 this.writes.map(
 
-                    r => r.name
+                    r=>r.name
 
                 ),
+
 
             dependencies:
 
                 this.dependencies.map(
 
-                    d => d.name
+                    d=>d.name
 
                 )
 
+
         };
 
+
     }
+
 
 }
