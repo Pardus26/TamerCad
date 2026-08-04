@@ -1168,16 +1168,12 @@ export class DeferredRenderer {
 
         this.passCount =
 
-            compiled.passes.length;
+    compiled.executionOrder.length;
 
 
+this.resourceCount =
 
-
-
-        this.resourceCount =
-
-            compiled.resources.length;
-
+    compiled.lifetimes.length;
 
 
 
