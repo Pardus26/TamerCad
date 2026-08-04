@@ -1,246 +1,149 @@
 // src/render/Camera.ts
 
-export enum ProjectionMode {
-    PERSPECTIVE = "perspective",
-    ORTHOGRAPHIC = "orthographic"
-}
-
-export interface Vector3 {
-
-    x: number;
-    y: number;
-    z: number;
-}
+import { Vector3 } from "../math/vector/Vector3";
 
 export class Camera {
 
-    public position: Vector3;
+    private target = new Vector3(0, 0, 0);
 
-    public target: Vector3;
+    private position = new Vector3(0, 0, 5);
 
-    public up: Vector3;
+    private up = new Vector3(0, 1, 0);
 
-    public projection: ProjectionMode;
+    private yaw = 0;
 
-    public fieldOfView: number;
+    private pitch = 0;
 
-    public nearPlane: number;
+    private distance = 5;
 
-    public farPlane: number;
+    private width = 1;
 
-    public zoomFactor: number;
+    private height = 1;
+
+    private readonly minDistance = 0.2;
+
+    private readonly maxDistance = 1000;
 
     constructor() {
 
-        this.position = {
-            x: 250,
-            y: 250,
-            z: 250
-        };
-
-        this.target = {
-            x: 0,
-            y: 0,
-            z: 0
-        };
-
-        this.up = {
-            x: 0,
-            y: 0,
-            z: 1
-        };
-
-        this.projection =
-            ProjectionMode.PERSPECTIVE;
-
-        this.fieldOfView = 45;
-
-        this.nearPlane = 0.1;
-
-        this.farPlane = 100000;
-
-        this.zoomFactor = 1.0;
+        this.updatePosition();
     }
 
-    /**
-     * Orbit
-     */
-    public orbit(
-        deltaYaw: number,
-        deltaPitch: number
+    public setViewport(
+        width: number,
+        height: number
     ): void {
 
-        /*
-            TODO
+        this.width = Math.max(width, 1);
 
-            Quaternion orbit
-
-            Arcball rotation
-        */
+        this.height = Math.max(height, 1);
     }
 
-    /**
-     * Pan
-     */
+    public orbit(
+        dx: number,
+        dy: number
+    ): void {
+
+        const rotationSpeed = 0.005;
+
+        this.yaw += dx * rotationSpeed;
+
+        this.pitch += dy * rotationSpeed;
+
+        const limit = Math.PI * 0.49;
+
+        if (this.pitch > limit) this.pitch = limit;
+
+        if (this.pitch < -limit) this.pitch = -limit;
+
+        this.updatePosition();
+    }
+
     public pan(
         dx: number,
         dy: number
     ): void {
 
-        this.position.x += dx;
-        this.position.y += dy;
+        const panSpeed = this.distance * 0.001;
 
-        this.target.x += dx;
-        this.target.y += dy;
+        this.target.x -= dx * panSpeed;
+
+        this.target.y += dy * panSpeed;
+
+        this.updatePosition();
     }
 
-    /**
-     * Zoom
-     */
-    public zoom(delta: number): void {
-
-        this.zoomFactor += delta;
-
-        if (this.zoomFactor < 0.01) {
-            this.zoomFactor = 0.01;
-        }
-    }
-
-    /**
-     * Fit View
-     */
-    public fitToScene(
-        radius: number
+    public zoom(
+        amount: number
     ): void {
 
-        this.position = {
+        const zoomSpeed = 0.1;
 
-            x: radius * 2,
+        this.distance *= (1.0 - amount * zoomSpeed);
 
-            y: radius * 2,
+        if (this.distance < this.minDistance)
+            this.distance = this.minDistance;
 
-            z: radius * 2
+        if (this.distance > this.maxDistance)
+            this.distance = this.maxDistance;
 
-        };
-
-        this.target = {
-
-            x: 0,
-
-            y: 0,
-
-            z: 0
-
-        };
+        this.updatePosition();
     }
 
-    /**
-     * Ön görünüş
-     */
-    public front(): void {
+    private updatePosition(): void {
 
-        this.position = {
+        const cp = Math.cos(this.pitch);
 
-            x: 0,
+        const sp = Math.sin(this.pitch);
 
-            y: -500,
+        const cy = Math.cos(this.yaw);
 
-            z: 0
+        const sy = Math.sin(this.yaw);
 
-        };
+        this.position.x =
+            this.target.x +
+            this.distance * cp * sy;
+
+        this.position.y =
+            this.target.y +
+            this.distance * sp;
+
+        this.position.z =
+            this.target.z +
+            this.distance * cp * cy;
     }
 
-    /**
-     * Üst görünüş
-     */
-    public top(): void {
+    public getPosition(): Vector3 {
 
-        this.position = {
-
-            x: 0,
-
-            y: 0,
-
-            z: 500
-
-        };
+        return this.position;
     }
 
-    /**
-     * Sağ görünüş
-     */
-    public right(): void {
+    public getTarget(): Vector3 {
 
-        this.position = {
-
-            x: 500,
-
-            y: 0,
-
-            z: 0
-
-        };
+        return this.target;
     }
 
-    /**
-     * İzometrik görünüş
-     */
-    public isometric(): void {
+    public getUp(): Vector3 {
 
-        this.position = {
-
-            x: 300,
-
-            y: 300,
-
-            z: 300
-
-        };
+        return this.up;
     }
 
-    /**
-     * Perspektif
-     */
-    public setPerspective(): void {
+    public getAspectRatio(): number {
 
-        this.projection =
-            ProjectionMode.PERSPECTIVE;
+        return this.width / this.height;
     }
 
-    /**
-     * Ortografik
-     */
-    public setOrthographic(): void {
+    public reset(): void {
 
-        this.projection =
-            ProjectionMode.ORTHOGRAPHIC;
+        this.target.set(0, 0, 0);
+
+        this.distance = 5;
+
+        this.pitch = 0;
+
+        this.yaw = 0;
+
+        this.updatePosition();
     }
 
-    /**
-     * View Matrix
-     */
-    public getViewMatrix(): number[] {
-
-        /*
-            TODO
-
-            LookAt Matrix
-        */
-
-        return [];
-    }
-
-    /**
-     * Projection Matrix
-     */
-    public getProjectionMatrix(
-        aspectRatio: number
-    ): number[] {
-
-        /*
-            TODO
-
-            Perspective
-
-            Orthographic
-       
+}
