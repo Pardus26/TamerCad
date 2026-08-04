@@ -1,196 +1,243 @@
 // src/render/Viewport.ts
 
 import { Camera } from "./Camera";
-import { Scene } from "./Scene";
+
+export interface ViewportRectangle {
+
+    x: number;
+
+    y: number;
+
+    width: number;
+
+    height: number;
+
+}
 
 export class Viewport {
 
-    private width: number;
+    private readonly camera: Camera;
 
-    private height: number;
+    private rectangle: ViewportRectangle = {
 
-    private camera: Camera;
+        x: 0,
 
-    private scene: Scene;
+        y: 0,
 
-    private backgroundColor = {
-        r: 0.12,
-        g: 0.12,
-        b: 0.14,
-        a: 1.0
+        width: 800,
+
+        height: 600
+
     };
+
+    private pixelRatio = 1.0;
+
+    private enabled = true;
 
     constructor(
         camera: Camera,
-        scene: Scene
+        width = 800,
+        height = 600
     ) {
 
         this.camera = camera;
-        this.scene = scene;
 
-        this.width = 1280;
-        this.height = 720;
+        this.resize(width, height);
+
     }
 
-    /**
-     * Viewport yeniden boyutlandır
-     */
     public resize(
         width: number,
         height: number
     ): void {
 
-        this.width = width;
-        this.height = height;
+        this.rectangle.width = Math.max(1, width);
+
+        this.rectangle.height = Math.max(1, height);
+
+        this.camera.setViewport(
+            this.rectangle.width,
+            this.rectangle.height
+        );
+
     }
 
-    /**
-     * Çizim
-     */
-    public render(): void {
-
-        /*
-            Future GPU Pipeline
-
-            1 Clear
-
-            2 Update Camera
-
-            3 Update Scene
-
-            4 Draw Grid
-
-            5 Draw Geometry
-
-            6 Draw Gizmos
-
-            7 Draw Overlay
-        */
-
-        this.scene.render();
-    }
-
-    /**
-     * Kamera
-     */
-    public getCamera(): Camera {
-
-        return this.camera;
-    }
-
-    /**
-     * Scene
-     */
-    public getScene(): Scene {
-
-        return this.scene;
-    }
-
-    /**
-     * Arka plan
-     */
-    public setBackground(
-        r: number,
-        g: number,
-        b: number,
-        a: number = 1
+    public setPosition(
+        x: number,
+        y: number
     ): void {
 
-        this.backgroundColor = {
-            r,
-            g,
-            b,
-            a
-        };
+        this.rectangle.x = x;
+
+        this.rectangle.y = y;
+
     }
 
-    public getBackground() {
+    public setPixelRatio(
+        ratio: number
+    ): void {
 
-        return this.backgroundColor;
+        this.pixelRatio = Math.max(0.1, ratio);
+
     }
 
-    /**
-     * Boyutlar
-     */
+    public getPixelRatio(): number {
+
+        return this.pixelRatio;
+
+    }
+
     public getWidth(): number {
 
-        return this.width;
+        return this.rectangle.width;
+
     }
 
     public getHeight(): number {
 
-        return this.height;
+        return this.rectangle.height;
+
     }
 
-    /**
-     * Aspect Ratio
-     */
     public getAspectRatio(): number {
 
-        if (this.height === 0) {
-            return 1;
+        return this.rectangle.width / this.rectangle.height;
+
+    }
+
+    public getRectangle(): ViewportRectangle {
+
+        return { ...this.rectangle };
+
+    }
+
+    public enable(): void {
+
+        this.enabled = true;
+
+    }
+
+    public disable(): void {
+
+        this.enabled = false;
+
+    }
+
+    public isEnabled(): boolean {
+
+        return this.enabled;
+
+    }
+
+    public render(): void {
+
+        if (!this.enabled) {
+
+            return;
+
         }
 
-        return this.width / this.height;
+        /*
+            Burada ileride:
+
+            Android
+                GLES30.glViewport()
+
+            Vulkan
+                vkCmdSetViewport()
+
+            WebGL
+                gl.viewport()
+
+            çağrıları yapılacak.
+        */
+
     }
 
-    /**
-     * Fit View
-     */
-    public fitScene(
-        radius: number
-    ): void {
+    public screenCenter(): {
 
-        this.camera.fitToScene(
-            radius
+        x: number;
+
+        y: number;
+
+    } {
+
+        return {
+
+            x: this.rectangle.width * 0.5,
+
+            y: this.rectangle.height * 0.5
+
+        };
+
+    }
+
+    public invalidate(): void {
+
+        /*
+            Gelecekte:
+
+            Renderer yeniden çizsin.
+
+            Android:
+
+            GLSurfaceView.requestRender()
+
+        */
+
+    }
+
+    public toJSON() {
+
+        return {
+
+            rectangle: this.rectangle,
+
+            pixelRatio: this.pixelRatio,
+
+            enabled: this.enabled
+
+        };
+
+    }
+
+    public static fromJSON(
+        camera: Camera,
+        json: any
+    ): Viewport {
+
+        const vp = new Viewport(
+
+            camera,
+
+            json.rectangle.width,
+
+            json.rectangle.height
+
         );
+
+        vp.setPosition(
+
+            json.rectangle.x,
+
+            json.rectangle.y
+
+        );
+
+        vp.setPixelRatio(
+
+            json.pixelRatio
+
+        );
+
+        if (!json.enabled) {
+
+            vp.disable();
+
+        }
+
+        return vp;
+
     }
 
-    /**
-     * Dünya koordinatından ekran koordinatına
-     */
-    public worldToScreen(
-        x: number,
-        y: number,
-        z: number
-    ) {
-
-        /*
-            TODO
-
-            View Matrix
-
-            Projection Matrix
-
-            Viewport Transform
-        */
-
-        return {
-            x: 0,
-            y: 0
-        };
-    }
-
-    /**
-     * Ekrandan dünya koordinatına
-     */
-    public screenToWorld(
-        x: number,
-        y: number
-    ) {
-
-        /*
-            TODO
-
-            Picking Ray
-
-            Ray Casting
-        */
-
-        return {
-            x: 0,
-            y: 0,
-            z: 0
-        };
-    }
 }
