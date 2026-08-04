@@ -12,70 +12,108 @@ import { SSRTemporalFilter } from "../postprocess/SSRTemporalFilter";
 import { SSRDenoise } from "../postprocess/SSRDenoise";
 import { SSRComposite } from "../postprocess/SSRComposite";
 
-export interface SSRPassOptions {
 
-    buffer?: SSRBuffer;
 
-}
+
 
 export class SSRPass extends RenderPass {
 
-    private buffer: SSRBuffer | null = null;
 
-    private readonly trace = new SSRTrace();
-
-    private readonly resolve = new SSRResolve();
-
-    private readonly temporal = new SSRTemporalFilter();
-
-    private readonly denoise = new SSRDenoise();
-
-    private readonly composite = new SSRComposite();
-
-    public maxDistance = 100.0;
-
-    public thickness = 0.15;
-
-    public maxSteps = 64;
-
-   constructor(
-    options: SSRPassOptions = {}
-) {
-
-    super({
-
-        name:"SSRPass",
-
-        priority:250
-
-    });
+    private buffer:
+        SSRBuffer|null=null;
 
 
-    this
-    .reads(
 
-        "Depth",
+    private readonly trace =
+        new SSRTrace();
 
-        "GBuffer",
 
-        "HDR"
+    private readonly resolve =
+        new SSRResolve();
 
+
+    private readonly temporal =
+        new SSRTemporalFilter();
+
+
+    private readonly denoise =
+        new SSRDenoise();
+
+
+    private readonly composite =
+        new SSRComposite();
+
+
+
+
+    constructor()
+    {
+
+        super({
+
+            name:"SSRPass",
+
+            priority:250
+
+        });
+
+    }
+
+
+
+
+
+    reads():string[]
+    {
+
+        return [
+
+            "GBuffer_Position",
+
+            "GBuffer_Normal",
+
+            "HDR_Lighting"
+
+        ];
+
+    }
+
+
+
+
+
+    writes():string[]
+    {
+
+        return [
+
+            "SSR"
+
+        ];
+
+    }
+
+
+
+
+
+    setBuffer(
+        buffer:SSRBuffer
     )
-    .writes(
+    {
 
-        "SSR"
+        this.buffer=buffer;
 
-    );
+    }
 
 
-    this.buffer =
-        options.buffer ?? null;
 
-}
 
-    protected override begin(
-        context: RenderContext
-    ): void {
+
+    protected begin(
+        context:RenderContext
+    )
+    {
 
         this.buffer?.bind();
 
@@ -83,85 +121,46 @@ export class SSRPass extends RenderPass {
 
     }
 
+
+
+
+
     protected execute(
 
-        context: RenderContext,
+        context:RenderContext,
 
-        scene: RenderScene,
+        scene:RenderScene,
 
-        camera: RenderCamera
+        camera:RenderCamera
 
-    ): void {
+    )
+    {
 
-        this.trace.execute?.(
+        this.trace.execute?.(context);
 
-            context
+        this.resolve.execute?.(context);
 
-        );
+        this.temporal.execute?.(context);
 
-        this.resolve.execute?.(
+        this.denoise.execute?.(context);
 
-            context
+        this.composite.execute?.(context);
 
-        );
-
-        this.temporal.execute?.(
-
-            context
-
-        );
-
-        this.denoise.execute?.(
-
-            context
-
-        );
-
-        this.composite.execute?.(
-
-            context
-
-        );
 
     }
 
-    protected override end(
-        context: RenderContext
-    ): void {
+
+
+
+
+    protected end(
+        context:RenderContext
+    )
+    {
 
         this.buffer?.unbind();
 
     }
 
-    resize(
-        width: number,
-        height: number
-    ): void {
-
-        this.buffer?.resize?.(
-
-            width,
-
-            height
-
-        );
-
-    }
-
-    debugInfo() {
-
-        return {
-
-            type: "SSRPass",
-
-            maxDistance: this.maxDistance,
-
-            thickness: this.thickness,
-
-            maxSteps: this.maxSteps
-
-        };
-
-    }
 
 }
