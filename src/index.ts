@@ -1,0 +1,1 @@
+console.log("TamerCAD Kernel Boot");
