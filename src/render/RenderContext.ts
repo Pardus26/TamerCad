@@ -2,378 +2,237 @@ import { RenderViewport } from "./RenderViewport";
 import { RenderCamera } from "./RenderCamera";
 
 
-/**
- * Desteklenen render backendleri
- */
 export enum RenderBackend {
 
     WebGL = "WebGL",
-
     WebGPU = "WebGPU",
-
     Vulkan = "Vulkan",
-
     OpenGLES = "OpenGLES",
-
     Software = "Software"
 
 }
 
 
 
-/**
- * GPU yetenekleri
- */
 export interface RenderCapabilities {
 
+    maxTextureSize:number;
 
-    maxTextureSize: number;
+    maxVertexAttributes:number;
 
+    maxUniformVectors:number;
 
-    maxVertexAttributes: number;
+    supportsInstancing:boolean;
 
+    supportsFloatTextures:boolean;
 
-    maxUniformVectors: number;
+    supportsDepthTexture:boolean;
 
-
-    supportsInstancing: boolean;
-
-
-    supportsFloatTextures: boolean;
-
-
-    supportsDepthTexture: boolean;
-
-
-    supportsMSAA: boolean;
-
+    supportsMSAA:boolean;
 
 }
 
 
 
-/**
- * Render durum bilgisi
- */
 export interface RenderState {
 
+    depthTest:boolean;
 
-    depthTest: boolean;
+    blending:boolean;
 
+    culling:boolean;
 
-    blending: boolean;
-
-
-    culling: boolean;
-
-
-    wireframe: boolean;
-
+    wireframe:boolean;
 
 }
 
 
 
-/**
- * Ana Render Context
- *
- * GPU ile engine arasındaki köprü
- *
- * Android:
- *
- * OpenGL ES
- * Vulkan
- *
- * Web:
- *
- * WebGL
- * WebGPU
- *
- */
+
+
 export class RenderContext {
 
 
-    /**
-     * Aktif backend
-     */
-    public backend:
-
-        RenderBackend;
+    public backend:RenderBackend;
 
 
-
-    /**
-     * Native GPU context
-     *
-     * WebGLRenderingContext
-     *
-     * GPUDevice
-     *
-     * EGL Context
-     *
-     */
-    public nativeContext:
-
-        any = null;
+    public nativeContext:any = null;
 
 
-
-    /**
-     * Aktif viewport
-     */
-    public viewport:
-
-        RenderViewport | null = null;
+    public viewport:RenderViewport|null = null;
 
 
-
-    /**
-     * Aktif kamera
-     */
-    public camera:
-
-        RenderCamera | null = null;
-
-
-
-    /**
-     * GPU özellikleri
-     */
-    public capabilities:
-
-        RenderCapabilities = {
-
-
-            maxTextureSize:
-
-                0,
-
-
-            maxVertexAttributes:
-
-                0,
-
-
-            maxUniformVectors:
-
-                0,
-
-
-            supportsInstancing:
-
-                false,
-
-
-            supportsFloatTextures:
-
-                false,
-
-
-            supportsDepthTexture:
-
-                false,
-
-
-            supportsMSAA:
-
-                false
-
-
-        };
-
-
-
-    /**
-     * Render state
-     */
-    public state:
-
-        RenderState = {
-
-
-            depthTest:
-
-                true,
-
-
-            blending:
-
-                false,
-
-
-            culling:
-
-                true,
-
-
-            wireframe:
-
-                false
-
-
-        };
+    public camera:RenderCamera|null = null;
 
 
 
     private initialized = false;
 
 
+    private dirty = true;
+
+
+
+
+    public capabilities:RenderCapabilities = {
+
+        maxTextureSize:0,
+
+        maxVertexAttributes:0,
+
+        maxUniformVectors:0,
+
+        supportsInstancing:false,
+
+        supportsFloatTextures:false,
+
+        supportsDepthTexture:false,
+
+        supportsMSAA:false
+
+    };
+
+
+
+
+
+    public state:RenderState = {
+
+
+        depthTest:true,
+
+        blending:false,
+
+        culling:true,
+
+        wireframe:false
+
+
+    };
+
+
+
+
 
     constructor(
 
-        backend:
+        backend:RenderBackend = RenderBackend.Software
 
-            RenderBackend =
-
-                RenderBackend.Software
-
-    ) {
-
+    ){
 
         this.backend = backend;
 
-
     }
 
-    /**
-     * GPU context başlat
-     */
+
+
+
+
     public initialize(
 
-        nativeContext?: any
+        nativeContext?:any
 
-    ): void {
+    ):void{
 
 
-        this.nativeContext =
-
-            nativeContext ?? null;
-
+        this.nativeContext = nativeContext ?? null;
 
 
         this.detectCapabilities();
 
 
-
         this.initialized = true;
+
+
+        this.invalidate();
+
 
     }
 
 
 
 
-    /**
-     * Başlatıldı mı?
-     */
-    public isInitialized():
 
-    boolean {
+
+    public isInitialized():boolean{
 
 
         return this.initialized;
 
+
     }
 
 
 
 
-    // ----------------------------------------------------
-    // Camera / Viewport
-    // ----------------------------------------------------
 
 
-    /**
-     * Aktif viewport ata
-     */
     public setViewport(
 
-        viewport: RenderViewport
+        viewport:RenderViewport
 
-    ): void {
+    ):void{
 
 
         this.viewport = viewport;
 
 
+        this.invalidate();
+
+
     }
 
 
 
 
-    /**
-     * Aktif kamera ata
-     */
+
+
     public setCamera(
 
-        camera: RenderCamera
+        camera:RenderCamera
 
-    ): void {
+    ):void{
 
 
         this.camera = camera;
 
 
+        this.invalidate();
+
+
     }
 
 
 
 
-    /**
-     * Aspect ratio
-     */
-    public getAspectRatio():
-
-    number {
 
 
-        if (
 
-            !this.viewport
+    public getAspectRatio():number{
 
-        ) {
+
+        if(!this.viewport)
 
             return 1;
-
-        }
 
 
 
         return this.viewport.getAspectRatio();
 
+
     }
 
 
 
 
-    /**
-     * Viewport GPU'ya uygula
-     */
-    public applyViewport():
-
-    void {
 
 
-        if (
+    public applyViewport():void{
 
-            !this.viewport
 
-        ) {
+        if(!this.viewport)
 
             return;
-
-        }
-
-
-
-        if (
-
-            !this.nativeContext
-
-        ) {
-
-            return;
-
-        }
 
 
 
@@ -383,97 +242,97 @@ export class RenderContext {
 
         );
 
+
     }
 
 
 
 
-    // ----------------------------------------------------
-    // Render State
-    // ----------------------------------------------------
 
 
-    /**
-     * Depth test
-     */
     public setDepthTest(
 
         enabled:boolean
 
-    ):void {
+    ):void{
 
 
         this.state.depthTest = enabled;
 
 
+        this.invalidate();
+
+
     }
 
 
 
 
-    /**
-     * Blending
-     */
+
     public setBlending(
 
         enabled:boolean
 
-    ):void {
+    ):void{
 
 
         this.state.blending = enabled;
 
 
+        this.invalidate();
+
+
     }
 
 
 
 
-    /**
-     * Face culling
-     */
+
+
     public setCulling(
 
         enabled:boolean
 
-    ):void {
+    ):void{
 
 
         this.state.culling = enabled;
 
 
+        this.invalidate();
+
+
     }
 
 
 
 
-    /**
-     * Wireframe modu
-     *
-     * CAD görünümü için
-     */
+
+
     public setWireframe(
 
         enabled:boolean
 
-    ):void {
+    ):void{
 
 
         this.state.wireframe = enabled;
 
 
+        this.invalidate();
+
+
     }
 
 
 
 
-    public getRenderState():
 
-    RenderState {
+
+    public getRenderState():RenderState{
 
 
         return {
-
 
             ...this.state
 
@@ -482,127 +341,100 @@ export class RenderContext {
 
     }
 
-    // ----------------------------------------------------
-    // Frame Operations
-    // ----------------------------------------------------
-
-
-    /**
-     * Framebuffer temizleme
-     *
-     * Backend bağımsız.
-     *
-     * WebGL:
-     *
-     * gl.clear()
-     *
-     * Vulkan:
-     *
-     * RenderPass clear attachment
-     *
-     */
- public clear(
-
-    options: {
-
-        color?: boolean;
-
-        depth?: boolean;
-
-        stencil?: boolean;
-
-    } = {}
-
-): void {
 
 
 
-    if (
 
-        !this.nativeContext
 
-    ) {
 
-        return;
+    public clear(
+
+        options:{
+
+            color?:boolean;
+
+            depth?:boolean;
+
+            stencil?:boolean;
+
+
+        } = {}
+
+    ):void{
+
+
+        if(!this.nativeContext)
+
+            return;
+
+
+
+        const color =
+            options.color ?? true;
+
+
+        const depth =
+            options.depth ?? true;
+
+
+        const stencil =
+            options.stencil ?? false;
+
+
+
+        const gl = this.nativeContext;
+
+
+
+        if(gl.clear){
+
+
+            let mask = 0;
+
+
+
+            if(color && gl.COLOR_BUFFER_BIT)
+
+                mask |= gl.COLOR_BUFFER_BIT;
+
+
+
+            if(depth && gl.DEPTH_BUFFER_BIT)
+
+                mask |= gl.DEPTH_BUFFER_BIT;
+
+
+
+            if(stencil && gl.STENCIL_BUFFER_BIT)
+
+                mask |= gl.STENCIL_BUFFER_BIT;
+
+
+
+            gl.clear(mask);
+
+
+        }
+
 
     }
 
 
 
-    const color =
-
-        options.color ?? true;
 
 
 
-    const depth =
 
-        options.depth ?? true;
-
-
-
-    const stencil =
-
-        options.stencil ?? false;
-
-
-
-    /*
-        Backend bağımsız clear
-
-
-        WebGL:
-
-        gl.clear(
-            COLOR_BUFFER_BIT |
-            DEPTH_BUFFER_BIT |
-            STENCIL_BUFFER_BIT
-        )
-
-
-        Vulkan:
-
-        vkCmdBeginRenderPass(
-            clearValues
-        )
-
-
-        OpenGL ES:
-
-        glClear()
-
-    */
-
-
-
-    void color;
-
-    void depth;
-
-    void stencil;
-
-
-}
-
-
-
-    /**
-     * Ekran boyutu değişimi
-     */
     public resize(
 
         width:number,
 
         height:number
 
-    ):void {
+    ):void{
 
 
-        if (
-
-            this.viewport
-
-        ) {
+        if(this.viewport){
 
 
             this.viewport.resize(
@@ -617,154 +449,166 @@ export class RenderContext {
 
 
 
-        if (
-
-            this.camera
-
-        ) {
+        if(this.camera){
 
 
-            if (
+            this.camera.setAspectRatio?.(
 
-    this.camera
+                width /
 
-){
+                Math.max(
 
-    this.camera.setAspectRatio?.(
+                    height,
 
-        width /
+                    1
 
-        Math.max(height,1)
+                )
 
-    );
+            );
 
-}
 
         }
+
+
+
+        this.invalidate();
+
 
     }
 
 
 
 
-    // ----------------------------------------------------
-    // Capabilities
-    // ----------------------------------------------------
 
 
-    /**
-     * GPU özellikleri
-     */
-    public getCapabilities():
 
-    RenderCapabilities {
+    public getCapabilities():RenderCapabilities{
 
 
         return {
 
-
             ...this.capabilities
 
-
         };
+
 
     }
 
 
 
 
-    /**
-     * Backend bilgisi
-     */
-    public getBackend():
 
-    RenderBackend {
+
+
+    public getBackend():RenderBackend{
 
 
         return this.backend;
 
+
     }
 
 
 
 
-    /**
-     * Native context erişimi
-     */
-    public getNativeContext():
 
-    any {
+
+    public getNativeContext():any{
 
 
         return this.nativeContext;
 
+
     }
 
 
 
 
-    // ----------------------------------------------------
-    // Lifecycle
-    // ----------------------------------------------------
 
 
-    /**
-     * Render context kapat
-     */
-    public dispose():
+    public invalidate():void{
 
-    void {
+
+        this.dirty = true;
+
+
+    }
+
+
+
+
+
+
+    public needsRender():boolean{
+
+
+        return this.dirty;
+
+
+    }
+
+
+
+
+
+
+    public consumeRenderFlag():void{
+
+
+        this.dirty = false;
+
+
+    }
+
+
+
+
+
+
+
+    public dispose():void{
 
 
         this.nativeContext = null;
 
 
-
         this.viewport = null;
-
 
 
         this.camera = null;
 
 
-
         this.initialized = false;
+
+
+        this.dirty = false;
 
 
     }
 
-    // ----------------------------------------------------
-    // Capability Detection
-    // ----------------------------------------------------
-
-
-    private detectCapabilities():
-
-    void {
 
 
 
-        /**
-         * WebGL
-         */
-        if (
 
-            this.backend ===
 
-            RenderBackend.WebGL &&
+
+    private detectCapabilities():void{
+
+
+        if(
+
+            this.backend === RenderBackend.WebGL &&
 
             this.nativeContext
 
-        ) {
+        ){
 
 
-            const gl =
-
-                this.nativeContext;
+            const gl=this.nativeContext;
 
 
 
-            this.capabilities = {
+            this.capabilities={
 
 
                 maxTextureSize:
@@ -776,7 +620,6 @@ export class RenderContext {
                     ) ?? 0,
 
 
-
                 maxVertexAttributes:
 
                     gl.getParameter(
@@ -784,7 +627,6 @@ export class RenderContext {
                         gl.MAX_VERTEX_ATTRIBS
 
                     ) ?? 0,
-
 
 
                 maxUniformVectors:
@@ -796,90 +638,19 @@ export class RenderContext {
                     ) ?? 0,
 
 
-
                 supportsInstancing:
 
                     !!gl.drawElementsInstanced,
 
 
-
-                supportsFloatTextures:
-
-                    !!gl.FLOAT,
-
-
-
-                supportsDepthTexture:
-
-                    !!gl.DEPTH_COMPONENT,
-
-
-
-                supportsMSAA:
-
-                    !!gl.SAMPLES
-
-
-
-            };
-
-
-            return;
-
-        }
-
-
-
-
-        /**
-         * WebGPU
-         */
-        if (
-
-            this.backend ===
-
-            RenderBackend.WebGPU
-
-        ) {
-
-
-            this.capabilities = {
-
-
-                maxTextureSize:
-
-                    16384,
-
-
-
-                maxVertexAttributes:
-
-                    16,
-
-
-
-                maxUniformVectors:
-
-                    256,
-
-
-
-                supportsInstancing:
-
-                    true,
-
-
-
                 supportsFloatTextures:
 
                     true,
 
 
-
                 supportsDepthTexture:
 
                     true,
-
 
 
                 supportsMSAA:
@@ -898,63 +669,31 @@ export class RenderContext {
 
 
 
-        /**
-         * Android OpenGL ES
-         *
-         * İleride native bridge
-         * üzerinden doldurulacak.
-         */
-        if (
+        if(
 
-            this.backend ===
+            this.backend===RenderBackend.WebGPU ||
 
-            RenderBackend.OpenGLES
+            this.backend===RenderBackend.Vulkan
 
-        ) {
+        ){
 
 
-            this.capabilities = {
+            this.capabilities={
 
 
-                maxTextureSize:
+                maxTextureSize:16384,
 
-                    8192,
+                maxVertexAttributes:32,
 
+                maxUniformVectors:512,
 
+                supportsInstancing:true,
 
-                maxVertexAttributes:
+                supportsFloatTextures:true,
 
-                    16,
+                supportsDepthTexture:true,
 
-
-
-                maxUniformVectors:
-
-                    256,
-
-
-
-                supportsInstancing:
-
-                    true,
-
-
-
-                supportsFloatTextures:
-
-                    true,
-
-
-
-                supportsDepthTexture:
-
-                    true,
-
-
-
-                supportsMSAA:
-
-                    true
+                supportsMSAA:true
 
 
             };
@@ -962,69 +701,36 @@ export class RenderContext {
 
             return;
 
+
         }
 
 
 
 
 
-        /**
-         * Vulkan
-         *
-         * Native Android
-         * renderer için hazırlık.
-         */
-        if (
+        if(
 
-            this.backend ===
+            this.backend===RenderBackend.OpenGLES
 
-            RenderBackend.Vulkan
-
-        ) {
+        ){
 
 
-            this.capabilities = {
+            this.capabilities={
 
 
-                maxTextureSize:
+                maxTextureSize:8192,
 
-                    16384,
+                maxVertexAttributes:16,
 
+                maxUniformVectors:256,
 
+                supportsInstancing:true,
 
-                maxVertexAttributes:
+                supportsFloatTextures:true,
 
-                    32,
+                supportsDepthTexture:true,
 
-
-
-                maxUniformVectors:
-
-                    512,
-
-
-
-                supportsInstancing:
-
-                    true,
-
-
-
-                supportsFloatTextures:
-
-                    true,
-
-
-
-                supportsDepthTexture:
-
-                    true,
-
-
-
-                supportsMSAA:
-
-                    true
+                supportsMSAA:true
 
 
             };
@@ -1032,60 +738,32 @@ export class RenderContext {
 
             return;
 
+
         }
 
 
 
 
-
-        /**
-         * Software fallback
-         */
-        this.capabilities = {
+        this.capabilities={
 
 
-            maxTextureSize:
+            maxTextureSize:0,
 
-                0,
+            maxVertexAttributes:0,
 
+            maxUniformVectors:0,
 
+            supportsInstancing:false,
 
-            maxVertexAttributes:
+            supportsFloatTextures:false,
 
-                0,
+            supportsDepthTexture:false,
 
-
-
-            maxUniformVectors:
-
-                0,
-
-
-
-            supportsInstancing:
-
-                false,
-
-
-
-            supportsFloatTextures:
-
-                false,
-
-
-
-            supportsDepthTexture:
-
-                false,
-
-
-
-            supportsMSAA:
-
-                false
+            supportsMSAA:false
 
 
         };
+
 
     }
 
