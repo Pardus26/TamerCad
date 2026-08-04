@@ -14,8 +14,21 @@ export interface KernelContext {
     camera: Camera;
 
     viewport: Viewport;
-}
 
+
+    // CAD Core
+
+    geometry: GeometryKernel;
+
+    topology: TopologyKernel;
+
+    brep: BRepKernel;
+
+    feature: FeatureEngine;
+
+    constraint: ConstraintEngine;
+
+}
 export class KernelBootstrap {
 
     private static initialized = false;
