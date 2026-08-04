@@ -1134,7 +1134,204 @@ export class RenderCamera {
 
 
 
+// --------------------------------------------------------
+// Interactive Camera Controls
+// Shapr3D Style Navigation
+// --------------------------------------------------------
 
+
+
+public orbit(
+    dx:number,
+    dy:number
+):void{
+
+
+    const sensitivity = 0.005;
+
+
+    this.yaw -= dx * sensitivity;
+
+
+    this.pitch -= dy * sensitivity;
+
+
+
+    const limit =
+        Math.PI * 0.49;
+
+
+    this.pitch =
+        Math.max(
+            -limit,
+            Math.min(
+                limit,
+                this.pitch
+            )
+        );
+
+
+
+    this.updateOrbitPosition();
+
+}
+
+
+
+
+
+
+
+
+public pan(
+    dx:number,
+    dy:number
+):void{
+
+
+    const sensitivity =
+        this.distance * 0.001;
+
+
+
+    const right =
+        this.getRight();
+
+
+
+    const up =
+        this.up.clone();
+
+
+
+    const move =
+        right
+        .multiplyScalar(
+            -dx * sensitivity
+        )
+        .add(
+            up.multiplyScalar(
+                dy * sensitivity
+            )
+        );
+
+
+
+    this.target.add(
+        move
+    );
+
+
+    this.position.add(
+        move
+    );
+
+
+}
+
+
+
+
+
+
+
+
+public zoom(
+    amount:number
+):void{
+
+
+    const sensitivity =
+        0.1;
+
+
+
+    this.distance *=
+        (1 - amount * sensitivity);
+
+
+
+    this.distance =
+        Math.max(
+            0.01,
+            Math.min(
+                100000,
+                this.distance
+            )
+        );
+
+
+
+    this.updateOrbitPosition();
+
+
+}
+
+
+
+
+
+
+
+
+public rotate(
+    angle:number
+):void{
+
+
+    this.yaw +=
+        angle;
+
+
+
+    this.updateOrbitPosition();
+
+
+}
+
+
+
+
+
+
+
+
+public reset():void{
+
+
+    this.target.set(
+        0,
+        0,
+        0
+    );
+
+
+    this.distance =
+        10;
+
+
+
+    this.yaw =
+        0;
+
+
+
+    this.pitch =
+        0;
+
+
+
+    this.up.set(
+        0,
+        1,
+        0
+    );
+
+
+    this.updateOrbitPosition();
+
+
+}
 
     public dispose():void{
 
