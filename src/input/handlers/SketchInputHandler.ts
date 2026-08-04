@@ -2,24 +2,47 @@
 
 
 import {
-    InputHandler
-} from "../InputRouter";
 
+    PointerEvent,
 
-import {
-    PointerEvent
+    PointerAction,
+
+    PointerType
+
 } from "../PointerEvent";
 
 
 import {
-    GestureEvent
+
+    GestureEvent,
+
+    GestureType
+
 } from "../GestureRecognizer";
 
 
+import {
+
+    KernelBootstrap
+
+} from "../../app/KernelBootstrap";
+
+
+import {
+
+    Point3
+
+} from "../../geometry/point/Point3";
 
 
 
-export interface SketchPoint {
+
+
+
+
+
+
+interface SketchStrokePoint {
 
 
     x:number;
@@ -30,53 +53,8 @@ export interface SketchPoint {
 
     pressure:number;
 
-}
 
-
-
-
-
-export interface SketchSegment {
-
-
-    start: SketchPoint;
-
-
-    end: SketchPoint;
-
-}
-
-
-
-
-
-
-
-
-
-/**
- * Sketch motoru için minimum arayüz
- *
- * Daha sonra gerçek SketchManager bağlanacak
- */
-export interface SketchEngine {
-
-
-    beginStroke(
-        point:SketchPoint
-    ):void;
-
-
-
-    updateStroke(
-        point:SketchPoint
-    ):void;
-
-
-
-    endStroke(
-        point:SketchPoint
-    ):void;
+    timestamp:number;
 
 
 }
@@ -89,33 +67,18 @@ export interface SketchEngine {
 
 
 
-export class SketchInputHandler
-    implements InputHandler {
+export class SketchInputHandler {
+
+
+
+    private drawing = false;
 
 
 
 
-    private sketch:
-        SketchEngine;
+    private stroke:
 
-
-
-    private drawing =
-        false;
-
-
-
-
-
-
-    constructor(
-        sketchEngine:SketchEngine
-    ){
-
-        this.sketch =
-            sketchEngine;
-
-    }
+        SketchStrokePoint[] = [];
 
 
 
@@ -125,12 +88,27 @@ export class SketchInputHandler
 
 
 
-    public onPointerDown(
+    public handlePointer(
+
         event:PointerEvent
-    ):void{
+
+    ):void {
 
 
-        if(!event.isStylus()){
+
+
+        /*
+            Sadece kalem çizim yapar
+        */
+
+
+        if(
+
+            event.type !==
+
+            PointerType.Stylus
+
+        ){
 
             return;
 
@@ -139,25 +117,86 @@ export class SketchInputHandler
 
 
 
-        this.drawing =
-            true;
 
 
 
-        this.sketch.beginStroke({
 
-            x:
-                event.position.x,
+        switch(
 
+            event.action
 
-            y:
-                event.position.y,
+        ){
 
 
-            pressure:
-                event.pressure
 
-        });
+
+            case PointerAction.Down:
+
+
+
+                this.startStroke(
+
+                    event
+
+                );
+
+
+                break;
+
+
+
+
+
+
+
+            case PointerAction.Move:
+
+
+
+                this.addPoint(
+
+                    event
+
+                );
+
+
+                break;
+
+
+
+
+
+
+
+            case PointerAction.Up:
+
+
+
+                this.finishStroke();
+
+
+                break;
+
+
+
+
+
+
+
+            case PointerAction.Cancel:
+
+
+
+                this.cancelStroke();
+
+
+                break;
+
+
+
+        }
+
+
 
     }
 
@@ -169,37 +208,28 @@ export class SketchInputHandler
 
 
 
-    public onPointerMove(
+    private startStroke(
+
         event:PointerEvent
-    ):void{
 
-
-        if(!this.drawing)
-            return;
+    ):void {
 
 
 
-        if(!event.isStylus())
-            return;
+        this.drawing = true;
+
+
+        this.stroke = [];
 
 
 
+        this.addPoint(
+
+            event
+
+        );
 
 
-        this.sketch.updateStroke({
-
-            x:
-                event.position.x,
-
-
-            y:
-                event.position.y,
-
-
-            pressure:
-                event.pressure
-
-        });
 
     }
 
@@ -211,36 +241,59 @@ export class SketchInputHandler
 
 
 
-    public onPointerUp(
+    private addPoint(
+
         event:PointerEvent
-    ):void{
+
+    ):void {
 
 
-        if(!this.drawing)
+
+        if(
+
+            !this.drawing
+
+        ){
+
             return;
 
-
-
-        this.drawing =
-            false;
+        }
 
 
 
 
-        this.sketch.endStroke({
+
+
+
+
+        this.stroke.push({
+
 
             x:
+
                 event.position.x,
 
 
+
             y:
+
                 event.position.y,
 
 
+
             pressure:
-                0
+
+                event.pressure,
+
+
+
+            timestamp:
+
+                event.timestamp
+
 
         });
+
 
     }
 
@@ -252,25 +305,247 @@ export class SketchInputHandler
 
 
 
-    public onGesture(
-        event:GestureEvent
-    ):void{
+    private finishStroke():void {
+
+
+
+        if(
+
+            this.stroke.length < 2
+
+        ){
+
+
+            this.cancelStroke();
+
+            return;
+
+
+        }
+
+
+
+
+
+
+
+        this.createSketchEntity();
+
+
+
+        this.stroke=[];
+
+
+        this.drawing=false;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    private cancelStroke():void {
+
+
+        this.stroke=[];
+
+
+        this.drawing=false;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    private createSketchEntity():void {
+
+
+
+        const camera =
+
+            KernelBootstrap
+
+            .context()
+
+            .camera;
+
+
+
+
+
+
+
+        const points =
+
+            this.stroke.map(
+
+                p => {
+
+
+
+                    const world =
+
+                        camera.screenToWorld(
+
+                            p.x,
+
+                            p.y,
+
+                            0
+
+                        );
+
+
+
+
+
+                    return new Point3(
+
+                        world.x,
+
+                        world.y,
+
+                        world.z
+
+                    );
+
+
+
+                }
+
+            );
+
+
+
+
+
+
+
 
 
         /*
-         * Sketch sırasında
-         * kamera gesturelarını
-         * engellemek için hazır
-         *
-         * ileride:
-         *
-         * two finger erase
-         * undo gesture
-         *
-         * burada olacak
-         */
+            Şimdilik geçici:
+
+            Stroke -> Sketch Entity
+
+            Daha sonra:
+
+            LineEntity
+            ArcEntity
+            SplineEntity
+
+            olarak ayrılacak.
+        */
+
+
+
+
+
+        const scene =
+
+            KernelBootstrap
+
+            .context()
+
+            .scene;
+
+
+
+
+
+
+
+        scene.addSketchStroke(
+
+            points
+
+        );
+
 
 
     }
+
+
+
+
+
+
+
+
+
+    public handleGesture(
+
+        event:GestureEvent
+
+    ):void {
+
+
+
+        if(
+
+            event.type ===
+
+            GestureType.Stroke
+
+        ){
+
+
+            // İleride:
+            // kalem hareket komutları
+
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+
+
+    public isDrawing():boolean{
+
+
+        return this.drawing;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    public dispose():void {
+
+
+
+        this.stroke=[];
+
+
+        this.drawing=false;
+
+
+    }
+
+
 
 }
