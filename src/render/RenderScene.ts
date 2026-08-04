@@ -1,6 +1,17 @@
 import { MeshBody } from "../geometry/mesh/MeshBody";
+import { Vector3 } from "../math/vector/Vector3";
 
+export interface ScenePickResult {
 
+    id:string;
+
+    type:
+        | "MeshBody"
+        | "Object";
+
+    distance:number;
+
+}
 /**
  * Mesh dışı render objeleri
  */
@@ -90,12 +101,106 @@ export class RenderScene {
             new Map();
 
 
+private sketchStrokes:
 
+    Vector3[][] = [];
     private selection:
 
         SceneSelection | null = null;
 
+// ----------------------------------------------------
+// Picking
+// ----------------------------------------------------
 
+public pick(
+
+    origin:any,
+
+    direction:any
+
+):ScenePickResult | null{
+
+
+    let closest:
+
+        ScenePickResult | null = null;
+
+
+
+    let minDistance =
+
+        Number.MAX_VALUE;
+
+
+
+    /*
+        İlk aşama:
+
+        Basit bounding test
+
+        İleride:
+
+        BVH
+        KD Tree
+        Topology Picker
+
+    */
+
+
+
+    for(
+
+        const body of this.meshBodies.values()
+
+    ){
+
+
+        const hit =
+
+            body.intersectRay(
+
+                origin,
+
+                direction
+
+            );
+
+
+
+        if(hit && hit.distance < minDistance){
+
+
+            minDistance = hit.distance;
+
+
+            closest={
+
+
+                id:body.id,
+
+
+                type:"MeshBody",
+
+
+                distance:hit.distance
+
+
+            };
+
+
+        }
+
+
+    }
+
+
+
+
+
+    return closest;
+
+
+}
 
     private backgroundColor:
 
@@ -579,7 +684,25 @@ export class RenderScene {
     }
 
 
+// ----------------------------------------------------
+// Sketch Input
+// ----------------------------------------------------
 
+public addSketchStroke(
+
+    points:Vector3[]
+
+):void{
+
+
+    this.sketchStrokes.push(
+
+        points
+
+    );
+
+
+}
 
 
     // ----------------------------------------------------
