@@ -1,6 +1,3 @@
-// src/render/graph/RenderGraphBuilder.ts
-
-
 import {
     RenderGraphPass
 } from "./RenderGraphPass";
@@ -17,7 +14,6 @@ import {
 
 
 export class RenderGraphBuilder {
-
 
 
     private readonly passes:
@@ -47,7 +43,6 @@ export class RenderGraphBuilder {
 
 
 
-
     // ==================================================
     // Pass Creation
     // ==================================================
@@ -55,29 +50,30 @@ export class RenderGraphBuilder {
 
     public createPass(
 
-        name:string
+        name:string,
 
-    ):RenderGraphPass {
+        priority:number = 0
 
+    ):RenderGraphPass
+    {
 
 
         const existing =
 
-            this.passes.get(
+            this.passes.get(name);
 
-                name
+
+
+        if(existing)
+        {
+
+
+            existing.setPriority(
+
+                priority
 
             );
 
-
-
-
-
-        if(
-
-            existing
-
-        ){
 
             return existing;
 
@@ -93,7 +89,9 @@ export class RenderGraphBuilder {
 
             new RenderGraphPass(
 
-                name
+                name,
+
+                priority
 
             );
 
@@ -135,16 +133,14 @@ export class RenderGraphBuilder {
 
         name:string,
 
-        type:
-
-            RenderGraphResourceType,
+        type:RenderGraphResourceType,
 
         descriptor:
 
             RenderGraphResourceDescriptor = {}
 
-    ):RenderGraphResource {
-
+    ):RenderGraphResource
+    {
 
 
         const existing =
@@ -159,15 +155,13 @@ export class RenderGraphBuilder {
 
 
 
-        if(
-
-            existing
-
-        ){
+        if(existing)
+        {
 
             return existing;
 
         }
+
 
 
 
@@ -186,8 +180,6 @@ export class RenderGraphBuilder {
                 descriptor
 
             );
-
-
 
 
 
@@ -223,18 +215,14 @@ export class RenderGraphBuilder {
     // ==================================================
 
 
-    public read(
+    public connectRead(
 
-        pass:
+        pass:RenderGraphPass,
 
-            RenderGraphPass,
+        resource:RenderGraphResource
 
-        resource:
-
-            RenderGraphResource
-
-    ):this {
-
+    ):this
+    {
 
 
         pass.read(
@@ -256,18 +244,15 @@ export class RenderGraphBuilder {
 
 
 
-    public write(
 
-        pass:
+    public connectWrite(
 
-            RenderGraphPass,
+        pass:RenderGraphPass,
 
-        resource:
+        resource:RenderGraphResource
 
-            RenderGraphResource
-
-    ):this {
-
+    ):this
+    {
 
 
         pass.write(
@@ -289,24 +274,87 @@ export class RenderGraphBuilder {
 
 
 
+    // Alias methods
+    // Eski kullanım uyumluluğu
+
+
+
+    public read(
+
+        pass:RenderGraphPass,
+
+        resource:RenderGraphResource
+
+    ):this
+    {
+
+        return this.connectRead(
+
+            pass,
+
+            resource
+
+        );
+
+    }
+
+
+
+
+
+
+
+    public write(
+
+        pass:RenderGraphPass,
+
+        resource:RenderGraphResource
+
+    ):this
+    {
+
+        return this.connectWrite(
+
+            pass,
+
+            resource
+
+        );
+
+    }
+
+
+
+
+
+
+
 
 
     // ==================================================
-    // Access
+    // Dependency
     // ==================================================
 
 
-    public getPasses():
+    public dependency(
 
-    readonly RenderGraphPass[] {
+        before:RenderGraphPass,
+
+        after:RenderGraphPass
+
+    ):this
+    {
+
+
+        after.dependsOn(
+
+            before
+
+        );
 
 
 
-        return [
-
-            ...this.passes.values()
-
-        ];
+        return this;
 
 
     }
@@ -318,17 +366,88 @@ export class RenderGraphBuilder {
 
 
 
+
+    // ==================================================
+    // Query
+    // ==================================================
+
+
+    public getPasses():
+
+    readonly RenderGraphPass[]
+    {
+
+        return [
+
+            ...this.passes.values()
+
+        ];
+
+    }
+
+
+
+
+
+
+
     public getResources():
 
-    readonly RenderGraphResource[] {
-
-
+    readonly RenderGraphResource[]
+    {
 
         return [
 
             ...this.resources.values()
 
         ];
+
+    }
+
+
+
+
+
+
+
+
+
+    // ==================================================
+    // Validation
+    // ==================================================
+
+
+    public validate():
+
+    boolean
+    {
+
+
+        for(
+
+            const pass of
+
+            this.passes.values()
+
+        )
+        {
+
+            if(
+
+                !pass.validate()
+
+            )
+            {
+
+                return false;
+
+            }
+
+        }
+
+
+
+        return true;
 
 
     }
@@ -346,8 +465,8 @@ export class RenderGraphBuilder {
     // ==================================================
 
 
-    public clear():void {
-
+    public clear():void
+    {
 
 
         for(
@@ -356,14 +475,14 @@ export class RenderGraphBuilder {
 
             this.resources.values()
 
-        ){
+        )
+        {
 
 
             resource.clearUsage();
 
 
         }
-
 
 
 
@@ -388,8 +507,8 @@ export class RenderGraphBuilder {
     // ==================================================
 
 
-    public debugInfo(){
-
+    public debugInfo()
+    {
 
 
         return {
@@ -422,6 +541,7 @@ export class RenderGraphBuilder {
                         pass.debugInfo()
 
                 ),
+
 
 
 
