@@ -7,121 +7,83 @@ import { DisplayMesh } from "./display/DisplayMesh";
 import { MeshBody } from "../geometry/mesh/MeshBody";
 
 
-/**
- * Render istatistikleri
- */
 export interface RenderEngineStatistics {
-
 
     frame:number;
 
-
     fps:number;
-
 
     frameTime:number;
 
-
     drawCalls:number;
-
 
     triangles:number;
 
-
     vertices:number;
-
 
 }
 
 
 
-/**
- * RenderEngine
- *
- * CAD grafik motorunun ana render yöneticisi
- *
- * Shapr3D benzeri yapı:
- *
- * Scene
- *    |
- * RenderEngine
- *    |
- * RenderPipeline
- *    |
- * GPU Backend
- *
- */
 export class RenderEngine {
 
 
-
     private readonly displayCache =
-
         new Map<string, DisplayMesh>();
-
 
 
     private frame = 0;
 
 
-
     private fps = 0;
-
 
 
     private frameTime = 0;
 
 
-
     private lastTime = 0;
-
 
 
     private running = false;
 
 
-
     private initialized = false;
+
+
+    private needsRender = true;
 
 
 
     constructor(
 
-        public readonly context: RenderContext,
+
+        public readonly context:RenderContext,
 
 
-        public readonly scene: RenderScene,
+        public readonly scene:RenderScene,
 
 
-        public readonly camera: RenderCamera,
+        public readonly camera:RenderCamera,
 
 
-        public readonly pipeline: RenderPipeline
+        public readonly pipeline:RenderPipeline
 
 
-    ) {}
-
+    ){}
 
 
 
     /**
      * Engine başlat
      */
-    public initialize():
-
-    void {
+    public initialize():void{
 
 
-        if (
-
-            this.initialized
-
-        ) {
+        if(this.initialized){
 
             return;
 
         }
-
 
 
         this.context.setCamera(
@@ -131,36 +93,205 @@ export class RenderEngine {
         );
 
 
-
         this.pipeline.initialize();
 
 
+        this.initialized=true;
 
-        this.initialized = true;
 
     }
 
-    public invalidateMesh(
 
-        bodyId: string
 
-    ): void {
 
-        this.displayCache.delete(
 
-            bodyId
+    /**
+     * Render
+     */
+    public render(
+
+        width:number,
+
+        height:number,
+
+        time = performance.now()
+
+    ):void{
+
+
+        if(!this.initialized){
+
+            this.initialize();
+
+        }
+
+
+        this.beginFrame(time);
+
+
+
+        this.context.applyViewport();
+
+
+
+        this.context.clear({
+
+            color:true,
+
+            depth:true
+
+        });
+
+
+
+        this.pipeline.render(
+
+            this.scene,
+
+            this.camera
 
         );
 
+
+
+        this.endFrame();
+
+
+
     }
 
 
-    public clearCache(): void {
+
+
+
+    /**
+     * Animation loop
+     */
+    public start():void{
+
+
+        if(this.running){
+
+            return;
+
+        }
+
+
+        this.running=true;
+
+
+
+        const loop=(time:number)=>{
+
+
+            if(!this.running){
+
+                return;
+
+            }
+
+
+            this.render(
+
+                this.context.viewport?.getWidth() ?? 1,
+
+                this.context.viewport?.getHeight() ?? 1,
+
+                time
+
+            );
+
+
+
+            requestAnimationFrame(loop);
+
+
+        };
+
+
+
+        requestAnimationFrame(loop);
+
+
+    }
+
+
+
+
+
+    /**
+     * Stop
+     */
+    public stop():void{
+
+
+        this.running=false;
+
+
+    }
+
+
+
+
+
+    /**
+     * Resize
+     */
+    public resize(
+
+        width:number,
+
+        height:number
+
+    ):void{
+
+
+        this.context.resize(
+
+            width,
+
+            height
+
+        );
+
+
+        this.pipeline.resize(
+
+            width,
+
+            height
+
+        );
+
+
+        this.invalidate();
+
+
+    }
+
+
+
+
+
+    /**
+     * Dispose
+     */
+    public dispose():void{
+
 
         this.displayCache.clear();
 
-    }
 
+        this.pipeline.dispose();
+
+
+        this.initialized=false;
+
+
+    }
+    // ----------------------------------------------------
+    // Statistics
+    // ----------------------------------------------------
 
 
     public getStatistics():
@@ -170,15 +301,20 @@ export class RenderEngine {
 
         const rendererStats =
 
-            this.meshRenderer.getStatistics();
+            this.pipeline
+
+            .getRenderer()
+
+            .getStatistics();
 
 
 
         return {
 
+
             frame:
 
-                this.frameCounter,
+                this.frame,
 
 
             fps:
@@ -186,85 +322,102 @@ export class RenderEngine {
                 this.fps,
 
 
+            frameTime:
+
+                this.frameTime,
+
+
             drawCalls:
 
-                rendererStats.drawCalls,
+                0,
 
 
-            renderedTriangles:
+            triangles:
 
-                rendererStats.renderedTriangles,
+                rendererStats.resourceCount,
 
 
-            renderedVertices:
+            vertices:
 
-                rendererStats.renderedVertices
+                rendererStats.passCount
+
+
 
         };
+
 
     }
 
 
 
+
+
+    /**
+     * Kamera erişimi
+     */
     public getCamera():
 
     RenderCamera {
 
+
         return this.camera;
+
 
     }
 
 
 
+
+
+    /**
+     * Scene erişimi
+     */
     public getScene():
 
     RenderScene {
 
+
         return this.scene;
 
-    }
-
-
-
-    public resize(
-
-        width: number,
-
-        height: number
-
-    ): void {
-
-
-        this.meshRenderer.resize(
-
-            width,
-
-            height
-
-        );
 
     }
 
 
 
-    public dispose(): void {
 
 
-        this.displayCache.clear();
+    /**
+     * Pipeline erişimi
+     */
+    public getPipeline():
+
+    RenderPipeline {
 
 
-        this.meshRenderer.dispose();
+        return this.pipeline;
 
 
     }
 
 
 
+
+
+
+    // ----------------------------------------------------
+    // Display Mesh Cache
+    // ----------------------------------------------------
+
+
+
+    /**
+     * MeshBody için GPU display mesh üretir
+     */
     private getDisplayMesh(
 
-        body: MeshBody
+        body:MeshBody
 
-    ): DisplayMesh {
+    ):DisplayMesh {
 
 
         let displayMesh =
@@ -277,11 +430,7 @@ export class RenderEngine {
 
 
 
-        if (
-
-            !displayMesh
-
-        ) {
+        if(!displayMesh){
 
 
             displayMesh =
@@ -302,258 +451,162 @@ export class RenderEngine {
 
             );
 
+
         }
 
 
 
         return displayMesh;
 
+
     }
 
 
 
-    private beginFrame(
-
-        currentTime: number
-
-    ): void {
 
 
+    /**
+     * Mesh cache sil
+     *
+     * Model değişince çağrılır.
+     */
+    public invalidateMesh(
 
-        if (
+        bodyId:string
 
-            this.lastFrameTime !== 0
-
-        ) {
-
-
-            const delta =
-
-                currentTime -
-
-                this.lastFrameTime;
+    ):void{
 
 
+        this.displayCache.delete(
 
-            if (
+            bodyId
 
-                delta > 0
-
-            ) {
+        );
 
 
-                this.fps =
 
-                    1000 /
+        this.invalidate();
 
-                    delta;
 
-            }
+    }
+
+
+
+
+
+    /**
+     * Tüm cache temizle
+     */
+    public clearCache():
+
+    void{
+
+
+        this.displayCache.clear();
+
+
+
+        this.invalidate();
+
+
+    }
+
+
+
+
+
+    /**
+     * Cache var mı?
+     */
+    public hasCachedMesh(
+
+        bodyId:string
+
+    ):boolean{
+
+
+        return this.displayCache.has(
+
+            bodyId
+
+        );
+
+
+    }
+
+
+
+
+
+    /**
+     * Cache sayısı
+     */
+    public getCachedMeshCount():
+
+    number{
+
+
+        return this.displayCache.size;
+
+
+    }
+
+
+
+
+
+    /**
+     * İlk yükleme için meshleri hazırla
+     */
+    public warmup():
+
+    void{
+
+
+        for(
+
+            const body of
+
+            this.scene.getMeshBodies()
+
+        ){
+
+
+            this.getDisplayMesh(
+
+                body
+
+            );
+
 
         }
 
 
-
-        this.lastFrameTime =
-
-            currentTime;
-
     }
 
-}
+
+
+
+
 
     // ----------------------------------------------------
-    // Rendering
+    // Frame Timing
     // ----------------------------------------------------
 
 
-    /**
-     * Tek frame render
-     */
-    public render(
 
-        width:number,
-
-        height:number,
-
-        time = performance.now()
-
-    ): void {
-
-
-
-        if (
-
-            !this.initialized
-
-        ) {
-
-            this.initialize();
-
-        }
-
-
-
-        this.beginFrame(
-
-            time
-
-        );
-
-
-
-        /**
-         * GPU viewport uygula
-         */
-        this.context.applyViewport();
-
-
-
-        /**
-         * Frame temizleme
-         */
-        this.context.clear(
-
-            true,
-
-            true
-
-        );
-
-
-
-        /**
-         * Render pipeline çalıştır
-         */
-        this.pipeline.render(
-
-            this.scene,
-
-            this.camera
-
-        );
-
-
-
-        this.endFrame();
-
-
-    }
-
-
-
-
-    /**
-     * Animasyon döngüsü
-     */
-    public start():
-
-    void {
-
-
-        if (
-
-            this.running
-
-        ) {
-
-            return;
-
-        }
-
-
-
-        this.running = true;
-
-
-
-        const loop =
-
-            (
-
-                time:number
-
-            ) => {
-
-
-
-                if (
-
-                    !this.running
-
-                ) {
-
-                    return;
-
-                }
-
-
-
-                this.render(
-
-                    this.context.viewport?.getWidth() ?? 1,
-
-                    this.context.viewport?.getHeight() ?? 1,
-
-                    time
-
-                );
-
-
-
-                requestAnimationFrame(
-
-                    loop
-
-                );
-
-            };
-
-
-
-        requestAnimationFrame(
-
-            loop
-
-        );
-
-
-    }
-
-
-
-
-    /**
-     * Render döngüsü durdur
-     */
-    public stop():
-
-    void {
-
-
-        this.running = false;
-
-
-    }
-
-
-
-
-    /**
-     * Frame başlangıcı
-     */
     private beginFrame(
 
         time:number
 
-    ):void {
+    ):void{
 
 
-        if (
+        if(
 
             this.lastTime !== 0
 
-        ) {
+        ){
 
 
             const delta =
@@ -564,11 +617,7 @@ export class RenderEngine {
 
 
 
-            if (
-
-                delta > 0
-
-            ) {
+            if(delta > 0){
 
 
                 this.fps =
@@ -578,11 +627,16 @@ export class RenderEngine {
                     delta;
 
 
+
                 this.frameTime =
 
-                    delta / 1000;
+                    delta /
+
+                    1000;
+
 
             }
+
 
         }
 
@@ -596,33 +650,35 @@ export class RenderEngine {
 
 
 
-    /**
-     * Frame sonu
-     */
+
     private endFrame():
 
-    void {
+    void{
 
 
         this.frame++;
 
+
     }
 
-    // ----------------------------------------------------
-    // Render Invalidation System
-    // ----------------------------------------------------
 
 
-    private needsRender = true;
+
+
+
+
+    // ----------------------------------------------------
+    // Render Invalidation
+    // ----------------------------------------------------
 
 
 
     /**
-     * Render zorla yenile
+     * Yeniden çizim gerekli
      */
     public invalidate():
 
-    void {
+    void{
 
 
         this.needsRender = true;
@@ -633,8 +689,9 @@ export class RenderEngine {
 
 
 
+
     /**
-     * Sadece gerekiyorsa çiz
+     * Gerekiyorsa render
      */
     public renderIfNeeded(
 
@@ -644,14 +701,10 @@ export class RenderEngine {
 
         time = performance.now()
 
-    ):void {
+    ):void{
 
 
-        if (
-
-            !this.needsRender
-
-        ) {
+        if(!this.needsRender){
 
             return;
 
@@ -671,7 +724,7 @@ export class RenderEngine {
 
 
 
-        this.needsRender = false;
+        this.needsRender=false;
 
 
     }
@@ -680,12 +733,14 @@ export class RenderEngine {
 
 
 
+
+
     /**
-     * Kamera değiştiğinde çağrılır
+     * Kamera değişti
      */
     public cameraChanged():
 
-    void {
+    void{
 
 
         this.invalidate();
@@ -696,12 +751,13 @@ export class RenderEngine {
 
 
 
+
     /**
-     * Scene değiştiğinde çağrılır
+     * Scene değişti
      */
     public sceneChanged():
 
-    void {
+    void{
 
 
         this.invalidate();
@@ -712,10 +768,45 @@ export class RenderEngine {
 
 
 
+
     /**
-     * Kalem hareketi sırasında
+     * Selection değişti
+     */
+    public selectionChanged():
+
+    void{
+
+
+        this.invalidate();
+
+
+    }
+
+
+
+
+
+    /**
+     * Viewport değişti
+     */
+    public viewportChanged():
+
+    void{
+
+
+        this.invalidate();
+
+
+    }
+
+
+
+
+
+    /**
+     * Stylus hareketi
      *
-     * Android Stylus
+     * Android tablet kalem desteği
      */
     public stylusMoved(
 
@@ -725,19 +816,21 @@ export class RenderEngine {
 
         pressure:number
 
-    ):void {
+    ):void{
 
 
+        /*
+        
+        İleride:
+        
+        pressure:
+        - çizgi kalınlığı
+        - seçim hassasiyeti
+        - extrusion
+        
+        için kullanılacak.
 
-        /**
-         * Pressure ileride:
-         *
-         * - çizgi kalınlığı
-         * - seçim hassasiyeti
-         * - extrusion kontrolü
-         *
-         * için kullanılacak.
-         */
+        */
 
 
         void x;
@@ -757,210 +850,320 @@ export class RenderEngine {
 
 
 
-    /**
-     * Seçim değişikliği
-     */
-    public selectionChanged():
+    // ----------------------------------------------------
+    // Statistics Reset
+    // ----------------------------------------------------
 
-    void {
 
+    public resetStatistics():
 
-        this.invalidate();
+    void{
 
 
-    }
+        this.frame = 0;
 
-
-
-
-
-    /**
-     * Resize sonrası
-     */
-    public viewportChanged():
-
-    void {
-
-
-        this.invalidate();
-
-
-    }
-
-// src/render/RenderEngine.ts
-
-    private getDisplayMesh(
-
-        body: MeshBody
-
-    ): DisplayMesh {
-
-
-        let displayMesh =
-
-            this.displayCache.get(
-
-                body.id
-
-            );
-
-
-        if (
-
-            !displayMesh
-
-        ) {
-
-
-            displayMesh =
-
-                new DisplayMesh(
-
-                    body.mesh
-
-                );
-
-
-            this.displayCache.set(
-
-                body.id,
-
-                displayMesh
-
-            );
-
-        }
-
-
-        return displayMesh;
-
-    }
-
-
-
-    private beginFrame(
-
-        currentTime: number
-
-    ): void {
-
-
-        if (
-
-            this.lastFrameTime !== 0
-
-        ) {
-
-
-            const delta =
-
-                currentTime -
-
-                this.lastFrameTime;
-
-
-
-            if (
-
-                delta > 0
-
-            ) {
-
-
-                this.fps =
-
-                    1000 /
-
-                    delta;
-
-            }
-
-        }
-
-
-
-        this.lastFrameTime =
-
-            currentTime;
-
-    }
-
-
-
-    public resetStatistics(): void {
-
-
-        this.frameCounter = 0;
 
         this.fps = 0;
 
-        this.lastFrameTime = 0;
+
+        this.frameTime = 0;
 
 
-        this.meshRenderer.resetStatistics();
+        this.lastTime = 0;
+
 
     }
 
 
 
-    public warmup(): void {
 
 
-        for (
-
-            const body of
-
-            this.scene.getMeshBodies()
-
-        ) {
+    // ----------------------------------------------------
+    // Save / Restore
+    // ----------------------------------------------------
 
 
-            this.getDisplayMesh(
+    public saveState(){
 
-                body
+        return {
 
-            );
+
+            initialized:
+
+                this.initialized,
+
+
+            frame:
+
+                this.frame,
+
+
+            fps:
+
+                this.fps,
+
+
+            frameTime:
+
+                this.frameTime,
+
+
+            running:
+
+                this.running,
+
+
+            cacheSize:
+
+                this.displayCache.size
+
+
+        };
+
+
+    }
+
+
+
+
+
+    public restoreState(
+
+        state:any
+
+    ):void{
+
+
+        this.frame =
+
+            state.frame ?? 0;
+
+
+
+        this.fps =
+
+            state.fps ?? 0;
+
+
+
+        this.frameTime =
+
+            state.frameTime ?? 0;
+
+
+
+        this.running =
+
+            state.running ?? false;
+
+
+
+    }
+
+
+
+
+
+
+    // ----------------------------------------------------
+    // Backend Information
+    // ----------------------------------------------------
+
+
+    public getBackendInfo(){
+
+        return {
+
+
+            engine:
+
+                "TamerCAD RenderEngine",
+
+
+
+            backend:
+
+                this.context.getBackend(),
+
+
+
+            initialized:
+
+                this.initialized,
+
+
+
+            running:
+
+                this.running,
+
+
+
+            viewport:
+
+                this.context.viewport
+
+                ?
+
+                {
+
+                    width:
+
+                        this.context.viewport.getWidth(),
+
+
+                    height:
+
+                        this.context.viewport.getHeight()
+
+                }
+
+                :
+
+                null
+
+
+
+        };
+
+
+    }
+
+
+
+
+
+
+
+    // ----------------------------------------------------
+    // Debug
+    // ----------------------------------------------------
+
+
+    public debugInfo(){
+
+        return {
+
+
+            type:
+
+                "RenderEngine",
+
+
+
+            initialized:
+
+                this.initialized,
+
+
+
+            running:
+
+                this.running,
+
+
+
+            frame:
+
+                this.frame,
+
+
+
+            fps:
+
+                this.fps,
+
+
+
+            frameTime:
+
+                this.frameTime,
+
+
+
+            cache:
+
+                {
+
+                    meshes:
+
+                        this.displayCache.size
+
+                },
+
+
+
+            scene:
+
+                this.scene.debugInfo(),
+
+
+
+            pipeline:
+
+                this.pipeline.debugInfo(),
+
+
+
+            backend:
+
+                this.getBackendInfo()
+
+
+
+        };
+
+
+    }
+
+
+
+
+
+
+    // ----------------------------------------------------
+    // Reload
+    // ----------------------------------------------------
+
+
+    public reload():
+
+    void{
+
+
+        const wasInitialized =
+
+            this.initialized;
+
+
+
+        this.pipeline.dispose();
+
+
+
+        this.initialized=false;
+
+
+
+        if(wasInitialized){
+
+
+            this.initialize();
+
 
         }
 
-    }
-
-
-
-    public hasCachedMesh(
-
-        bodyId: string
-
-    ): boolean {
-
-
-        return this.displayCache.has(
-
-            bodyId
-
-        );
 
     }
 
 
 
-    public getCachedMeshCount(): number {
-
-
-        return this.displayCache.size;
-
-    }
 
 
 
-    public dispose(): void {
+    // ----------------------------------------------------
+    // Final
+    // ----------------------------------------------------
 
-
-        this.displayCache.clear();
-
-
-        this.meshRenderer.dispose();
-
-    }
 
 }
