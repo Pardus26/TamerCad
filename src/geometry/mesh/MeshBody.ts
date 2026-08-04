@@ -1,34 +1,23 @@
 import { Mesh3 } from "./Mesh3";
 
 
-export interface MeshTransform {
-
+export interface TransformData {
 
     matrix:number[];
-
 
 }
 
 
 
-export interface MeshBodyData {
+export interface MeshBodyMetadata {
 
+    material?:string;
 
-    id:string;
+    color?:string;
 
-    name:string;
+    layer?:string;
 
-    visible:boolean;
-
-    locked:boolean;
-
-    selected:boolean;
-
-    transform:number[];
-
-    metadata:Record<string,any>;
-
-    mesh:any;
+    [key:string]:any;
 
 }
 
@@ -38,29 +27,50 @@ export interface MeshBodyData {
 export class MeshBody {
 
 
-
+    /**
+     * Unique body id
+     */
     public readonly id:string;
 
 
+
+    /**
+     * Display name
+     */
     public name:string;
 
 
+
+    /**
+     * Geometry
+     */
     public readonly mesh:Mesh3;
 
 
 
+    /**
+     * Visibility
+     */
     public visible:boolean = true;
 
 
+
+    /**
+     * Locked state
+     */
     public locked:boolean = false;
 
 
+
+    /**
+     * Selection
+     */
     public selected:boolean = false;
 
 
 
     /**
-     * 4x4 column major transform
+     * CAD transform matrix
      */
     public transform:number[] = [
 
@@ -76,9 +86,28 @@ export class MeshBody {
 
 
 
+    /**
+     * Metadata
+     */
     public metadata:
 
-        Record<string,any> = {};
+        MeshBodyMetadata = {};
+
+
+
+    /**
+     * History reference
+     */
+    public historyId:
+
+        string | null = null;
+
+
+
+    /**
+     * Construction body flag
+     */
+    public construction:boolean = false;
 
 
 
@@ -113,9 +142,8 @@ export class MeshBody {
 
 
     // ------------------------------------------------
-    // Geometry Queries
+    // Geometry Access
     // ------------------------------------------------
-
 
 
     public getVertexCount():
@@ -125,8 +153,8 @@ export class MeshBody {
 
         return this.mesh.vertexCount();
 
-
     }
+
 
 
 
@@ -139,8 +167,8 @@ export class MeshBody {
 
         return this.mesh.triangleCount();
 
-
     }
+
 
 
 
@@ -151,10 +179,10 @@ export class MeshBody {
     number{
 
 
-        return this.mesh.area();
-
+        return this.mesh.surfaceArea();
 
     }
+
 
 
 
@@ -167,8 +195,8 @@ export class MeshBody {
 
         return this.mesh.volume();
 
-
     }
+
 
 
 
@@ -179,8 +207,8 @@ export class MeshBody {
 
         return this.mesh.boundingBox();
 
-
     }
+
 
 
 
@@ -191,6 +219,16 @@ export class MeshBody {
 
         return this.mesh.boundingSphere();
 
+    }
+
+
+
+
+
+    public centerOfMass(){
+
+
+        return this.mesh.centerOfMass();
 
     }
 
@@ -198,13 +236,13 @@ export class MeshBody {
 
 
 
-    public validate():
+
+    public isEmpty():
 
     boolean{
 
 
-        return this.mesh.validate();
-
+        return this.mesh.isEmpty();
 
     }
 
@@ -212,10 +250,10 @@ export class MeshBody {
 
 
 
-    // ------------------------------------------------
-    // State
-    // ------------------------------------------------
 
+    // ------------------------------------------------
+    // Visibility
+    // ------------------------------------------------
 
 
     public setVisible(
@@ -225,7 +263,7 @@ export class MeshBody {
     ):void{
 
 
-        this.visible=value;
+        this.visible = value;
 
 
     }
@@ -234,28 +272,15 @@ export class MeshBody {
 
 
 
-    public setLocked(
 
-        value:boolean
-
-    ):void{
-
-
-        this.locked=value;
-
-
-    }
-
-
-
-
-
-    public select():
+    public toggleVisibility():
 
     void{
 
 
-        this.selected=true;
+        this.visible =
+
+            !this.visible;
 
 
     }
@@ -264,12 +289,17 @@ export class MeshBody {
 
 
 
-    public deselect():
+    // ------------------------------------------------
+    // Lock
+    // ------------------------------------------------
+
+
+    public lock():
 
     void{
 
 
-        this.selected=false;
+        this.locked = true;
 
 
     }
@@ -278,10 +308,37 @@ export class MeshBody {
 
 
 
+
+    public unlock():
+
+    void{
+
+
+        this.locked = false;
+
+
+    }
+
+
+
+
+
+
+    public canEdit():
+
+    boolean{
+
+
+        return (
+
+            !this.locked
+
+        );
+
+    }
     // ------------------------------------------------
     // Transform
     // ------------------------------------------------
-
 
 
     public setTransform(
@@ -291,25 +348,37 @@ export class MeshBody {
     ):void{
 
 
-        if(
-
-            matrix.length!==16
-
-        ){
+        if(matrix.length !== 16){
 
             throw new Error(
 
-                "Transform matrix must have 16 values"
+                "Transform matrix must be 4x4"
 
             );
 
         }
 
 
-
-        this.transform=[
+        this.transform = [
 
             ...matrix
+
+        ];
+
+    }
+
+
+
+
+
+    public getTransform():
+
+    number[]{
+
+
+        return [
+
+            ...this.transform
 
         ];
 
@@ -324,26 +393,68 @@ export class MeshBody {
     void{
 
 
-        this.transform=[
-
+        this.transform = [
 
             1,0,0,0,
 
-
             0,1,0,0,
-
 
             0,0,1,0,
 
-
             0,0,0,1
-
 
         ];
 
     }
 
 
+
+
+
+    // ------------------------------------------------
+    // Selection
+    // ------------------------------------------------
+
+
+    public select():
+
+    void{
+
+
+        this.selected = true;
+
+
+    }
+
+
+
+
+
+    public deselect():
+
+    void{
+
+
+        this.selected = false;
+
+
+    }
+
+
+
+
+
+    public toggleSelection():
+
+    void{
+
+
+        this.selected =
+
+            !this.selected;
+
+
+    }
 
 
 
@@ -354,13 +465,12 @@ export class MeshBody {
     // ------------------------------------------------
 
 
-
     public clone():
 
     MeshBody{
 
 
-        const body =
+        const clone =
 
             new MeshBody(
 
@@ -372,17 +482,25 @@ export class MeshBody {
 
 
 
-        body.visible=this.visible;
+        clone.visible =
 
-
-        body.locked=this.locked;
-
-
-        body.selected=this.selected;
+            this.visible;
 
 
 
-        body.transform=[
+        clone.locked =
+
+            this.locked;
+
+
+
+        clone.selected =
+
+            this.selected;
+
+
+
+        clone.transform = [
 
             ...this.transform
 
@@ -390,20 +508,32 @@ export class MeshBody {
 
 
 
-        body.metadata={
+        clone.metadata = {
+
 
             ...this.metadata
+
 
         };
 
 
 
-        return body;
+        clone.historyId =
+
+            this.historyId;
+
+
+
+        clone.construction =
+
+            this.construction;
+
+
+
+        return clone;
 
 
     }
-
-
 
 
 
@@ -414,48 +544,65 @@ export class MeshBody {
     // ------------------------------------------------
 
 
-
-    public toJSON():
-
-    MeshBodyData{
-
+    public toJSON(){
 
         return {
 
 
-            id:this.id,
+            id:
+
+                this.id,
 
 
-            name:this.name,
+            name:
+
+                this.name,
 
 
-            visible:this.visible,
+            visible:
+
+                this.visible,
 
 
-            locked:this.locked,
+            locked:
+
+                this.locked,
 
 
-            selected:this.selected,
+            selected:
+
+                this.selected,
 
 
-            transform:[
+            construction:
 
-                ...this.transform
-
-            ],
+                this.construction,
 
 
-            metadata:this.metadata,
+            transform:
+
+                this.transform,
 
 
-            mesh:this.mesh.toJSON()
+            metadata:
+
+                this.metadata,
+
+
+            historyId:
+
+                this.historyId,
+
+
+            mesh:
+
+                this.mesh.toJSON()
 
 
         };
 
 
     }
-
 
 
 
@@ -471,21 +618,15 @@ export class MeshBody {
     MeshBody{
 
 
-        const mesh =
-
-            Mesh3.fromJSON(
-
-                data.mesh
-
-            );
-
-
-
         const body =
 
             new MeshBody(
 
-                mesh,
+                Mesh3.fromJSON(
+
+                    data.mesh
+
+                ),
 
                 data.name
 
@@ -511,27 +652,39 @@ export class MeshBody {
 
 
 
+        body.construction =
+
+            data.construction ?? false;
+
+
+
         body.transform =
 
-            data.transform
-
-            ?
+            data.transform ??
 
             [
 
-                ...data.transform
+                1,0,0,0,
 
-            ]
+                0,1,0,0,
 
-            :
+                0,0,1,0,
 
-            body.transform;
+                0,0,0,1
+
+            ];
 
 
 
         body.metadata =
 
             data.metadata ?? {};
+
+
+
+        body.historyId =
+
+            data.historyId ?? null;
 
 
 
@@ -551,9 +704,7 @@ export class MeshBody {
     // ------------------------------------------------
 
 
-
     public debugInfo(){
-
 
         return {
 
@@ -563,9 +714,11 @@ export class MeshBody {
                 "MeshBody",
 
 
+
             id:
 
                 this.id,
+
 
 
             name:
@@ -573,9 +726,11 @@ export class MeshBody {
                 this.name,
 
 
+
             vertices:
 
                 this.getVertexCount(),
+
 
 
             triangles:
@@ -583,9 +738,11 @@ export class MeshBody {
                 this.getTriangleCount(),
 
 
+
             area:
 
                 this.getSurfaceArea(),
+
 
 
             volume:
@@ -593,14 +750,17 @@ export class MeshBody {
                 this.getVolume(),
 
 
+
             visible:
 
                 this.visible,
 
 
+
             locked:
 
                 this.locked,
+
 
 
             selected:
@@ -617,6 +777,42 @@ export class MeshBody {
 
 
 
+
+    // ------------------------------------------------
+    // Dispose
+    // ------------------------------------------------
+
+
+    public dispose():
+
+    void{
+
+
+        this.mesh.clear();
+
+
+        this.metadata = {};
+
+
+        this.selected = false;
+
+
+        this.visible = false;
+
+
+    }
+
+
+
+
+
+
+
+    // ------------------------------------------------
+    // ID Generator
+    // ------------------------------------------------
+
+
     private static generateId():
 
     string{
@@ -626,13 +822,9 @@ export class MeshBody {
 
             "body_" +
 
-            Date.now()
+            Date.now() +
 
-            +
-
-            "_"
-
-            +
+            "_" +
 
             Math.floor(
 
@@ -644,7 +836,6 @@ export class MeshBody {
 
 
     }
-
 
 
 }
