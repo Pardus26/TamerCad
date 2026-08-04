@@ -1,5 +1,6 @@
 // src/input/GestureRecognizer.ts
 
+
 import {
     PointerEvent,
     PointerType,
@@ -8,24 +9,39 @@ import {
 
 
 
+
+
 export enum GestureType {
+
 
     None = "none",
 
+
     Tap = "tap",
+
 
     DoubleTap = "double-tap",
 
+
     LongPress = "long-press",
+
 
     Pan = "pan",
 
+
     Pinch = "pinch",
+
 
     Rotate = "rotate",
 
+
     StylusDraw = "stylus-draw"
+
 }
+
+
+
+
 
 
 
@@ -35,28 +51,44 @@ export interface GestureEvent {
     type: GestureType;
 
 
-    centerX: number;
+
+    centerX:number;
 
 
-    centerY: number;
+    centerY:number;
 
 
-    deltaX: number;
+
+    deltaX:number;
 
 
-    deltaY: number;
+    deltaY:number;
 
 
-    scale: number;
+
+    /**
+     * Zoom oranı
+     *
+     * 1.0 = değişiklik yok
+     * >1 zoom in
+     * <1 zoom out
+     */
+    scale:number;
 
 
-    rotation: number;
+
+    /**
+     * Radyan dönüş miktarı
+     */
+    rotation:number;
 
 
-    source: PointerType;
+
+    source:PointerType;
 
 
-    original: PointerEvent;
+
+    original:PointerEvent;
 
 }
 
@@ -64,10 +96,18 @@ export interface GestureEvent {
 
 
 
+
+
+
 export type GestureListener =
     (
-        event: GestureEvent
-    ) => void;
+        event:GestureEvent
+    )=>void;
+
+
+
+
+
 
 
 
@@ -76,48 +116,64 @@ export type GestureListener =
 export class GestureRecognizer {
 
 
+
     private listeners:
         GestureListener[] = [];
 
 
 
-    private activePointers:
-        Map<number, PointerEvent>
+    private pointers:
+        Map<number,PointerEvent>
         =
         new Map();
 
 
 
-    private lastTapTime =
+
+    private lastTap =
         0;
 
 
 
-    private startX = 0;
-
-    private startY = 0;
-
-
-
-    private lastDistance = 0;
+    private startX =
+        0;
 
 
 
-    private lastAngle = 0;
+    private startY =
+        0;
+
+
+
+    private lastDistance =
+        0;
+
+
+
+    private lastRotation =
+        0;
+
+
+
+
 
 
 
 
 
     public subscribe(
-        listener: GestureListener
+        listener:GestureListener
     ):void{
 
 
         this.listeners.push(
             listener
         );
+
     }
+
+
+
 
 
 
@@ -130,13 +186,17 @@ export class GestureRecognizer {
 
 
         for(
-            const listener
-            of this.listeners
+            const listener of this.listeners
         ){
 
             listener(event);
+
         }
+
     }
+
+
+
 
 
 
@@ -149,46 +209,52 @@ export class GestureRecognizer {
     ):void{
 
 
-        if(
-            event.action === PointerAction.Down
+        switch(
+            event.action
         ){
 
-            this.pointerDown(
-                pointerId,
-                event
-            );
 
-        }
+            case PointerAction.Down:
 
 
+                this.pointerDown(
+                    pointerId,
+                    event
+                );
 
-
-        else if(
-            event.action === PointerAction.Move
-        ){
-
-            this.pointerMove(
-                pointerId,
-                event
-            );
-
-        }
+                break;
 
 
 
 
-        else if(
-            event.action === PointerAction.Up
-        ){
+            case PointerAction.Move:
 
-            this.pointerUp(
-                pointerId,
-                event
-            );
+
+                this.pointerMove(
+                    pointerId,
+                    event
+                );
+
+                break;
+
+
+
+
+            case PointerAction.Up:
+
+
+                this.pointerUp(
+                    pointerId,
+                    event
+                );
+
+                break;
 
         }
 
     }
+
+
 
 
 
@@ -202,10 +268,11 @@ export class GestureRecognizer {
     ):void{
 
 
-        this.activePointers.set(
+        this.pointers.set(
             id,
             event
         );
+
 
 
         this.startX =
@@ -219,12 +286,15 @@ export class GestureRecognizer {
 
 
         if(
-            this.activePointers.size === 2
+            this.pointers.size === 2
         ){
 
-            this.initializeMultiTouch();
+            this.initializeTwoFinger();
+
         }
+
     }
+
 
 
 
@@ -239,7 +309,7 @@ export class GestureRecognizer {
     ):void{
 
 
-        this.activePointers.set(
+        this.pointers.set(
             id,
             event
         );
@@ -247,9 +317,14 @@ export class GestureRecognizer {
 
 
 
+
+        /*
+         * Kalem çizimi
+         */
         if(
             event.type === PointerType.Stylus
         ){
+
 
             this.emit({
 
@@ -267,6 +342,7 @@ export class GestureRecognizer {
 
                 deltaX:0,
 
+
                 deltaY:0,
 
 
@@ -282,30 +358,27 @@ export class GestureRecognizer {
 
                 original:
                     event
+
             });
 
 
             return;
+
         }
 
 
 
 
 
+
+
+
+        /*
+         * Tek parmak hareketi
+         */
         if(
-            this.activePointers.size === 1
+            this.pointers.size === 1
         ){
-
-
-            const dx =
-                event.position.x -
-                this.startX;
-
-
-            const dy =
-                event.position.y -
-                this.startY;
-
 
 
             this.emit({
@@ -322,10 +395,14 @@ export class GestureRecognizer {
                     event.position.y,
 
 
-                deltaX:dx,
+                deltaX:
+                    event.position.x -
+                    this.startX,
 
 
-                deltaY:dy,
+                deltaY:
+                    event.position.y -
+                    this.startY,
 
 
                 scale:1,
@@ -340,7 +417,9 @@ export class GestureRecognizer {
 
                 original:
                     event
+
             });
+
 
         }
 
@@ -349,16 +428,24 @@ export class GestureRecognizer {
 
 
 
+
+
+        /*
+         * İki parmak hareketi
+         */
         if(
-            this.activePointers.size === 2
+            this.pointers.size === 2
         ){
 
-            this.processMultiTouch(
+
+            this.processTwoFinger(
                 event
             );
+
         }
 
     }
+
 
 
 
@@ -373,9 +460,10 @@ export class GestureRecognizer {
     ):void{
 
 
-        this.activePointers.delete(
+        this.pointers.delete(
             id
         );
+
 
 
         const now =
@@ -383,9 +471,12 @@ export class GestureRecognizer {
 
 
 
+
+
         if(
-            now - this.lastTapTime < 300
+            now-this.lastTap < 300
         ){
+
 
             this.emit({
 
@@ -403,6 +494,7 @@ export class GestureRecognizer {
 
                 deltaX:0,
 
+
                 deltaY:0,
 
 
@@ -416,13 +508,12 @@ export class GestureRecognizer {
                     event.type,
 
 
-                original:
-                    event
+                original:event
+
             });
 
+
         }
-
-
         else {
 
 
@@ -442,6 +533,7 @@ export class GestureRecognizer {
 
                 deltaX:0,
 
+
                 deltaY:0,
 
 
@@ -455,15 +547,18 @@ export class GestureRecognizer {
                     event.type,
 
 
-                original:
-                    event
+                original:event
+
             });
+
 
         }
 
 
-        this.lastTapTime =
+
+        this.lastTap =
             now;
+
     }
 
 
@@ -472,37 +567,41 @@ export class GestureRecognizer {
 
 
 
-    private initializeMultiTouch():void{
 
 
-        const points =
+    private initializeTwoFinger():void{
+
+
+        const pts =
             Array.from(
-                this.activePointers.values()
+                this.pointers.values()
             );
 
 
+
         const a =
-            points[0].position;
+            pts[0].position;
 
 
         const b =
-            points[1].position;
+            pts[1].position;
 
 
 
         this.lastDistance =
             Math.hypot(
-                b.x - a.x,
-                b.y - a.y
+                b.x-a.x,
+                b.y-a.y
             );
 
 
 
-        this.lastAngle =
+        this.lastRotation =
             Math.atan2(
-                b.y - a.y,
-                b.x - a.x
+                b.y-a.y,
+                b.x-a.x
             );
+
     }
 
 
@@ -512,29 +611,46 @@ export class GestureRecognizer {
 
 
 
-    private processMultiTouch(
+
+    private processTwoFinger(
         event:PointerEvent
     ):void{
 
 
-        const points =
+        const pts =
             Array.from(
-                this.activePointers.values()
+                this.pointers.values()
             );
 
 
 
-        if(points.length !== 2)
+        if(
+            pts.length!==2
+        )
             return;
 
 
 
+
         const a =
-            points[0].position;
+            pts[0].position;
 
 
         const b =
-            points[1].position;
+            pts[1].position;
+
+
+
+
+
+        const centerX =
+            (a.x+b.x)/2;
+
+
+
+        const centerY =
+            (a.y+b.y)/2;
+
 
 
 
@@ -547,11 +663,26 @@ export class GestureRecognizer {
 
 
 
-        const angle =
+
+
+        const rotation =
             Math.atan2(
                 b.y-a.y,
                 b.x-a.x
             );
+
+
+
+
+
+
+        const scale =
+            distance /
+            this.lastDistance;
+
+
+
+
 
 
 
@@ -561,12 +692,10 @@ export class GestureRecognizer {
                 GestureType.Pinch,
 
 
-            centerX:
-                (a.x+b.x)/2,
+            centerX,
 
 
-            centerY:
-                (a.y+b.y)/2,
+            centerY,
 
 
             deltaX:0,
@@ -575,23 +704,80 @@ export class GestureRecognizer {
             deltaY:0,
 
 
-            scale:
-                distance /
-                this.lastDistance,
+            scale,
 
 
-            rotation:
-                angle -
-                this.lastAngle,
+            rotation:0,
 
 
             source:
                 event.type,
 
 
-            original:
-                event
+            original:event
+
         });
+
+
+
+
+
+
+
+
+
+        const rotationDelta =
+            rotation -
+            this.lastRotation;
+
+
+
+
+
+        if(
+            Math.abs(rotationDelta)
+            >
+            0.01
+        ){
+
+
+            this.emit({
+
+                type:
+                    GestureType.Rotate,
+
+
+                centerX,
+
+
+                centerY,
+
+
+                deltaX:0,
+
+
+                deltaY:0,
+
+
+                scale:1,
+
+
+                rotation:
+                    rotationDelta,
+
+
+                source:
+                    event.type,
+
+
+                original:event
+
+            });
+
+        }
+
+
+
 
 
 
@@ -599,8 +785,14 @@ export class GestureRecognizer {
             distance;
 
 
-        this.lastAngle =
-            angle;
+
+        this.lastRotation =
+            rotation;
+
+
     }
+
+
+
 
 }
