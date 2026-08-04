@@ -40,6 +40,7 @@ export class RenderGraphCompiler {
     // ----------------------------------------------------
 
 
+    
     compile(
 
         passes:
@@ -51,6 +52,16 @@ export class RenderGraphCompiler {
             readonly RenderGraphResource[]
 
     ): RenderGraphCompileResult {
+
+
+
+        this.validateResources(
+
+            passes,
+
+            resources
+
+        );
 
 
 
@@ -83,7 +94,6 @@ export class RenderGraphCompiler {
 
 
     }
-
 
     // ----------------------------------------------------
     // Topological Sort
