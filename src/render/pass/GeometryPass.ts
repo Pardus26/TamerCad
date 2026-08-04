@@ -22,31 +22,40 @@ export class GeometryPass extends RenderPass {
     private renderer: MeshRenderer | null = null;
 
     constructor(
-        options: GeometryPassOptions = {}
-    ) {
+    options: GeometryPassOptions = {}
+) {
 
-        super({
+    super({
 
-            name: "GeometryPass",
+        name: "GeometryPass",
 
-            priority: 100,
+        priority: 100,
 
-            clearColor: true,
+        clearColor: true,
 
-            clearDepth: true
+        clearDepth: true
 
-        });
+    });
 
-        if (options.gBuffer) {
-            this.gBuffer = options.gBuffer;
-        }
 
-        if (options.renderer) {
-            this.renderer = options.renderer;
-        }
+    this
+    .writes(
 
-    }
+        "Depth",
 
+        "GBuffer"
+
+    );
+
+
+    this.gBuffer =
+        options.gBuffer ?? null;
+
+
+    this.renderer =
+        options.renderer ?? null;
+
+}
     public setGBuffer(
         gBuffer: GBuffer
     ): void {
