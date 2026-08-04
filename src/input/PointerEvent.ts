@@ -1,58 +1,113 @@
 // src/input/PointerEvent.ts
 
 
+
+
+
 export enum PointerType {
 
-    Mouse = "mouse",
 
+    /**
+     * Android / Tablet kalemi
+     */
     Stylus = "stylus",
 
-    Touch = "touch"
+
+
+    /**
+     * Parmak dokunuşu
+     */
+    Touch = "touch",
+
+
+
+    /**
+     * Mouse / trackpad
+     */
+    Mouse = "mouse"
+
+
 }
+
+
+
+
+
+
 
 
 
 export enum PointerAction {
 
+
     Down = "down",
+
 
     Move = "move",
 
-    Up = "up"
+
+    Up = "up",
+
+
+    Cancel = "cancel"
+
+
 }
+
+
+
+
+
+
 
 
 
 export interface PointerPosition {
 
-    x: number;
 
-    y: number;
+    x:number;
+
+
+    y:number;
+
+
 }
 
 
 
-export interface PointerData {
+
+
+
+
+
+
+export interface PointerEvent {
 
 
     /**
-     * Pointer türü
+     * Down / Move / Up
      */
-    type: PointerType;
+    action:PointerAction;
+
+
 
 
 
     /**
-     * Olay tipi
+     * Kaynağın tipi
      */
-    action: PointerAction;
+    type:PointerType;
+
+
 
 
 
     /**
      * Ekran koordinatı
      */
-    position: PointerPosition;
+    position:PointerPosition;
+
+
 
 
 
@@ -61,119 +116,94 @@ export interface PointerData {
      *
      * 0.0 - 1.0
      */
-    pressure: number;
+    pressure:number;
 
 
-
-    /**
-     * Kalem eğimi
-     *
-     * Tablet destekliyorsa
-     */
-    tiltX?: number;
-
-    tiltY?: number;
 
 
 
     /**
-     * Zaman bilgisi
+     * Event zamanı
      */
-    timestamp: number;
+    timestamp:number;
+
+
+
 }
 
 
 
-export class PointerEvent {
-
-
-    public readonly type: PointerType;
-
-
-    public readonly action: PointerAction;
-
-
-    public readonly position: PointerPosition;
-
-
-    public readonly pressure: number;
-
-
-    public readonly tiltX?: number;
-
-
-    public readonly tiltY?: number;
-
-
-    public readonly timestamp: number;
 
 
 
-    constructor(
-        data: PointerData
-    ){
-
-        this.type =
-            data.type;
-
-
-        this.action =
-            data.action;
-
-
-        this.position =
-            data.position;
-
-
-        this.pressure =
-            data.pressure ?? 1.0;
-
-
-        this.tiltX =
-            data.tiltX;
-
-
-        this.tiltY =
-            data.tiltY;
-
-
-        this.timestamp =
-            data.timestamp;
-    }
 
 
 
-    public isStylus(): boolean {
-
-        return (
-            this.type === PointerType.Stylus
-        );
-    }
+export interface PointerState {
 
 
+    id:number;
 
-    public isDown(): boolean {
 
-        return (
-            this.action === PointerAction.Down
-        );
-    }
+    event:PointerEvent;
+
+
+}
 
 
 
-    public isMove(): boolean {
-
-        return (
-            this.action === PointerAction.Move
-        );
-    }
 
 
 
-    public isUp(): boolean {
 
-        return (
-            this.action === PointerAction.Up
-        );
-    }
+
+
+export function createPointerEvent(
+
+    action:PointerAction,
+
+    type:PointerType,
+
+    x:number,
+
+    y:number,
+
+    pressure:number = 1
+
+):PointerEvent {
+
+
+
+    return {
+
+
+        action,
+
+
+        type,
+
+
+        position:{
+
+
+            x,
+
+
+            y
+
+
+        },
+
+
+        pressure,
+
+
+        timestamp:
+            performance.now()
+
+
+
+    };
+
+
 }
