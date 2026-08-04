@@ -1,3 +1,6 @@
+// src/render/renderer/DeferredRenderer.ts
+
+
 import {
     RenderContext
 } from "../RenderContext";
@@ -46,13 +49,27 @@ import {
 
 
 
+
+// =====================================================
+// Options
+// =====================================================
+
+
 export interface DeferredRendererOptions {
 
 
     context: RenderContext;
 
+
 }
 
+
+
+
+
+// =====================================================
+// Statistics
+// =====================================================
 
 
 export interface DeferredRendererStatistics {
@@ -75,36 +92,40 @@ export interface DeferredRendererStatistics {
 
 
 
+
+// =====================================================
+// Deferred Renderer
+// =====================================================
+
+
 export class DeferredRenderer {
 
 
-    protected readonly context:
 
+    protected readonly context:
         RenderContext;
 
 
 
     protected readonly graphBuilder:
-
         RenderGraphBuilder;
 
 
 
     protected readonly compiler:
-
         RenderGraphCompiler;
 
 
 
     protected readonly executor:
-
         RenderGraphExecutor;
 
 
 
     protected readonly passes:
-
         RenderPass[] = [];
+
+
 
 
 
@@ -117,6 +138,7 @@ export class DeferredRenderer {
 
 
     private width = 1;
+
 
 
     private height = 1;
@@ -136,35 +158,31 @@ export class DeferredRenderer {
 
 
 
+
     constructor(
 
         options:
-
             DeferredRendererOptions
 
     ){
 
 
         this.context =
-
             options.context;
 
 
 
         this.graphBuilder =
-
             new RenderGraphBuilder();
 
 
 
         this.compiler =
-
             new RenderGraphCompiler();
 
 
 
         this.executor =
-
             new RenderGraphExecutor();
 
 
@@ -174,12 +192,16 @@ export class DeferredRenderer {
 
 
 
-    // ------------------------------------------------
+
+    // =====================================================
     // Lifecycle
-    // ------------------------------------------------
+    // =====================================================
 
 
-    initialize():void{
+
+    public initialize():
+
+        void{
 
 
         if(this.initialized)
@@ -211,7 +233,10 @@ export class DeferredRenderer {
 
 
 
-    dispose():void{
+
+    public dispose():
+
+        void{
 
 
         if(!this.initialized)
@@ -250,16 +275,24 @@ export class DeferredRenderer {
 
 
 
-    // ------------------------------------------------
+
+
+
+
+    // =====================================================
     // Pass Management
-    // ------------------------------------------------
+    // =====================================================
 
 
-    addPass(
+
+    public addPass(
 
         pass:RenderPass
 
-    ):void{
+    ):
+
+
+        void{
 
 
         if(
@@ -276,15 +309,8 @@ export class DeferredRenderer {
 
 
 
-        this.passes.sort(
+        this.sortPasses();
 
-            (a,b)=>
-
-                a.priority -
-
-                b.priority
-
-        );
 
 
 
@@ -297,6 +323,7 @@ export class DeferredRenderer {
 
             );
 
+
         }
 
 
@@ -306,11 +333,17 @@ export class DeferredRenderer {
 
 
 
-    removePass(
+
+
+
+    public removePass(
 
         pass:RenderPass
 
-    ):void{
+    ):
+
+
+        void{
 
 
         const index =
@@ -325,11 +358,20 @@ export class DeferredRenderer {
 
 
 
-        pass.dispose(
 
-            this.context
+        if(this.initialized){
 
-        );
+
+            pass.dispose(
+
+                this.context
+
+            );
+
+
+        }
+
+
 
 
 
@@ -348,20 +390,32 @@ export class DeferredRenderer {
 
 
 
-    clearPasses():void{
 
 
-        for(const pass of this.passes){
+
+    public clearPasses():
+
+        void{
 
 
-            pass.dispose(
+        if(this.initialized){
 
-                this.context
 
-            );
+            for(const pass of this.passes){
+
+
+                pass.dispose(
+
+                    this.context
+
+                );
+
+
+            }
 
 
         }
+
 
 
 
@@ -374,9 +428,45 @@ export class DeferredRenderer {
 
 
 
-    getPasses():
 
-    readonly RenderPass[]{
+
+
+    private sortPasses():
+
+        void{
+
+
+        this.passes.sort(
+
+            (
+
+                a,
+
+                b
+
+            )=>
+
+
+                a.priority -
+
+                b.priority
+
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+    public getPasses():
+
+        readonly RenderPass[]{
 
 
         return this.passes;
@@ -384,38 +474,47 @@ export class DeferredRenderer {
 
     }
 
-    // ------------------------------------------------
+
+
+
+
+
+    // =====================================================
     // Resize
-    // ------------------------------------------------
+    // =====================================================
 
 
-    resize(
+
+    public resize(
 
         width:number,
 
         height:number
 
-    ):void{
+    ):
+
+        void{
 
 
         this.width =
 
             Math.max(
 
-                width,
+                1,
 
-                1
+                width
 
             );
+
 
 
         this.height =
 
             Math.max(
 
-                height,
+                1,
 
-                1
+                height
 
             );
 
@@ -426,7 +525,11 @@ export class DeferredRenderer {
 
 
 
-    public getWidth():number{
+
+
+    public getWidth():
+
+        number{
 
 
         return this.width;
@@ -438,7 +541,10 @@ export class DeferredRenderer {
 
 
 
-    public getHeight():number{
+
+    public getHeight():
+
+        number{
 
 
         return this.height;
@@ -446,104 +552,538 @@ export class DeferredRenderer {
 
     }
 
+// =====================================================
+// Render Graph Resources
+// =====================================================
+
+
+protected registerResources():
+
+    void{
+
+
+    const size = {
+
+        width:
+            this.width,
+
+
+        height:
+            this.height
+
+    };
 
 
 
 
-    // ------------------------------------------------
-    // Render Graph Resources
-    // ------------------------------------------------
+
+    // -------------------------------------------------
+    // Depth Buffer
+    // -------------------------------------------------
 
 
-    protected registerResources():void{
+    this.graphBuilder.createResource(
+
+        "Depth",
+
+        RenderGraphResourceType.Depth,
+
+        {
+
+            ...size,
+
+            format:
+                "Depth24Stencil8"
+
+        }
+
+    );
 
 
-        const size = {
 
+
+
+
+    // -------------------------------------------------
+    // Deferred GBuffer
+    //
+    // CAD / DCC pipeline:
+    //
+    // Position:
+    //   World position
+    //
+    // Normal:
+    //   Surface normal
+    //
+    // Albedo:
+    //   Base material color
+    //
+    // Material:
+    //   roughness
+    //   metallic
+    //   shader flags
+    //
+    // ObjectID:
+    //   GPU picking
+    //
+    // -------------------------------------------------
+
+
+
+
+
+    this.graphBuilder.createResource(
+
+        "GBuffer_Position",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+            format:
+
+                "RGBA16F"
+
+        }
+
+    );
+
+
+
+
+
+
+
+    this.graphBuilder.createResource(
+
+        "GBuffer_Normal",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+            format:
+
+                "RGBA16F"
+
+        }
+
+    );
+
+
+
+
+
+
+
+    this.graphBuilder.createResource(
+
+        "GBuffer_Albedo",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+            format:
+
+                "RGBA8"
+
+        }
+
+    );
+
+
+
+
+
+
+
+    this.graphBuilder.createResource(
+
+        "GBuffer_Material",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+            format:
+
+                "RGBA8"
+
+        }
+
+    );
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // GPU Picking
+    //
+    // CAD selection:
+    //
+    // mouse ray yerine
+    // Object ID buffer
+    //
+    // -------------------------------------------------
+
+
+    this.graphBuilder.createResource(
+
+        "ObjectID",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+            format:
+
+                "R32UI"
+
+        }
+
+    );
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // HDR Lighting Result
+    //
+    // Final deferred lighting output
+    //
+    // -------------------------------------------------
+
+
+    this.graphBuilder.createResource(
+
+        "HDR_Lighting",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+            format:
+
+                "RGBA16F"
+
+        }
+
+    );
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // SSAO
+    //
+    // Half resolution ambient occlusion
+    //
+    // -------------------------------------------------
+
+
+    this.graphBuilder.createResource(
+
+        "SSAO",
+
+        RenderGraphResourceType.Texture,
+
+        {
 
             width:
 
-                this.width,
+                Math.max(
+
+                    1,
+
+                    this.width / 2
+
+                ),
 
 
             height:
 
-                this.height
+                Math.max(
+
+                    1,
+
+                    this.height / 2
+
+                ),
 
 
-        };
+            format:
+
+                "R8"
+
+        }
+
+    );
 
 
 
 
-        /*
-            Depth attachment
-
-            Vulkan:
-            VkImage depth
 
 
-            OpenGL:
-
-            GL_DEPTH_ATTACHMENT
-
-        */
 
 
-        this.graphBuilder.createResource(
+    // -------------------------------------------------
+    // Screen Space Reflection
+    //
+    // Metal surfaces
+    //
+    // CNC polished parts
+    //
+    // -------------------------------------------------
 
-            "Depth",
 
-            RenderGraphResourceType.Depth,
+    this.graphBuilder.createResource(
 
-            size
+        "SSR",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+            format:
+
+                "RGBA16F"
+
+        }
+
+    );
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // Bloom Chain
+    //
+    // CAD highlight glow
+    //
+    // Multi mip texture
+    //
+    // -------------------------------------------------
+
+
+    this.graphBuilder.createResource(
+
+        "Bloom",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+
+            format:
+
+                "RGBA16F",
+
+
+            mipLevels:
+
+                5
+
+        }
+
+    );
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // CAD Overlay
+    //
+    // Dimension lines
+    // Sketch
+    // Gizmo
+    // Measurements
+    //
+    // -------------------------------------------------
+
+
+    this.graphBuilder.createResource(
+
+        "Overlay",
+
+        RenderGraphResourceType.Texture,
+
+        {
+
+            ...size,
+
+
+            format:
+
+                "RGBA8"
+
+        }
+
+    );
+
+
+
+}
+
+// =====================================================
+// Render Graph Construction
+// =====================================================
+
+
+protected buildGraph(
+
+    scene:RenderScene,
+
+    camera:RenderCamera
+
+):
+
+    void{
+
+
+    this.graphBuilder.clear();
+
+
+
+    this.registerResources();
+
+
+
+    this.registerPasses(
+
+        scene,
+
+        camera
+
+    );
+
+
+
+}
+
+
+
+
+
+
+
+
+// =====================================================
+// Pass Registration
+// =====================================================
+
+
+protected registerPasses(
+
+    scene:RenderScene,
+
+    camera:RenderCamera
+
+):
+
+    void{
+
+
+
+    const graphPasses:
+
+        Map<RenderPass,RenderGraphPass>
+
+            = new Map();
+
+
+
+
+
+    /*
+        1)
+
+        RenderPass -> RenderGraphPass
+
+        dönüşümü
+
+
+    */
+
+
+
+    for(const pass of this.passes){
+
+
+
+        const graphPass =
+
+            this.graphBuilder.createPass(
+
+                pass.name
+
+            );
+
+
+
+        graphPass.setPriority(
+
+            pass.priority
 
         );
 
 
 
 
+        graphPass.setExecute(
 
-        /*
-            Deferred GBuffer
+            (
 
-            CAD için:
+                context:RenderContext
 
-            Position:
-                world position
-
-
-            Normal:
-                surface normal
+            )=>{
 
 
-            Albedo:
-                base color
+                pass.render(
 
+                    context,
 
-            Material:
+                    scene,
 
-                roughness
-                metallic
-                shader flags
+                    camera
 
-        */
+                );
 
-
-
-        this.graphBuilder.createResource(
-
-            "GBuffer_Position",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "RGBA16F"
 
             }
 
@@ -552,302 +1092,24 @@ export class DeferredRenderer {
 
 
 
+        graphPasses.set(
 
-        this.graphBuilder.createResource(
+            pass,
 
-            "GBuffer_Normal",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "RGBA16F"
-
-            }
+            graphPass
 
         );
 
 
 
+        this.connectResources(
 
+            graphPass,
 
-        this.graphBuilder.createResource(
-
-            "GBuffer_Albedo",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "RGBA8"
-
-            }
+            pass
 
         );
 
-
-
-
-
-        this.graphBuilder.createResource(
-
-            "GBuffer_Material",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "RGBA8"
-
-            }
-
-        );
-
-
-
-
-
-        /*
-            Object ID buffer
-
-            Shapr3D / CAD seçim sistemi
-
-            mouse yerine:
-
-            GPU picking
-
-        */
-
-
-        this.graphBuilder.createResource(
-
-            "ObjectID",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "R32UI"
-
-            }
-
-        );
-
-
-
-
-
-
-        /*
-            Lighting output
-
-            HDR framebuffer
-
-        */
-
-
-        this.graphBuilder.createResource(
-
-            "HDR_Lighting",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "RGBA16F"
-
-            }
-
-        );
-
-
-
-
-
-        /*
-            Screen Space Ambient Occlusion
-
-        */
-
-
-        this.graphBuilder.createResource(
-
-            "SSAO",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                width:
-
-                    this.width / 2,
-
-
-                height:
-
-                    this.height / 2,
-
-
-                format:
-
-                    "R8"
-
-            }
-
-        );
-
-
-
-
-
-        /*
-            Screen Space Reflection
-
-            Metal yüzeyler
-
-            CNC / CAD parçalar
-
-        */
-
-
-        this.graphBuilder.createResource(
-
-            "SSR",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "RGBA16F"
-
-            }
-
-        );
-
-
-
-
-
-        /*
-            Bloom chain
-
-            rough CAD highlights
-
-        */
-
-
-        this.graphBuilder.createResource(
-
-            "Bloom",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "RGBA16F",
-
-                mipLevels:
-
-                    5
-
-            }
-
-        );
-
-
-
-
-
-        /*
-            CAD overlay
-
-            ölçü çizgileri
-
-            sketch
-
-            gizmo
-
-        */
-
-
-        this.graphBuilder.createResource(
-
-            "Overlay",
-
-            RenderGraphResourceType.Texture,
-
-            {
-
-                ...size,
-
-                format:
-
-                    "RGBA8"
-
-            }
-
-        );
-
-
-    }
-
-    // ------------------------------------------------
-    // Render Graph Construction
-    // ------------------------------------------------
-
-
-    protected buildGraph(
-
-        scene:RenderScene,
-
-        camera:RenderCamera
-
-    ):void{
-
-
-        this.graphBuilder.clear();
-
-
-
-        this.registerResources();
-
-
-
-        this.registerPasses(
-
-            scene,
-
-            camera
-
-        );
 
 
     }
@@ -856,78 +1118,70 @@ export class DeferredRenderer {
 
 
 
-    // ------------------------------------------------
-    // Pass Registration
-    // ------------------------------------------------
 
 
-    protected registerPasses(
 
-        scene:RenderScene,
+    /*
+        2)
 
-        camera:RenderCamera
+        Explicit dependency
 
-    ):void{
-
-
-        for(
-
-            const pass of this.passes
-
-        ){
+        bağlantıları
 
 
-            const graphPass =
+        Örnek:
 
-                this.graphBuilder.createPass(
+        LightingPass
 
-                    pass.name
+        GeometryPass çıktısını kullanır.
+
+
+    */
+
+
+
+    for(const pass of this.passes){
+
+
+
+        const current =
+
+            graphPasses.get(pass);
+
+
+
+        if(!current)
+
+            continue;
+
+
+
+
+        for(const dependency of pass.dependencies ?? []){
+
+
+            const dependencyPass =
+
+                graphPasses.get(
+
+                    dependency
 
                 );
 
 
 
-            graphPass.setPriority(
-
-                pass.priority
-
-            );
+            if(dependencyPass){
 
 
 
-            graphPass.setExecute(
+                current.dependsOn(
 
-                (
+                    dependencyPass
 
-                    context:RenderContext
-
-                )=>{
+                );
 
 
-                    pass.render(
-
-                        context,
-
-                        scene,
-
-                        camera
-
-                    );
-
-
-                }
-
-            );
-
-
-
-            this.connectResources(
-
-                graphPass,
-
-                pass
-
-            );
+            }
 
 
         }
@@ -936,75 +1190,262 @@ export class DeferredRenderer {
     }
 
 
-
-
-
-    // ------------------------------------------------
-    // Resource Dependencies
-    // ------------------------------------------------
-
-
-    protected connectResources(
-    graphPass: RenderGraphPass,
-    pass: RenderPass
-): void {
-
-    for (const name of pass.reads()) {
-
-        const resource =
-            this.graphBuilder
-                .getResource(name);
-
-        if (!resource) {
-            throw new Error(
-                `RenderGraph resource "${name}" not found`
-            );
-        }
-
-        this.graphBuilder.read(
-            graphPass,
-            resource
-        );
-
-    }
-
-    for (const name of pass.writes()) {
-
-        const resource =
-            this.graphBuilder
-                .getResource(name);
-
-        if (!resource) {
-            throw new Error(
-                `RenderGraph resource "${name}" not found`
-            );
-        }
-
-        this.graphBuilder.write(
-            graphPass,
-            resource
-        );
-
-    }
 
 }
-    // ------------------------------------------------
-    // Compile
-    // ------------------------------------------------
 
 
-    protected compileGraph():
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Resource Dependencies
+// =====================================================
+
+
+protected connectResources(
+
+    graphPass:RenderGraphPass,
+
+    pass:RenderPass
+
+):
+
+    void{
+
+
+
+    /*
+        READ resources
+
+        örnek:
+
+        LightingPass:
+
+            GBuffer_Position
+            GBuffer_Normal
+            GBuffer_Albedo
+
+
+    */
+
+
+    for(const name of pass.reads()){
+
+
+
+        const resource =
+
+            this.graphBuilder
+
+                .getResource(name);
+
+
+
+
+
+        if(!resource){
+
+
+
+            throw new Error(
+
+                `RenderGraph resource "${name}" not found`
+
+            );
+
+
+        }
+
+
+
+
+
+        this.graphBuilder.read(
+
+            graphPass,
+
+            resource
+
+        );
+
+
+
+    }
+
+
+
+
+
+
+
+    /*
+        WRITE resources
+
+        örnek:
+
+        GeometryPass:
+
+            GBuffer_Position
+            GBuffer_Normal
+
+
+        LightingPass:
+
+            HDR_Lighting
+
+
+    */
+
+
+    for(const name of pass.writes()){
+
+
+
+        const resource =
+
+            this.graphBuilder
+
+                .getResource(name);
+
+
+
+
+
+        if(!resource){
+
+
+
+            throw new Error(
+
+                `RenderGraph resource "${name}" not found`
+
+            );
+
+
+        }
+
+
+
+
+
+        this.graphBuilder.write(
+
+            graphPass,
+
+            resource
+
+        );
+
+
+
+    }
+
+
+
+}
+
+
+
+
+
+
+
+
+// =====================================================
+// Compile
+// =====================================================
+
+
+protected compileGraph():
 
     RenderGraphCompileResult{
 
 
-        return this.compiler.compile(
 
-            this.graphBuilder.getPasses(),
+    return this.compiler.compile(
 
-            this.graphBuilder.getResources()
 
-        );
+
+        this.graphBuilder.getPasses(),
+
+
+
+        this.graphBuilder.getResources()
+
+
+
+    );
+
+
+
+}
+
+// =====================================================
+// Execute
+// =====================================================
+
+
+protected executeGraph(
+
+    result:RenderGraphCompileResult,
+
+    scene:RenderScene,
+
+    camera:RenderCamera
+
+):
+
+    void{
+
+
+    this.executor.execute(
+
+        this.context,
+
+        result,
+
+        scene,
+
+        camera
+
+    );
+
+
+}
+
+
+
+
+
+
+
+// =====================================================
+// Frame Rendering
+// =====================================================
+
+
+public render(
+
+    scene:RenderScene,
+
+    camera:RenderCamera
+
+):
+
+    void{
+
+
+
+    if(!this.initialized){
+
+
+        this.initialize();
 
 
     }
@@ -1013,296 +1454,311 @@ export class DeferredRenderer {
 
 
 
-    // ------------------------------------------------
-    // Execute
-    // ------------------------------------------------
 
+    const start =
 
-    protected executeGraph(
+        this.beginFrame();
 
-        result:RenderGraphCompileResult
 
-    ):void{
 
 
-        this.executor.execute(
 
-            this.context,
 
-            result
 
-        );
+    /*
+        1)
 
+        Build Render Graph
 
-    }
 
-    // ------------------------------------------------
-    // Frame Rendering
-    // ------------------------------------------------
+    */
 
 
-    render(
+    this.buildGraph(
 
-        scene:RenderScene,
+        scene,
 
-        camera:RenderCamera
+        camera
 
-    ):void{
+    );
 
 
-        if(!this.initialized){
 
 
-            this.initialize();
 
 
-        }
 
 
 
-        const start =
+    /*
+        2)
 
-            this.beginFrame();
+        Compile
 
+        Generates:
 
+            execution order
 
+            barriers
 
+            resource lifetime
 
-        /*
-            1)
 
-            Render graph oluşturulur
+    */
 
 
-        */
 
+    const compiled =
 
-        this.buildGraph(
+        this.compileGraph();
 
-            scene,
 
-            camera
 
-        );
 
 
 
+    this.passCount =
 
+        compiled.executionOrder.length;
 
-        /*
-            2)
 
-            Compile edilir
 
+    this.resourceCount =
 
-            Dependency:
+        compiled.lifetimes.length;
 
-                Pass order
 
-                Resource barrier
 
-                Lifetime
 
 
-        */
 
 
-        const compiled =
 
-            this.compileGraph();
 
+    /*
+        3)
 
+        Execute GPU pipeline
 
 
+    */
 
-        this.passCount =
 
-    compiled.executionOrder.length;
+    this.executeGraph(
 
+        compiled,
 
-this.resourceCount =
+        scene,
 
-    compiled.lifetimes.length;
+        camera
 
+    );
 
 
 
-        /*
-            3)
 
-            GPU execute
 
-        */
 
 
-        this.executeGraph(
 
-            compiled
+    this.endFrame(
 
-        );
+        start
 
+    );
 
 
 
 
-        this.endFrame(
 
-            start
 
-        );
 
+    this.frame++;
 
 
 
+}
 
-        this.frame++;
 
 
-    }
 
 
 
 
 
-    // ------------------------------------------------
-    // Frame Timing
-    // ------------------------------------------------
 
 
-    private beginFrame():
+
+// =====================================================
+// Frame Timing
+// =====================================================
+
+
+private beginFrame():
 
     number{
 
 
-        return performance.now();
+    return performance.now();
 
 
-    }
-
-
-
-
-
-    private endFrame(
-
-        start:number
-
-    ):void{
-
-
-        this.frameTime =
-
-            performance.now()
-
-            -
-
-            start;
-
-
-    }
+}
 
 
 
 
 
-    // ------------------------------------------------
-    // Statistics
-    // ------------------------------------------------
 
 
-    getStatistics():
+private endFrame(
+
+    start:number
+
+):
+
+    void{
+
+
+    this.frameTime =
+
+        performance.now()
+
+        -
+
+        start;
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Statistics
+// =====================================================
+
+
+public getStatistics():
 
     DeferredRendererStatistics{
 
 
-        return {
-
-
-            frame:
-
-                this.frame,
-
-
-            frameTime:
-
-                this.frameTime,
-
-
-            passCount:
-
-                this.passCount,
-
-
-            resourceCount:
-
-                this.resourceCount
-
-
-        };
-
-
-    }
+    return {
 
 
 
+        frame:
+
+            this.frame,
 
 
-    getFrame():
 
-    number{
+        frameTime:
 
-
-        return this.frame;
+            this.frameTime,
 
 
-    }
+
+        passCount:
+
+            this.passCount,
+
+
+
+        resourceCount:
+
+            this.resourceCount
+
+
+
+    };
+
+
+
+}
 
 
 
 
 
-    getFrameTime():
+
+
+public getFrame():
 
     number{
 
 
-        return this.frameTime;
+    return this.frame;
 
 
-    }
-
-
-
-
-
-    // ------------------------------------------------
-    // Debug
-    // ------------------------------------------------
-
-
-    dumpGraph():void{
-
-
-        console.group(
-
-            "Deferred Render Graph"
-
-        );
+}
 
 
 
 
-        console.log(
-
-            "Resources"
-
-        );
 
 
 
-        console.table(
+public getFrameTime():
 
-            this.graphBuilder
+    number{
+
+
+    return this.frameTime;
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Debug
+// =====================================================
+
+
+public dumpGraph():
+
+    void{
+
+
+    console.group(
+
+        "Deferred Render Graph"
+
+    );
+
+
+
+
+
+
+
+    console.log(
+
+        "Resources"
+
+    );
+
+
+
+
+
+    console.table(
+
+
+        this.graphBuilder
 
             .getResources()
 
@@ -1314,22 +1770,30 @@ this.resourceCount =
 
             )
 
-        );
+
+    );
 
 
 
 
-        console.log(
-
-            "Passes"
-
-        );
 
 
 
-        console.table(
 
-            this.graphBuilder
+    console.log(
+
+        "Passes"
+
+    );
+
+
+
+
+
+    console.table(
+
+
+        this.graphBuilder
 
             .getPasses()
 
@@ -1341,277 +1805,158 @@ this.resourceCount =
 
             )
 
-        );
 
+    );
 
 
-        console.groupEnd();
 
 
-    }
 
 
+    console.groupEnd();
 
 
 
-    debugInfo(){
+}
 
 
-        return {
 
 
-            renderer:
 
-                "DeferredRenderer",
 
 
 
-            initialized:
+public debugInfo(){
 
-                this.initialized,
 
 
+    return {
 
-            frame:
 
-                this.frame,
 
+        renderer:
 
+            "DeferredRenderer",
 
-            size:
 
-                {
 
-                    width:
 
-                        this.width,
 
+        initialized:
 
-                    height:
+            this.initialized,
 
-                        this.height
 
-                },
 
 
 
-            passes:
+        frame:
 
-                this.passes.map(
+            this.frame,
 
-                    p =>
 
-                        p.name
 
-                ),
 
 
+        resolution:
 
-            statistics:
+            {
 
-                this.getStatistics(),
 
+                width:
 
+                    this.width,
 
-            graph:
 
-                this.graphBuilder.debugInfo()
 
+                height:
 
+                    this.height
 
-        };
 
 
-    }
+            },
 
-    // ------------------------------------------------
-    // Reload
-    // ------------------------------------------------
 
 
-    reload():void{
 
 
-        const wasInitialized =
 
-            this.initialized;
+        passes:
 
+            this.passes.map(
 
 
-        this.dispose();
+                pass =>
 
+                    pass.name
 
 
-        if(wasInitialized){
+            ),
 
 
-            this.initialize();
 
 
-        }
 
 
-    }
+        statistics:
 
+            this.getStatistics(),
 
 
 
 
-    // ------------------------------------------------
-    // Resize State
-    // ------------------------------------------------
 
 
-    getWidth():number{
+        graph:
 
+            this.graphBuilder.debugInfo()
 
-        return this.width;
 
 
-    }
+    };
 
 
 
-    getHeight():number{
+}
 
 
-        return this.height;
 
 
-    }
 
 
 
 
 
-    // ------------------------------------------------
-    // Renderer State
-    // ------------------------------------------------
+// =====================================================
+// Reload
+// =====================================================
 
 
-    saveState(){
+public reload():
 
+    void{
 
-        return {
 
+    const wasInitialized =
 
-            initialized:
+        this.initialized;
 
-                this.initialized,
 
 
-            frame:
 
-                this.frame,
 
+    this.dispose();
 
-            width:
 
-                this.width,
 
 
-            height:
 
-                this.height,
+    if(wasInitialized){
 
 
-            passes:
 
-                this.passes.map(
-
-                    pass =>
-
-                        pass.name
-
-                )
-
-
-        };
-
-
-    }
-
-
-
-
-
-    restoreState(
-
-        state:any
-
-    ):void{
-
-
-        this.frame =
-
-            state.frame ?? 0;
-
-
-
-        this.width =
-
-            state.width ?? 1;
-
-
-
-        this.height =
-
-            state.height ?? 1;
-
-
-    }
-
-
-
-
-
-    // ------------------------------------------------
-    // Dispose
-    // ------------------------------------------------
-
-
-    dispose():void{
-
-
-        if(!this.initialized){
-
-
-            return;
-
-
-        }
-
-
-
-
-        for(
-
-            const pass of this.passes
-
-        ){
-
-
-            pass.dispose(
-
-                this.context
-
-            );
-
-
-        }
-
-
-
-
-        this.passes.length = 0;
-
-
-
-        this.graphBuilder.clear();
-
-
-
-        this.initialized=false;
+        this.initialize();
 
 
 
@@ -1619,99 +1964,238 @@ this.resourceCount =
 
 
 
-
-
-    // ------------------------------------------------
-    // Backend Information
-    // ------------------------------------------------
-
-
-    getBackendInfo(){
-
-
-        return {
-
-
-            renderer:
-
-                "DeferredRenderer",
-
-
-            api:
-
-                this.context.api,
-
-
-            resolution:
-
-                {
-
-                    width:
-
-                        this.width,
-
-
-                    height:
-
-                        this.height
-
-                },
-
-
-            frame:
-
-                this.frame
-
-
-
-        };
-
-
-    }
+}
 
 
 
 
 
-    // ------------------------------------------------
-    // Final Debug
-    // ------------------------------------------------
-
-
-    printDebug():void{
-
-
-        console.group(
-
-            "Renderer Debug"
-
-        );
 
 
 
-        console.log(
 
-            this.getBackendInfo()
-
-        );
-
+// =====================================================
+// Renderer State
+// =====================================================
 
 
-        console.log(
+public saveState(){
 
-            this.getStatistics()
 
-        );
+    return {
 
 
 
-        this.dumpGraph();
+        initialized:
+
+            this.initialized,
 
 
 
-        console.groupEnd();
+        frame:
+
+            this.frame,
 
 
-    }
+
+        width:
+
+            this.width,
+
+
+
+        height:
+
+            this.height,
+
+
+
+        passes:
+
+            this.passes.map(
+
+                pass =>
+
+                    pass.name
+
+            )
+
+
+
+    };
+
+
+
+}
+
+
+
+
+
+
+
+public restoreState(
+
+    state:any
+
+):
+
+    void{
+
+
+    this.frame =
+
+        state.frame ?? 0;
+
+
+
+
+    this.width =
+
+        state.width ?? 1;
+
+
+
+
+    this.height =
+
+        state.height ?? 1;
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Backend Information
+// =====================================================
+
+
+public getBackendInfo(){
+
+
+    return {
+
+
+
+        renderer:
+
+            "DeferredRenderer",
+
+
+
+
+        api:
+
+            this.context.getBackend(),
+
+
+
+
+        resolution:
+
+            {
+
+
+                width:
+
+                    this.width,
+
+
+
+                height:
+
+                    this.height
+
+
+
+            },
+
+
+
+
+        frame:
+
+            this.frame
+
+
+
+    };
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Final Debug Print
+// =====================================================
+
+
+public printDebug():
+
+    void{
+
+
+    console.group(
+
+        "Renderer Debug"
+
+    );
+
+
+
+
+
+    console.log(
+
+        this.getBackendInfo()
+
+    );
+
+
+
+
+
+    console.log(
+
+        this.getStatistics()
+
+    );
+
+
+
+
+
+    this.dumpGraph();
+
+
+
+
+
+    console.groupEnd();
+
+
+
+}
+
+
+
+
+
 
 }
