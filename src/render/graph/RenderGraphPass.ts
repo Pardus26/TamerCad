@@ -1,3 +1,6 @@
+// src/render/graph/RenderGraphPass.ts
+
+
 import {
     RenderGraphResource
 } from "./RenderGraphResource";
@@ -32,10 +35,13 @@ export type RenderGraphExecuteCallback = (
 
 
 
+
+
 export class RenderGraphPass {
 
 
-    public readonly name:string;
+
+    public readonly name: string;
 
 
 
@@ -51,12 +57,6 @@ export class RenderGraphPass {
 
 
 
-    private readonly dependencies:
-
-        RenderGraphPass[] = [];
-
-
-
     private executeCallback:
 
         RenderGraphExecuteCallback | null = null;
@@ -64,11 +64,12 @@ export class RenderGraphPass {
 
 
 
+
     constructor(
 
-        name:string
+        name: string
 
-    ){
+    ) {
 
         this.name = name;
 
@@ -77,20 +78,29 @@ export class RenderGraphPass {
 
 
 
-    read(
 
-        resource:RenderGraphResource
+    // ==================================================
+    // Resource Declaration
+    // ==================================================
 
-    ):this{
+
+    public read(
+
+        resource: RenderGraphResource
+
+    ): this {
 
 
-        if(
+
+        if (
 
             !this.reads.includes(resource)
 
-        ){
+        ) {
+
 
             this.reads.push(resource);
+
 
 
             resource.addConsumer(
@@ -99,10 +109,13 @@ export class RenderGraphPass {
 
             );
 
+
         }
 
 
+
         return this;
+
 
     }
 
@@ -110,20 +123,25 @@ export class RenderGraphPass {
 
 
 
-    write(
-
-        resource:RenderGraphResource
-
-    ):this{
 
 
-        if(
+    public write(
+
+        resource: RenderGraphResource
+
+    ): this {
+
+
+
+        if (
 
             !this.writes.includes(resource)
 
-        ){
+        ) {
+
 
             this.writes.push(resource);
+
 
 
             resource.setProducer(
@@ -132,10 +150,13 @@ export class RenderGraphPass {
 
             );
 
+
         }
 
 
+
         return this;
+
 
     }
 
@@ -143,78 +164,31 @@ export class RenderGraphPass {
 
 
 
-    dependsOn(
-
-        pass:RenderGraphPass
-
-    ):this{
-
-
-        if(
-
-            !this.dependencies.includes(pass)
-
-        ){
-
-            this.dependencies.push(pass);
-
-        }
-
-
-        return this;
-
-    }
 
 
 
 
+    // ==================================================
+    // Execute Callback
+    // ==================================================
 
-    setExecute(
 
-        callback:RenderGraphExecuteCallback
+    public setExecute(
 
-    ):this{
+        callback:
+
+            RenderGraphExecuteCallback
+
+    ): this {
+
 
 
         this.executeCallback = callback;
 
 
+
         return this;
 
-    }
-
-
-
-
-
-    execute(
-
-        context:RenderContext,
-
-        scene?:RenderScene,
-
-        camera?:RenderCamera
-
-    ):void{
-
-
-        if(
-
-            this.executeCallback
-
-        ){
-
-            this.executeCallback(
-
-                context,
-
-                scene,
-
-                camera
-
-            );
-
-        }
 
     }
 
@@ -222,38 +196,77 @@ export class RenderGraphPass {
 
 
 
-    getReads():
 
-    readonly RenderGraphResource[]{
+
+    public execute(
+
+        context:
+
+            RenderContext,
+
+        scene?:
+
+            RenderScene,
+
+        camera?:
+
+            RenderCamera
+
+    ): void {
+
+
+
+        this.executeCallback?.(
+
+            context,
+
+            scene,
+
+            camera
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // ==================================================
+    // Resource Access
+    // ==================================================
+
+
+    public getReads():
+
+    readonly RenderGraphResource[] {
+
 
 
         return this.reads;
 
+
     }
 
 
 
 
 
-    getWrites():
 
-    readonly RenderGraphResource[]{
+
+    public getWrites():
+
+    readonly RenderGraphResource[] {
+
 
 
         return this.writes;
 
-    }
-
-
-
-
-
-    getDependencies():
-
-    readonly RenderGraphPass[]{
-
-
-        return this.dependencies;
 
     }
 
@@ -261,46 +274,116 @@ export class RenderGraphPass {
 
 
 
-    debugInfo(){
+
+
+
+    public hasRead(
+
+        resource:
+
+            RenderGraphResource
+
+    ): boolean {
+
+
+
+        return this.reads.includes(
+
+            resource
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+    public hasWrite(
+
+        resource:
+
+            RenderGraphResource
+
+    ): boolean {
+
+
+
+        return this.writes.includes(
+
+            resource
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // ==================================================
+    // Debug
+    // ==================================================
+
+
+    public debugInfo() {
+
 
 
         return {
 
 
-            name:this.name,
+            name:
+
+                this.name,
+
 
 
             reads:
 
                 this.reads.map(
 
-                    r=>r.name
+                    r => r.name
 
                 ),
+
 
 
             writes:
 
                 this.writes.map(
 
-                    r=>r.name
+                    r => r.name
 
                 ),
 
 
-            dependencies:
 
-                this.dependencies.map(
+            producerCount:
 
-                    d=>d.name
+                this.writes.length,
 
-                )
+
+
+            consumerCount:
+
+                this.reads.length
+
 
 
         };
 
 
     }
+
 
 
 }
