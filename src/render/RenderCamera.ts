@@ -1,4 +1,4 @@
-// src/render/Camera.ts
+
 
 import { Vector3 } from "../math/vector/Vector3";
 import { Matrix4 } from "../math/matrix/Matrix4";
@@ -53,7 +53,7 @@ export interface CameraState{
 
 }
 
-export class Camera{
+export class RenderCamera{
 
     private projection=
 
