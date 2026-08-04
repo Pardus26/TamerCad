@@ -1,237 +1,569 @@
 import { RenderGraphPass } from "./RenderGraphPass";
-import { RenderGraphResource } from "./RenderGraphResource";
+
+import { 
+    RenderGraphResource 
+} from "./RenderGraphResource";
+
+
 
 export interface RenderGraphCompileResult {
 
-    executionOrder: RenderGraphPass[];
 
-    dependencies: Map<
-        RenderGraphPass,
-        RenderGraphPass[]
-    >;
+    executionOrder:
+
+        RenderGraphPass[];
+
+
+    resources:
+
+        RenderGraphResource[];
+
 
 }
 
+
+
+
 export class RenderGraphCompiler {
+
+
+    private compiled = false;
+
+
+
+    constructor() {}
+
+
+
+    // ----------------------------------------------------
+    // Compile
+    // ----------------------------------------------------
+
 
     compile(
 
-        passes: readonly RenderGraphPass[],
+        passes:
 
-        resources: readonly RenderGraphResource[]
+            readonly RenderGraphPass[],
+
+        resources:
+
+            readonly RenderGraphResource[]
 
     ): RenderGraphCompileResult {
 
-        const dependencyMap =
 
-            this.buildDependencies(
-
-                passes,
-
-                resources
-
-            );
 
         const executionOrder =
 
-            this.topologicalSort(
+            this.sortPasses(
 
-                passes,
-
-                dependencyMap
+                passes
 
             );
 
+
+
+        this.compiled = true;
+
+
+
         return {
+
 
             executionOrder,
 
-            dependencies: dependencyMap
+
+            resources:
+
+                [...resources]
+
 
         };
 
-    }
-
-    private buildDependencies(
-
-        passes: readonly RenderGraphPass[],
-
-        resources: readonly RenderGraphResource[]
-
-    ): Map<
-        RenderGraphPass,
-        RenderGraphPass[]
-    > {
-
-        const map =
-
-            new Map<
-                RenderGraphPass,
-                RenderGraphPass[]
-            >();
-
-        for (const pass of passes) {
-
-            map.set(pass, []);
-
-        }
-
-        for (const resource of resources) {
-
-            const producerName =
-                resource.getProducer();
-
-            if (!producerName) {
-                continue;
-            }
-
-            const producer =
-
-                passes.find(
-
-                    p =>
-
-                        p.name === producerName
-
-                );
-
-            if (!producer) {
-                continue;
-            }
-
-            for (
-
-                const consumerName of
-
-                resource.getConsumers()
-
-            ) {
-
-                const consumer =
-
-                    passes.find(
-
-                        p =>
-
-                            p.name === consumerName
-
-                    );
-
-                if (!consumer) {
-                    continue;
-                }
-
-                if (producer === consumer) {
-                    continue;
-                }
-
-                const deps =
-
-                    map.get(consumer)!;
-
-                if (
-
-                    !deps.includes(producer)
-
-                ) {
-
-                    deps.push(
-
-                        producer
-
-                    );
-
-                }
-
-            }
-
-        }
-
-        return map;
 
     }
 
-    private topologicalSort(
 
-        passes: readonly RenderGraphPass[],
+    // ----------------------------------------------------
+    // Topological Sort
+    // ----------------------------------------------------
 
-        dependencyMap: Map<
-            RenderGraphPass,
-            RenderGraphPass[]
-        >
+
+    private sortPasses(
+
+        passes:
+
+            readonly RenderGraphPass[]
 
     ): RenderGraphPass[] {
+
+
 
         const result:
 
             RenderGraphPass[] = [];
 
+
+
         const visited =
 
             new Set<RenderGraphPass>();
+
+
 
         const visiting =
 
             new Set<RenderGraphPass>();
 
-        const visit = (
 
-            pass: RenderGraphPass
 
-        ) => {
 
-            if (
 
-                visited.has(pass)
+        for (
 
-            ) {
+            const pass of passes
 
-                return;
+        ) {
 
-            }
 
-            if (
 
-                visiting.has(pass)
+            this.visit(
 
-            ) {
+                pass,
 
-                throw new Error(
+                visited,
 
-                    `RenderGraph cycle detected at ${pass.name}`
+                visiting,
 
-                );
+                result
 
-            }
+            );
 
-            visiting.add(pass);
-
-            const deps =
-
-                dependencyMap.get(pass) ?? [];
-
-            for (const dep of deps) {
-
-                visit(dep);
-
-            }
-
-            visiting.delete(pass);
-
-            visited.add(pass);
-
-            result.push(pass);
-
-        };
-
-        for (const pass of passes) {
-
-            visit(pass);
 
         }
 
+
+
+
+
         return result;
 
+
     }
+
+
+
+
+
+    // ----------------------------------------------------
+    // Dependency Visit
+    // ----------------------------------------------------
+
+
+    private visit(
+
+        pass:
+
+            RenderGraphPass,
+
+
+        visited:
+
+            Set<RenderGraphPass>,
+
+
+        visiting:
+
+            Set<RenderGraphPass>,
+
+
+        result:
+
+            RenderGraphPass[]
+
+
+    ): void {
+
+
+
+        if (
+
+            visited.has(
+
+                pass
+
+            )
+
+        ) {
+
+
+            return;
+
+
+        }
+
+
+
+
+
+        if (
+
+            visiting.has(
+
+                pass
+
+            )
+
+        ) {
+
+
+            throw new Error(
+
+                "RenderGraph cycle detected: " +
+
+                pass.name
+
+            );
+
+
+        }
+
+
+
+
+
+        visiting.add(
+
+            pass
+
+        );
+
+
+
+
+
+        for (
+
+            const dependency of
+
+            pass.getDependencies()
+
+        ) {
+
+
+
+            this.visit(
+
+                dependency,
+
+                visited,
+
+                visiting,
+
+                result
+
+            );
+
+
+        }
+
+
+
+
+
+        visiting.delete(
+
+            pass
+
+        );
+
+
+
+        visited.add(
+
+            pass
+
+        );
+
+
+
+        result.push(
+
+            pass
+
+        );
+
+
+    }
+
+
+    // ----------------------------------------------------
+    // Resource Validation
+    // ----------------------------------------------------
+
+
+    private validateResources(
+
+        passes:
+
+            readonly RenderGraphPass[],
+
+        resources:
+
+            readonly RenderGraphResource[]
+
+    ): void {
+
+
+
+        const resourceNames =
+
+            new Set<string>();
+
+
+
+
+
+        for (
+
+            const resource of resources
+
+        ) {
+
+
+
+            if (
+
+                resourceNames.has(
+
+                    resource.name
+
+                )
+
+            ) {
+
+
+
+                throw new Error(
+
+                    "Duplicate RenderGraph resource: " +
+
+                    resource.name
+
+                );
+
+
+            }
+
+
+
+
+
+            resourceNames.add(
+
+                resource.name
+
+            );
+
+
+        }
+
+
+
+
+
+        for (
+
+            const pass of passes
+
+        ) {
+
+
+
+            this.validatePassResources(
+
+                pass
+
+            );
+
+
+        }
+
+
+    }
+
+
+
+
+
+    // ----------------------------------------------------
+    // Pass Resource Validation
+    // ----------------------------------------------------
+
+
+    private validatePassResources(
+
+        pass:
+
+            RenderGraphPass
+
+    ): void {
+
+
+
+        const writes =
+
+            new Set<string>();
+
+
+
+        for (
+
+            const resource of
+
+            pass.getWrites()
+
+        ) {
+
+
+
+            writes.add(
+
+                resource.name
+
+            );
+
+
+        }
+
+
+
+
+
+        for (
+
+            const resource of
+
+            pass.getReads()
+
+        ) {
+
+
+
+            /*
+                Aynı pass içinde:
+
+                READ + WRITE
+
+                şu an desteklenmiyor.
+
+
+                Daha sonra:
+
+                Vulkan Image Barrier
+
+                WebGPU Resource Transition
+
+                olarak geliştirilecek.
+            */
+
+
+            if (
+
+                writes.has(
+
+                    resource.name
+
+                )
+
+            ) {
+
+
+
+                throw new Error(
+
+                    "RenderGraph hazard: pass '" +
+
+                    pass.name +
+
+                    "' reads and writes resource '" +
+
+                    resource.name +
+
+                    "'"
+
+                );
+
+
+            }
+
+
+        }
+
+
+    }
+
+
+
+
+
+    // ----------------------------------------------------
+    // Compile State
+    // ----------------------------------------------------
+
+
+    isCompiled():
+
+    boolean {
+
+
+
+        return this.compiled;
+
+
+    }
+
+
+
+
+
+    reset(): void {
+
+
+
+        this.compiled = false;
+
+
+    }
+
+
+    // ----------------------------------------------------
+    // Debug
+    // ----------------------------------------------------
+
+
+    debugInfo() {
+
+
+        return {
+
+
+            type:
+
+                "RenderGraphCompiler",
+
+
+            compiled:
+
+                this.compiled
+
+
+        };
+
+
+    }
+
+
 
 }
