@@ -501,53 +501,88 @@ export class RenderContext {
      * RenderPass clear attachment
      *
      */
-    public clear(
+ public clear(
 
-        color = true,
+    options: {
 
-        depth = true
+        color?: boolean;
 
-    ): void {
+        depth?: boolean;
 
+        stencil?: boolean;
 
-        if (
+    } = {}
 
-            !this.nativeContext
-
-        ) {
-
-            return;
-
-        }
+): void {
 
 
 
-        /*
-            İleride backend ayrımı yapılacak.
+    if (
 
+        !this.nativeContext
 
-            WebGL:
+    ) {
 
-            gl.clear(
-                COLOR_BUFFER_BIT |
-                DEPTH_BUFFER_BIT
-            )
-
-
-            Vulkan:
-
-            vkCmdBeginRenderPass()
-
-
-        */
-
-
-        void color;
-
-        void depth;
+        return;
 
     }
 
+
+
+    const color =
+
+        options.color ?? true;
+
+
+
+    const depth =
+
+        options.depth ?? true;
+
+
+
+    const stencil =
+
+        options.stencil ?? false;
+
+
+
+    /*
+        Backend bağımsız clear
+
+
+        WebGL:
+
+        gl.clear(
+            COLOR_BUFFER_BIT |
+            DEPTH_BUFFER_BIT |
+            STENCIL_BUFFER_BIT
+        )
+
+
+        Vulkan:
+
+        vkCmdBeginRenderPass(
+            clearValues
+        )
+
+
+        OpenGL ES:
+
+        glClear()
+
+    */
+
+
+
+    void color;
+
+    void depth;
+
+    void stencil;
+
+
+}
 
 
 
