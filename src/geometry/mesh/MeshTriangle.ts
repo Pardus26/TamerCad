@@ -1,54 +1,143 @@
 import { MeshVertex } from "./MeshVertex";
 
+
 export class MeshTriangle {
 
+
     /**
-     * Triangle id
+     * Triangle unique id
      */
-    public readonly id: number;
+    public readonly id:number;
+
+
 
     /**
      * Vertex indices
      */
-    public v1: number;
+    public v1:number;
 
-    public v2: number;
+    public v2:number;
 
-    public v3: number;
+    public v3:number;
+
+
+
+    /**
+     * Mesh3 compatibility
+     */
+    public get a():number {
+
+        return this.v1;
+
+    }
+
+
+    public set a(
+
+        value:number
+
+    ){
+
+        this.v1=value;
+
+    }
+
+
+
+    public get b():number {
+
+        return this.v2;
+
+    }
+
+
+    public set b(
+
+        value:number
+
+    ){
+
+        this.v2=value;
+
+    }
+
+
+
+    public get c():number {
+
+        return this.v3;
+
+    }
+
+
+    public set c(
+
+        value:number
+
+    ){
+
+        this.v3=value;
+
+    }
+
+
+
+
 
     /**
      * Face normal index
      */
-    public normalIndex: number | null = null;
+    public normalIndex:
+
+        number | null = null;
+
+
+
 
     /**
      * Material index
      */
-    public materialIndex: number | null = null;
+    public materialIndex:
+
+        number | null = null;
+
+
+
+
+
 
     constructor(
 
-        id: number,
+        id:number,
 
-        v1: number,
+        v1:number,
 
-        v2: number,
+        v2:number,
 
-        v3: number
+        v3:number
 
-    ) {
+    ){
 
-        this.id = id;
+        this.id=id;
 
-        this.v1 = v1;
+        this.v1=v1;
 
-        this.v2 = v2;
+        this.v2=v2;
 
-        this.v3 = v3;
+        this.v3=v3;
 
     }
 
-    getVertexIndices(): number[] {
+
+
+
+
+
+
+    public getVertexIndices():
+
+    readonly number[]{
+
 
         return [
 
@@ -60,97 +149,199 @@ export class MeshTriangle {
 
         ];
 
+
     }
 
-    containsVertex(
 
-        vertexIndex: number
 
-    ): boolean {
+
+
+
+
+    public containsVertex(
+
+        vertexIndex:number
+
+    ):boolean{
+
 
         return (
 
-            this.v1 === vertexIndex ||
+            this.v1===vertexIndex ||
 
-            this.v2 === vertexIndex ||
+            this.v2===vertexIndex ||
 
-            this.v3 === vertexIndex
+            this.v3===vertexIndex
 
         );
 
-    }
-
-    replaceVertex(
-
-        oldIndex: number,
-
-        newIndex: number
-
-    ): void {
-
-        if (
-
-            this.v1 === oldIndex
-
-        ) {
-
-            this.v1 = newIndex;
-
-        }
-
-        if (
-
-            this.v2 === oldIndex
-
-        ) {
-
-            this.v2 = newIndex;
-
-        }
-
-        if (
-
-            this.v3 === oldIndex
-
-        ) {
-
-            this.v3 = newIndex;
-
-        }
 
     }
 
-    reverse(): void {
 
-        const tmp = this.v2;
 
-        this.v2 = this.v3;
 
-        this.v3 = tmp;
+
+
+
+    public replaceVertex(
+
+        oldIndex:number,
+
+        newIndex:number
+
+    ):void{
+
+
+        if(this.v1===oldIndex)
+
+            this.v1=newIndex;
+
+
+
+        if(this.v2===oldIndex)
+
+            this.v2=newIndex;
+
+
+
+        if(this.v3===oldIndex)
+
+            this.v3=newIndex;
+
 
     }
 
-    isDegenerate(): boolean {
+
+
+
+
+
+
+    /**
+     * Face direction reverse
+     */
+    public reverse():void{
+
+
+        const temp=this.v2;
+
+
+        this.v2=this.v3;
+
+
+        this.v3=temp;
+
+
+    }
+
+
+
+
+
+
+
+    public isDegenerate():
+
+    boolean{
+
 
         return (
 
-            this.v1 === this.v2 ||
+            this.v1===this.v2 ||
 
-            this.v2 === this.v3 ||
+            this.v2===this.v3 ||
 
-            this.v3 === this.v1
+            this.v3===this.v1
 
         );
 
+
     }
 
-    clone(): MeshTriangle {
 
-        const t =
+
+
+
+
+
+    /**
+     * Triangle area
+     */
+    public computeArea(
+
+        vertices:MeshVertex[]
+
+    ):number{
+
+
+        const a=
+
+            vertices[this.v1].position;
+
+
+
+        const b=
+
+            vertices[this.v2].position;
+
+
+
+        const c=
+
+            vertices[this.v3].position;
+
+
+
+
+
+        const ab=
+
+            b.subtract(a);
+
+
+
+        const ac=
+
+            c.subtract(a);
+
+
+
+
+
+        return (
+
+            ab
+
+            .cross(ac)
+
+            .length()
+
+            *
+
+            0.5
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+    public clone():
+
+    MeshTriangle{
+
+
+        const t=
 
             new MeshTriangle(
 
-                this.id,
+                MeshTriangle.generateId(),
 
                 this.v1,
 
@@ -160,103 +351,48 @@ export class MeshTriangle {
 
             );
 
-        t.normalIndex =
+
+
+        t.normalIndex=
 
             this.normalIndex;
 
-        t.materialIndex =
+
+
+        t.materialIndex=
 
             this.materialIndex;
 
+
+
         return t;
 
-    }
-
-    computeArea(
-
-        vertices: MeshVertex[]
-
-    ): number {
-
-        const a =
-
-            vertices[this.v1].position;
-
-        const b =
-
-            vertices[this.v2].position;
-
-        const c =
-
-            vertices[this.v3].position;
-
-        const abx =
-
-            b.x - a.x;
-
-        const aby =
-
-            b.y - a.y;
-
-        const abz =
-
-            b.z - a.z;
-
-        const acx =
-
-            c.x - a.x;
-
-        const acy =
-
-            c.y - a.y;
-
-        const acz =
-
-            c.z - a.z;
-
-        const cx =
-
-            aby * acz -
-
-            abz * acy;
-
-        const cy =
-
-            abz * acx -
-
-            abx * acz;
-
-        const cz =
-
-            abx * acy -
-
-            aby * acx;
-
-        return (
-
-            0.5 *
-
-            Math.sqrt(
-
-                cx * cx +
-
-                cy * cy +
-
-                cz * cz
-
-            )
-
-        );
 
     }
 
-    toJSON() {
+
+
+
+
+
+
+    public toJSON(){
+
 
         return {
 
-            id: this.id,
 
-            vertices: [
+            id:this.id,
+
+
+            a:this.v1,
+
+            b:this.v2,
+
+            c:this.v3,
+
+
+            vertices:[
 
                 this.v1,
 
@@ -266,48 +402,124 @@ export class MeshTriangle {
 
             ],
 
+
             normalIndex:
 
                 this.normalIndex,
+
 
             materialIndex:
 
                 this.materialIndex
 
+
         };
+
 
     }
 
-    static fromJSON(
 
-        data: any
 
-    ): MeshTriangle {
 
-        const t =
+
+
+
+    public static fromJSON(
+
+        data:any
+
+    ):
+
+    MeshTriangle{
+
+
+        const vertices =
+
+            data.vertices ??
+
+            [
+
+                data.a,
+
+                data.b,
+
+                data.c
+
+            ];
+
+
+
+
+
+        const triangle=
 
             new MeshTriangle(
 
-                data.id,
+                data.id ??
 
-                data.vertices[0],
+                MeshTriangle.generateId(),
 
-                data.vertices[1],
+                vertices[0],
 
-                data.vertices[2]
+                vertices[1],
+
+                vertices[2]
 
             );
 
-        t.normalIndex =
 
-            data.normalIndex ?? null;
 
-        t.materialIndex =
 
-            data.materialIndex ?? null;
 
-        return t;
+        triangle.normalIndex=
+
+            data.normalIndex ??
+
+            null;
+
+
+
+        triangle.materialIndex=
+
+            data.materialIndex ??
+
+            null;
+
+
+
+        return triangle;
+
 
     }
+
+
+
+
+
+
+
+    private static generateId():
+
+    number{
+
+
+        return (
+
+            Date.now()
+
+            +
+
+            Math.floor(
+
+                Math.random()*100000
+
+            )
+
+        );
+
+
+    }
+
+
 
 }
