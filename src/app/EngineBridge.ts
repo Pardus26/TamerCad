@@ -1,138 +1,448 @@
 // src/app/EngineBridge.ts
 
-import { KernelBootstrap } from "./KernelBootstrap";
+
+import {
+    KernelBootstrap
+} from "./KernelBootstrap";
+
+
+import {
+    InputController
+} from "../input/InputController";
+
+
+import {
+    InputRouter,
+    InputMode
+} from "../input/InputRouter";
+
+
+
+
+
 
 export class EngineBridge {
 
-    private static initialized = false;
 
-    public static initialize(): void {
 
-        if (EngineBridge.initialized) {
+    private static initialized =
+        false;
+
+
+
+    private static input:
+        InputController | null =
+        null;
+
+
+
+
+
+
+
+
+
+    public static initialize():void {
+
+
+
+        if(
+            EngineBridge.initialized
+        ){
+
             return;
+
         }
+
+
+
+
+
+
 
         KernelBootstrap.initialize();
 
-        EngineBridge.initialized = true;
 
-        console.info("[Engine] Initialized");
+
+
+
+
+
+        EngineBridge.input =
+            new InputController(
+                new InputRouter()
+            );
+
+
+
+
+
+        EngineBridge.input.initialize();
+
+
+
+
+
+
+
+        EngineBridge.initialized =
+            true;
+
+
+
+
+
+        console.info(
+            "[Engine] Initialized"
+        );
+
+
     }
+
+
+
+
+
+
+
+
 
     public static resize(
-        width: number,
-        height: number
-    ): void {
 
-        if (!EngineBridge.initialized) {
+        width:number,
+
+        height:number
+
+    ):void {
+
+
+
+        if(
+            !EngineBridge.initialized
+        )
             return;
-        }
 
-        const ctx = KernelBootstrap.context();
 
-        ctx.viewport.resize(width, height);
 
-        ctx.camera.setViewport(width, height);
+
+
+        const ctx =
+            KernelBootstrap.context();
+
+
+
+
+
+        ctx.viewport.resize(
+
+            width,
+
+            height
+
+        );
+
+
+
+
+
+        ctx.camera.setViewport(
+
+            width,
+
+            height
+
+        );
+
+
     }
+
+
+
+
+
+
+
+
 
     public static update(
-        deltaTime: number
-    ): void {
 
-        if (!EngineBridge.initialized) {
+        deltaTime:number
+
+    ):void {
+
+
+
+        if(
+            !EngineBridge.initialized
+        )
             return;
-        }
 
-        KernelBootstrap.update(deltaTime);
+
+
+
+
+        KernelBootstrap.update(
+
+            deltaTime
+
+        );
+
+
     }
 
-    public static render(): void {
 
-        if (!EngineBridge.initialized) {
+
+
+
+
+
+
+
+    public static render():void {
+
+
+
+        if(
+            !EngineBridge.initialized
+        )
             return;
-        }
+
+
+
+
 
         KernelBootstrap.render();
+
+
     }
 
-    public static shutdown(): void {
 
-        if (!EngineBridge.initialized) {
+
+
+
+
+
+
+
+    public static shutdown():void {
+
+
+
+        if(
+            !EngineBridge.initialized
+        )
             return;
-        }
+
+
+
+
+
+        EngineBridge.input?.shutdown();
+
+
+
+
 
         KernelBootstrap.shutdown();
 
-        EngineBridge.initialized = false;
+
+
+
+
+        EngineBridge.input =
+            null;
+
+
+
+
+
+        EngineBridge.initialized =
+            false;
+
+
     }
 
-    // --------------------------------------------------------
-    // Camera Controls
-    // --------------------------------------------------------
 
-    public static orbit(
-        dx: number,
-        dy: number
-    ): void {
 
-        const camera = KernelBootstrap.context().camera;
 
-        camera.orbit(dx, dy);
-    }
 
-    public static pan(
-        dx: number,
-        dy: number
-    ): void {
 
-        const camera = KernelBootstrap.context().camera;
 
-        camera.pan(dx, dy);
-    }
 
-    public static zoom(
-        amount: number
-    ): void {
 
-        const camera = KernelBootstrap.context().camera;
+    // ------------------------------------------------
+    // Input Bridge
+    // Android -> TypeScript
+    // ------------------------------------------------
 
-        camera.zoom(amount);
-    }
 
-    // --------------------------------------------------------
-    // Stylus
-    // --------------------------------------------------------
+
+
+
+
 
     public static pointerDown(
-        x: number,
-        y: number,
-        pressure: number = 1.0
-    ): void {
 
-        const scene = KernelBootstrap.context().scene;
+        id:number,
 
-        scene.pointerDown(x, y, pressure);
+        x:number,
+
+        y:number,
+
+        pressure:number = 1
+
+    ):void {
+
+
+
+        if(
+            !EngineBridge.input
+        )
+            return;
+
+
+
+
+
+        EngineBridge.input.pointerDown(
+
+            id,
+
+            x,
+
+            y,
+
+            pressure
+
+        );
+
+
     }
+
+
+
+
+
+
+
+
 
     public static pointerMove(
-        x: number,
-        y: number,
-        pressure: number = 1.0
-    ): void {
 
-        const scene = KernelBootstrap.context().scene;
+        id:number,
 
-        scene.pointerMove(x, y, pressure);
+        x:number,
+
+        y:number,
+
+        pressure:number = 1
+
+    ):void {
+
+
+
+        if(
+            !EngineBridge.input
+        )
+            return;
+
+
+
+
+
+        EngineBridge.input.pointerMove(
+
+            id,
+
+            x,
+
+            y,
+
+            pressure
+
+        );
+
+
     }
+
+
+
+
+
+
+
+
 
     public static pointerUp(
-        x: number,
-        y: number
-    ): void {
 
-        const scene = KernelBootstrap.context().scene;
+        id:number,
 
-        scene.pointerUp(x, y);
+        x:number,
+
+        y:number
+
+    ):void {
+
+
+
+        if(
+            !EngineBridge.input
+        )
+            return;
+
+
+
+
+
+        EngineBridge.input.pointerUp(
+
+            id,
+
+            x,
+
+            y
+
+        );
+
+
     }
+
+
+
+
+
+
+
+
+
+    // ------------------------------------------------
+    // Camera Controls
+    // ------------------------------------------------
+
+
+
+
+
+
+
+    public static setInputMode(
+
+        mode:InputMode
+
+    ):void {
+
+
+        EngineBridge.input?.setMode(
+            mode
+        );
+
+
+    }
+
+
+
+
+
+
 
 }
