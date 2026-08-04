@@ -1,4 +1,4 @@
-import { Point3 } from "../primitives/Point3";
+import { Point3 } from "../point/Point3";
 
 
 export class MeshVertex {
