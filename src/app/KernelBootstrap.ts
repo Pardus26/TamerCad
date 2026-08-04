@@ -1,124 +1,97 @@
 // src/app/KernelBootstrap.ts
 
-import { DocumentManager } from "../document/DocumentManager";
-import { Renderer } from "../render/Renderer";
 import { Scene } from "../render/Scene";
+import { Renderer } from "../render/Renderer";
 import { Camera } from "../render/Camera";
 import { Viewport } from "../render/Viewport";
 
-export enum KernelState {
-    CREATED = "created",
-    INITIALIZING = "initializing",
-    READY = "ready",
-    FAILED = "failed",
-    SHUTDOWN = "shutdown"
-}
+export interface KernelContext {
 
-export interface KernelSubsystems {
-    renderer: Renderer;
     scene: Scene;
+
+    renderer: Renderer;
+
     camera: Camera;
+
     viewport: Viewport;
-    documents: DocumentManager;
 }
 
 export class KernelBootstrap {
 
-    private static state: KernelState = KernelState.CREATED;
+    private static initialized = false;
 
-    private static subsystems: KernelSubsystems | null = null;
+    private static context: KernelContext | null = null;
 
-    public static initialize(): KernelSubsystems {
+    public static initialize(): KernelContext {
 
-        if (this.state === KernelState.READY) {
-            return this.subsystems!;
+        if (KernelBootstrap.initialized && KernelBootstrap.context) {
+
+            return KernelBootstrap.context;
         }
 
-        this.state = KernelState.INITIALIZING;
+        const scene = new Scene();
 
-        try {
+        const camera = new Camera();
 
-            const scene = new Scene();
+        const viewport = new Viewport(camera);
 
-            const camera = new Camera();
+        const renderer = new Renderer(scene, camera, viewport);
 
-            const viewport = new Viewport(camera, scene);
+        renderer.initialize();
 
-            const renderer = new Renderer(viewport);
+        KernelBootstrap.context = {
 
-            const documents = new DocumentManager();
+            scene,
 
-            this.subsystems = {
-                renderer,
-                scene,
-                camera,
-                viewport,
-                documents
-            };
+            renderer,
 
-            this.initializeScene();
+            camera,
 
-            this.state = KernelState.READY;
+            viewport
 
-            return this.subsystems;
+        };
 
-        } catch (err) {
+        KernelBootstrap.initialized = true;
 
-            this.state = KernelState.FAILED;
-
-            throw err;
-        }
+        return KernelBootstrap.context;
     }
 
-    private static initializeScene(): void {
+    public static context(): KernelContext {
 
-        if (!this.subsystems) {
-            return;
+        if (!KernelBootstrap.context) {
+
+            throw new Error(
+                "Kernel not initialized."
+            );
         }
 
-        /*
-         İlk sahne hazırlanır.
-
-         - World Origin
-         - Grid
-         - Axis Gizmo
-         - Empty Document
-        */
-
-        this.subsystems.documents.createNewDocument();
-
-        // ileride:
-        // this.subsystems.scene.add(Grid)
-        // this.subsystems.scene.add(WorldAxis)
+        return KernelBootstrap.context;
     }
 
-    public static getState(): KernelState {
-        return this.state;
+    public static update(deltaTime: number): void {
+
+        if (!KernelBootstrap.context) return;
+
+        KernelBootstrap.context.scene.update(deltaTime);
+
+        KernelBootstrap.context.renderer.update(deltaTime);
     }
 
-    public static isReady(): boolean {
-        return this.state === KernelState.READY;
-    }
+    public static render(): void {
 
-    public static getSubsystems(): KernelSubsystems {
+        if (!KernelBootstrap.context) return;
 
-        if (!this.subsystems) {
-            throw new Error("Kernel is not initialized.");
-        }
-
-        return this.subsystems;
+        KernelBootstrap.context.renderer.render();
     }
 
     public static shutdown(): void {
 
-        if (!this.subsystems) {
-            return;
-        }
+        if (!KernelBootstrap.context) return;
 
-        this.subsystems.renderer.dispose();
+        KernelBootstrap.context.renderer.dispose();
 
-        this.subsystems = null;
+        KernelBootstrap.context = null;
 
-        this.state = KernelState.SHUTDOWN;
+        KernelBootstrap.initialized = false;
     }
 }
