@@ -1,28 +1,30 @@
+// src/render/graph/RenderGraphResource.ts
+
+
 export enum RenderGraphResourceType {
+
 
     Texture = "Texture",
 
+
     Buffer = "Buffer",
 
-    Attachment = "Attachment",
 
-    Depth = "Depth"
-
-}
+    Depth = "Depth",
 
 
+    RenderTarget = "RenderTarget",
 
-export enum RenderGraphResourceState {
 
-    Undefined = "Undefined",
+    Storage = "Storage"
 
-    Read = "Read",
 
-    Write = "Write",
-
-    ReadWrite = "ReadWrite"
 
 }
+
+
+
+
 
 
 
@@ -35,89 +37,73 @@ export interface RenderGraphResourceDescriptor {
     height?:number;
 
 
-    layers?:number;
+    format?:string;
 
 
     mipLevels?:number;
 
 
-    format?:string;
+    size?:number;
 
 
-    samples?:number;
+    usage?:string[];
 
-
-    transient?:boolean;
-
-
-    imported?:boolean;
 
 }
 
 
 
-export interface RenderGraphResourceUsage {
 
 
-    reads:number;
 
-
-    writes:number;
-
-}
 
 
 
 export class RenderGraphResource {
 
 
+
+
+
     public readonly name:string;
 
 
+
     public readonly type:
+
         RenderGraphResourceType;
 
 
 
+
+
     public readonly descriptor:
+
         RenderGraphResourceDescriptor;
 
 
 
-    public state:
-        RenderGraphResourceState =
-            RenderGraphResourceState.Undefined;
 
-
-
-    /**
-     * Runtime GPU resource
-     *
-     * RenderResourceManager
-     * tarafından atanır.
-     */
-    private handle:any = null;
 
 
 
     private producer:
+
         string | null = null;
 
 
 
-    private consumers:
+
+
+    private readonly consumers:
+
         string[] = [];
 
 
 
-    private usage:
-        RenderGraphResourceUsage = {
 
-            reads:0,
 
-            writes:0
 
-        };
 
 
 
@@ -125,110 +111,99 @@ export class RenderGraphResource {
 
         name:string,
 
-        type:RenderGraphResourceType,
+        type:
+
+            RenderGraphResourceType,
 
         descriptor:
+
             RenderGraphResourceDescriptor = {}
 
     ){
 
-        this.name =
-            name;
+
+        this.name = name;
 
 
-        this.type =
-            type;
+        this.type = type;
 
 
-        this.descriptor =
-            descriptor;
+        this.descriptor = descriptor;
+
 
     }
 
 
 
-    // ------------------------------------------------
-    // Runtime Handle
-    // ------------------------------------------------
-
-
-    setHandle(
-
-        handle:any
-
-    ):void{
-
-        this.handle =
-            handle;
-
-    }
 
 
 
-    getHandle():
-
-    any{
-
-        return this.handle;
-
-    }
 
 
 
-    // ------------------------------------------------
-    // Producer / Consumer
-    // ------------------------------------------------
+    // ==================================================
+    // Producer
+    // ==================================================
 
 
-    setProducer(
+    public setProducer(
 
         passName:string
 
-    ):void{
+    ):void {
 
 
-        this.producer =
-            passName;
 
+        this.producer = passName;
 
-        this.usage.writes++;
-
-        this.transition(
-
-            RenderGraphResourceState.Write
-
-        );
 
     }
 
 
 
-    getProducer():
+
+
+
+
+
+
+    public getProducer():
 
     string | null {
 
+
         return this.producer;
+
 
     }
 
 
 
-    addConsumer(
+
+
+
+
+
+
+    // ==================================================
+    // Consumers
+    // ==================================================
+
+
+    public addConsumer(
 
         passName:string
 
-    ):void{
+    ):void {
+
 
 
         if(
 
-            !this.consumers.includes(
-
-                passName
-
-            )
+            !this.consumers.includes(passName)
 
         ){
+
 
             this.consumers.push(
 
@@ -236,249 +211,148 @@ export class RenderGraphResource {
 
             );
 
-        }
-
-
-        this.usage.reads++;
-
-
-
-        if(
-
-            this.state ===
-
-            RenderGraphResourceState.Write
-
-        ){
-
-            this.transition(
-
-                RenderGraphResourceState.ReadWrite
-
-            );
 
         }
-        else{
 
-            this.transition(
-
-                RenderGraphResourceState.Read
-
-            );
-
-        }
 
     }
 
 
 
-    getConsumers():
 
-    readonly string[]{
+
+
+
+
+
+    public getConsumers():
+
+    readonly string[] {
+
 
         return this.consumers;
 
-    }
-
-
-
-    // ------------------------------------------------
-    // State
-    // ------------------------------------------------
-
-
-    transition(
-
-        next:
-            RenderGraphResourceState
-
-    ):void{
-
-
-        this.state =
-            next;
-
-    }
-
-
-
-    getState():
-
-    RenderGraphResourceState {
-
-        return this.state;
-
-    }
-
-
-
-    getUsage():
-
-    RenderGraphResourceUsage {
-
-
-        return {
-
-            ...this.usage
-
-        };
 
     }
 
 
 
 
-    // ------------------------------------------------
-    // Helpers
-    // ------------------------------------------------
 
 
-    isTransient():
-
-    boolean{
 
 
-        return (
 
-            this.descriptor.transient
+    // ==================================================
+    // Lifetime helpers
+    // ==================================================
 
-            ??
 
-            false
+    public isProduced():boolean {
 
-        );
+
+        return this.producer !== null;
+
 
     }
 
 
 
-    isImported():
-
-    boolean{
 
 
-        return (
 
-            this.descriptor.imported
 
-            ??
+    public isConsumed():boolean {
 
-            false
 
-        );
+        return this.consumers.length > 0;
+
 
     }
 
 
 
-    isAttachment():
-
-    boolean{
 
 
-        return (
 
-            this.type ===
 
-            RenderGraphResourceType.Attachment
 
-        );
+
+    // ==================================================
+    // Reset
+    // ==================================================
+
+
+    public clearUsage():void {
+
+
+
+        this.producer = null;
+
+
+        this.consumers.length = 0;
+
 
     }
 
 
 
-    clearUsage():void{
-
-
-        this.producer =
-            null;
-
-
-        this.consumers.length =
-            0;
 
 
 
-        this.usage = {
-
-            reads:0,
-
-            writes:0
-
-        };
 
 
 
-        this.state =
-            RenderGraphResourceState.Undefined;
-
-    }
-
-
-
-    destroy():void{
-
-
-        this.handle =
-            null;
-
-
-        this.clearUsage();
-
-    }
-
-
-
-    // ------------------------------------------------
+    // ==================================================
     // Debug
-    // ------------------------------------------------
+    // ==================================================
 
 
-    debugInfo(){
+    public debugInfo(){
+
 
 
         return {
 
 
             name:
+
                 this.name,
 
 
+
             type:
+
                 this.type,
 
 
-            state:
-                this.state,
+
+            descriptor:
+
+                this.descriptor,
+
 
 
             producer:
+
                 this.producer,
 
 
+
             consumers:
+
                 [
+
                     ...this.consumers
-                ],
 
+                ]
 
-            usage:
-                this.usage,
-
-
-            descriptor:
-                {
-                    ...this.descriptor
-                },
-
-
-            hasHandle:
-                this.handle !== null
 
         };
 
+
     }
+
 
 
 }
