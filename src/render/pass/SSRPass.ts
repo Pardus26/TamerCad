@@ -38,29 +38,40 @@ export class SSRPass extends RenderPass {
 
     public maxSteps = 64;
 
-    constructor(
-        options: SSRPassOptions = {}
-    ) {
+   constructor(
+    options: SSRPassOptions = {}
+) {
 
-        super({
+    super({
 
-            name: "SSRPass",
+        name:"SSRPass",
 
-            priority: 250
+        priority:250
 
-        });
+    });
 
-        this.buffer = options.buffer ?? null;
 
-    }
+    this
+    .reads(
 
-    setBuffer(
-        buffer: SSRBuffer
-    ): void {
+        "Depth",
 
-        this.buffer = buffer;
+        "GBuffer",
 
-    }
+        "HDR"
+
+    )
+    .writes(
+
+        "SSR"
+
+    );
+
+
+    this.buffer =
+        options.buffer ?? null;
+
+}
 
     protected override begin(
         context: RenderContext
