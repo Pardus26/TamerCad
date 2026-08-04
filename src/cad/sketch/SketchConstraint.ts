@@ -2,16 +2,76 @@
 
 
 import {
+    ConstraintType,
+    ConstraintPriority,
+    ConstraintSource,
+    ConstraintState
+}
+from "./ConstraintTypes";
+
+
+import {
     SketchEntity
 }
 from "./SketchEntity";
 
 
 
-import {
-    Vector2
+
+
+// =====================================================
+// Constraint Parameter Types
+// =====================================================
+
+
+export type ConstraintParameter =
+
+
+    number |
+
+    number[] |
+
+    {
+        value:number;
+        min?:number;
+        max?:number;
+    };
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Solver Constraint Data
+// =====================================================
+
+
+export interface SolverConstraintData {
+
+
+    type:
+
+        ConstraintType;
+
+
+
+    entityIds:
+
+        number[];
+
+
+
+    parameters:
+
+        Record<string,number>;
+
+
+
 }
-from "../../math/Vector2";
 
 
 
@@ -22,99 +82,152 @@ from "../../math/Vector2";
 
 
 // =====================================================
-// Constraint Type
+// Sketch Constraint
 // =====================================================
 
 
-export enum SketchConstraintType {
-
-
-    Coincident,
-
-
-    Horizontal,
-
-
-    Vertical,
-
-
-    Parallel,
-
-
-    Perpendicular,
-
-
-    Tangent,
-
-
-    EqualLength,
-
-
-    Distance,
-
-
-    Angle,
-
-
-    Radius,
-
-
-    Fixed
+export class SketchConstraint {
 
 
 
-}
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Base Constraint
-// =====================================================
-
-
-export abstract class SketchConstraint {
-
-
-
-    public readonly id:string;
+    public readonly id:number;
 
 
 
     public readonly type:
 
-        SketchConstraintType;
+        ConstraintType;
 
 
 
-    public enabled:boolean = true;
+    private entities:
 
-
-
-    public driving:boolean = true;
+        SketchEntity[];
 
 
 
 
+    private parameters:
 
-    protected constructor(
+        Map<string,number>;
 
-        id:string,
 
-        type:SketchConstraintType
+
+
+    public priority:
+
+        ConstraintPriority;
+
+
+
+    public source:
+
+        ConstraintSource;
+
+
+
+    private state:
+
+        ConstraintState;
+
+
+
+    private static nextId = 1;
+
+
+
+
+
+
+
+
+    constructor(
+
+        type:ConstraintType,
+
+        entities:SketchEntity[],
+
+        parameters:
+
+            Record<string,number> = {},
+
+
+        priority:
+
+            ConstraintPriority =
+
+                ConstraintPriority.Normal,
+
+
+        source:
+
+            ConstraintSource =
+
+                ConstraintSource.User
 
     ){
 
 
-        this.id=id;
+        this.id =
+
+            SketchConstraint.nextId++;
 
 
-        this.type=type;
+
+        this.type =
+
+            type;
+
+
+
+        this.entities =
+
+            [...entities];
+
+
+
+        this.parameters =
+
+            new Map();
+
+
+
+        for(
+
+            const key in parameters
+
+        ){
+
+
+            this.parameters.set(
+
+                key,
+
+                parameters[key]
+
+            );
+
+
+        }
+
+
+
+
+        this.priority =
+
+            priority;
+
+
+
+        this.source =
+
+            source;
+
+
+
+        this.state =
+
+            ConstraintState.Active;
 
 
     }
@@ -125,34 +238,447 @@ export abstract class SketchConstraint {
 
 
 
-    // Solver tarafında kullanılır
-
-    abstract solve():
-
-        number;
 
 
+    // =====================================================
+    // Entity Access
+    // =====================================================
 
 
+    getEntities():
 
-    abstract entities():
-
-        SketchEntity[];
-
+    readonly SketchEntity[]{
 
 
+        return this.entities;
 
 
-
-    abstract serialize():
-
-        any;
+    }
 
 
 
 
 
 
+
+    references(
+
+        entity:SketchEntity
+
+    ):boolean{
+
+
+        return this.entities.includes(
+
+            entity
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================================
+    // Parameter Access
+    // =====================================================
+
+
+    getParameter(
+
+        name:string
+
+    ):
+
+    number | undefined{
+
+
+        return this.parameters.get(
+
+            name
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+    setParameter(
+
+        name:string,
+
+        value:number
+
+    ):void{
+
+
+        this.parameters.set(
+
+            name,
+
+            value
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+    getParameters():
+
+    Record<string,number>{
+
+
+
+        const result:
+
+            Record<string,number> = {};
+
+
+
+        for(
+
+            const [
+
+                key,
+
+                value
+
+            ]
+
+            of this.parameters
+
+        ){
+
+
+            result[key] = value;
+
+
+        }
+
+
+
+        return result;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================================
+    // Solver Interface
+    // =====================================================
+
+
+    toSolverData():
+
+    SolverConstraintData{
+
+
+        return {
+
+
+            type:
+
+                this.type,
+
+
+            entityIds:
+
+                this.entities.map(
+
+                    e => e.id
+
+                ),
+
+
+
+            parameters:
+
+                this.getParameters()
+
+
+        };
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================================
+    // Degrees Of Freedom
+    // =====================================================
+
+
+    getConsumedDegreesOfFreedom():
+
+    number{
+
+
+        switch(this.type){
+
+
+            case ConstraintType.Coincident:
+
+                return 2;
+
+
+
+            case ConstraintType.Horizontal:
+
+            case ConstraintType.Vertical:
+
+                return 1;
+
+
+
+            case ConstraintType.Distance:
+
+            case ConstraintType.DistanceX:
+
+            case ConstraintType.DistanceY:
+
+            case ConstraintType.Angle:
+
+            case ConstraintType.Radius:
+
+            case ConstraintType.Diameter:
+
+                return 1;
+
+
+
+            case ConstraintType.Parallel:
+
+            case ConstraintType.Perpendicular:
+
+            case ConstraintType.Tangent:
+
+                return 1;
+
+
+
+            case ConstraintType.Symmetric:
+
+                return 2;
+
+
+
+            case ConstraintType.Fixed:
+
+                return 999;
+
+
+
+            default:
+
+                return 0;
+
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================================
+    // Validation
+    // =====================================================
+
+
+    isValid():
+
+    boolean{
+
+
+        if(
+
+            this.entities.length===0
+
+        )
+
+            return false;
+
+
+
+        switch(this.type){
+
+
+            case ConstraintType.Radius:
+
+                return (
+
+                    this.parameters.has(
+
+                        "radius"
+
+                    )
+
+                );
+
+
+
+            case ConstraintType.Distance:
+
+                return (
+
+                    this.parameters.has(
+
+                        "distance"
+
+                    )
+
+                );
+
+
+
+            case ConstraintType.Angle:
+
+                return (
+
+                    this.parameters.has(
+
+                        "angle"
+
+                    )
+
+                );
+
+
+
+        }
+
+
+
+        return true;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================================
+    // State
+    // =====================================================
+
+
+    getState():
+
+    ConstraintState{
+
+
+        return this.state;
+
+
+    }
+
+
+
+
+
+
+
+    setState(
+
+        state:ConstraintState
+
+    ):void{
+
+
+        this.state = state;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    suppress():void{
+
+
+        this.state =
+
+            ConstraintState.Suppressed;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    activate():void{
+
+
+        this.state =
+
+            ConstraintState.Active;
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================================
+    // Debug
+    // =====================================================
 
 
     debugInfo(){
@@ -161,744 +687,43 @@ export abstract class SketchConstraint {
         return {
 
 
-            id:
-
-                this.id,
-
-
-
-            type:
-
-                SketchConstraintType[this.type],
-
-
-
-            enabled:
-
-                this.enabled,
-
-
-
-            driving:
-
-                this.driving
-
-
-
-        };
-
-
-    }
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Coincident Constraint
-// İki nokta aynı konumda
-// =====================================================
-
-
-export class CoincidentConstraint
-
-    extends SketchConstraint {
-
-
-
-    constructor(
-
-        id:string,
-
-        private readonly a:
-
-            Vector2,
-
-        private readonly b:
-
-            Vector2
-
-
-    ){
-
-
-        super(
-
-            id,
-
-            SketchConstraintType.Coincident
-
-        );
-
-
-    }
-
-
-
-
-
-
-    solve():
-
-        number{
-
-
-        const dx =
-
-            this.a.x -
-
-            this.b.x;
-
-
-
-        const dy =
-
-            this.a.y -
-
-            this.b.y;
-
-
-
-        const error =
-
-            Math.sqrt(
-
-                dx*dx +
-
-                dy*dy
-
-            );
-
-
-
-        if(error > 0){
-
-
-            this.b.x =
-
-                this.a.x;
-
-
-
-            this.b.y =
-
-                this.a.y;
-
-
-
-        }
-
-
-
-        return error;
-
-
-    }
-
-
-
-
-
-
-    entities():
-
-        SketchEntity[]{
-
-
-        return [];
-
-
-    }
-
-
-
-
-
-
-    serialize(){
-
-
-        return {
-
-
             id:this.id,
 
 
-            type:"Coincident"
+            type:this.type,
 
 
+            entities:
 
-        };
+                this.entities.map(
 
+                    e => e.id
 
-    }
+                ),
 
 
 
-}
+            parameters:
 
+                this.getParameters(),
 
 
 
+            priority:
 
+                this.priority,
 
 
 
+            source:
 
-// =====================================================
-// Horizontal Constraint
-// =====================================================
+                this.source,
 
 
-export class HorizontalConstraint
 
-    extends SketchConstraint {
+            state:
 
-
-
-    constructor(
-
-        id:string,
-
-        private readonly start:
-
-            Vector2,
-
-        private readonly end:
-
-            Vector2
-
-
-    ){
-
-
-        super(
-
-            id,
-
-            SketchConstraintType.Horizontal
-
-        );
-
-
-    }
-
-
-
-
-
-
-
-    solve():
-
-        number{
-
-
-        const error =
-
-            Math.abs(
-
-                this.start.y -
-
-                this.end.y
-
-            );
-
-
-
-        this.end.y =
-
-            this.start.y;
-
-
-
-        return error;
-
-
-    }
-
-
-
-
-
-
-    entities():
-
-        SketchEntity[]{
-
-
-        return [];
-
-
-    }
-
-
-
-
-
-    serialize(){
-
-
-        return {
-
-
-            id:this.id,
-
-            type:"Horizontal"
-
-
-
-        };
-
-
-    }
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Vertical Constraint
-// =====================================================
-
-
-export class VerticalConstraint
-
-    extends SketchConstraint {
-
-
-
-    constructor(
-
-        id:string,
-
-        private readonly start:
-
-            Vector2,
-
-        private readonly end:
-
-            Vector2
-
-
-    ){
-
-
-        super(
-
-            id,
-
-            SketchConstraintType.Vertical
-
-        );
-
-
-    }
-
-
-
-
-
-
-    solve():
-
-        number{
-
-
-        const error =
-
-            Math.abs(
-
-                this.start.x -
-
-                this.end.x
-
-            );
-
-
-
-        this.end.x =
-
-            this.start.x;
-
-
-
-        return error;
-
-
-    }
-
-
-
-
-
-
-    entities():
-
-        SketchEntity[]{
-
-
-        return [];
-
-
-    }
-
-
-
-
-
-
-    serialize(){
-
-
-        return {
-
-
-            id:this.id,
-
-            type:"Vertical"
-
-
-        };
-
-
-    }
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Distance Constraint
-// =====================================================
-
-
-export class DistanceConstraint
-
-    extends SketchConstraint {
-
-
-
-    constructor(
-
-        id:string,
-
-        private readonly a:
-
-            Vector2,
-
-        private readonly b:
-
-            Vector2,
-
-        public value:number
-
-
-    ){
-
-
-        super(
-
-            id,
-
-            SketchConstraintType.Distance
-
-        );
-
-
-    }
-
-
-
-
-
-
-
-    solve():
-
-        number{
-
-
-        const current =
-
-            this.a.distanceTo(
-
-                this.b
-
-            );
-
-
-
-        const error =
-
-            Math.abs(
-
-                current -
-
-                this.value
-
-            );
-
-
-
-
-
-        if(current===0)
-
-            return error;
-
-
-
-
-
-
-        const scale =
-
-            this.value /
-
-            current;
-
-
-
-
-
-
-        this.b.x =
-
-            this.a.x +
-
-            (
-
-                this.b.x -
-
-                this.a.x
-
-            )
-
-            *
-
-            scale;
-
-
-
-
-
-        this.b.y =
-
-            this.a.y +
-
-            (
-
-                this.b.y -
-
-                this.a.y
-
-            )
-
-            *
-
-            scale;
-
-
-
-
-
-
-        return error;
-
-
-
-    }
-
-
-
-
-
-
-
-
-    entities():
-
-        SketchEntity[]{
-
-
-        return [];
-
-
-    }
-
-
-
-
-
-
-    serialize(){
-
-
-        return {
-
-
-            id:this.id,
-
-
-            type:"Distance",
-
-
-            value:this.value
-
-
-
-        };
-
-
-    }
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Radius Constraint
-// =====================================================
-
-
-export class RadiusConstraint
-
-    extends SketchConstraint {
-
-
-
-    constructor(
-
-        id:string,
-
-        public radius:
-
-            number,
-
-        private readonly target:
-
-            {
-
-                radius:number
-
-            }
-
-
-    ){
-
-
-        super(
-
-            id,
-
-            SketchConstraintType.Radius
-
-        );
-
-
-    }
-
-
-
-
-
-
-
-    solve():
-
-        number{
-
-
-        const error =
-
-            Math.abs(
-
-                this.target.radius -
-
-                this.radius
-
-            );
-
-
-
-        this.target.radius =
-
-            this.radius;
-
-
-
-        return error;
-
-
-    }
-
-
-
-
-
-
-    entities():
-
-        SketchEntity[]{
-
-
-        return [];
-
-
-    }
-
-
-
-
-
-
-
-    serialize(){
-
-
-        return {
-
-
-            id:this.id,
-
-
-            type:"Radius",
-
-
-            radius:this.radius
-
+                this.state
 
 
         };
