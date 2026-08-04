@@ -712,17 +712,19 @@ public addSketchStroke(
 
     public clear():
 
-    void{
+void{
 
 
-        this.meshBodies.clear();
+    this.meshBodies.clear();
 
-        this.objects.clear();
+    this.objects.clear();
 
-        this.selection=null;
+    this.sketchStrokes=[];
+
+    this.selection=null;
 
 
-    }
+}
 
 
 
