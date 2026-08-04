@@ -1,71 +1,24 @@
-// src/render/pass/RenderPass.ts
+export interface RenderResourceAccess {
 
-import {
-    RenderContext
-} from "../RenderContext";
+    reads: string[];
 
-import {
-    RenderScene
-} from "../RenderScene";
+    writes: string[];
 
-import {
-    RenderCamera
-} from "../RenderCamera";
+}
 
 
 
 export interface RenderPassOptions {
 
-
     name?: string;
-
-
-    enabled?: boolean;
-
 
     priority?: number;
 
+    enabled?: boolean;
 
     clearColor?: boolean;
 
-
     clearDepth?: boolean;
-
-
-    clearStencil?: boolean;
-
-
-}
-
-
-
-export interface RenderPassResources {
-
-
-    reads: string[];
-
-
-    writes: string[];
-
-
-}
-
-
-
-export interface RenderPassStatistics {
-
-
-    name: string;
-
-
-    enabled: boolean;
-
-
-    priority: number;
-
-
-    frameTime: number;
-
 
 }
 
@@ -74,128 +27,67 @@ export interface RenderPassStatistics {
 export abstract class RenderPass {
 
 
-
-    public readonly name: string;
-
+    public readonly name:string;
 
 
-    public enabled = true;
+    public priority:number = 0;
 
 
-
-    public priority = 0;
-
+    public enabled:boolean = true;
 
 
-    public clearColor = false;
+    public clearColor:boolean = false;
 
 
-
-    public clearDepth = false;
-
-
-
-    public clearStencil = false;
-
-
-
-    protected initialized = false;
-
-
-
-    private lastFrameTime = 0;
-
-
-
-    private executing = false;
-
-
-
-    /**
-     * RenderGraph dependency declaration
-     */
-    public readonly resources:
-
-        RenderPassResources = {
-
-
-            reads: [],
-
-
-            writes: []
-
-
-        };
-
-
+    public clearDepth:boolean = false;
 
 
 
     constructor(
-
-        options:
-
-            RenderPassOptions = {}
-
-    ) {
-
+        options:RenderPassOptions={}
+    ){
 
         this.name =
-
             options.name ??
-
             this.constructor.name;
 
 
-
-        if (
-
-            options.enabled !== undefined
-
-        ) {
+        this.priority =
+            options.priority ?? 0;
 
 
-            this.enabled =
-
-                options.enabled;
-
-
-        }
-
-
-
-        if (
-
-            options.priority !== undefined
-
-        ) {
-
-
-            this.priority =
-
-                options.priority;
-
-
-        }
-
+        this.enabled =
+            options.enabled ?? true;
 
 
         this.clearColor =
-
             options.clearColor ?? false;
 
 
-
         this.clearDepth =
-
             options.clearDepth ?? false;
 
+    }
 
 
-        this.clearStencil =
 
-            options.clearStencil ?? false;
+    initialize(
+        context:RenderContext
+    ):void
+    {
 
+        this.onInitialize(context);
+
+    }
+
+
+
+    dispose(
+        context:RenderContext
+    ):void
+    {
+
+        this.onDispose(context);
 
     }
 
@@ -203,45 +95,28 @@ export abstract class RenderPass {
 
 
 
-    // ==================================================
-    // Lifecycle
-    // ==================================================
+    render(
+        context:RenderContext,
+        scene:RenderScene,
+        camera:RenderCamera
+    ):void
+    {
 
-
-    public initialize(
-
-        context:
-
-            RenderContext
-
-    ): void {
-
-
-
-        if (
-
-            this.initialized
-
-        ) {
-
-
+        if(!this.enabled)
             return;
 
 
-        }
+        this.begin(context);
 
 
-
-        this.onInitialize(
-
-            context
-
+        this.execute(
+            context,
+            scene,
+            camera
         );
 
 
-
-        this.initialized = true;
-
+        this.end(context);
 
     }
 
@@ -249,562 +124,75 @@ export abstract class RenderPass {
 
 
 
-    public dispose(
 
-        context:
-
-            RenderContext
-
-    ): void {
+    reads():string[]
+    {
+        return [];
+    }
 
 
 
-        if (
-
-            !this.initialized
-
-        ) {
-
-
-            return;
-
-
-        }
-
-
-
-        this.onDispose(
-
-            context
-
-        );
-
-
-
-        this.initialized = false;
-
-
+    writes():string[]
+    {
+        return [];
     }
 
 
 
 
-
-    protected onInitialize(
-
-        context:
-
-            RenderContext
-
-    ): void {
-
-
-        void context;
-
-
-    }
-
-
-
-
-
-    protected onDispose(
-
-        context:
-
-            RenderContext
-
-    ): void {
-
-
-        void context;
-
-
-    }
-
-
-
-
-
-    // ==================================================
-    // Render Entry
-    // ==================================================
-
-
-    public render(
-
-        context:
-
-            RenderContext,
-
-        scene:
-
-            RenderScene,
-
-        camera:
-
-            RenderCamera
-
-    ): void {
-
-
-
-        if (
-
-            !this.enabled
-
-        ) {
-
-
-            return;
-
-
-        }
-
-
-
-
-
-        if (
-
-            this.executing
-
-        ) {
-
-
-            throw new Error(
-
-                `RenderPass recursion detected: ${this.name}`
-
-            );
-
-
-        }
-
-
-
-
-
-        this.executing = true;
-
-
-
-        const start =
-
-            performance.now();
-
-
-
-
-
-        try {
-
-
-            this.begin(
-
-                context
-
-            );
-
-
-
-
-
-            this.execute(
-
-                context,
-
-                scene,
-
-                camera
-
-            );
-
-
-
-
-
-            this.end(
-
-                context
-
-            );
-
-
-        }
-
-        finally {
-
-
-            this.executing = false;
-
-
-
-            this.lastFrameTime =
-
-                performance.now()
-
-                -
-
-                start;
-
-
-        }
-
-
-    }
-
-
-
-
-
-    // ==================================================
-    // GPU Begin / End
-    // ==================================================
 
 
     protected begin(
+        context:RenderContext
+    ):void
+    {
 
-        context:
-
-            RenderContext
-
-    ): void {
-
-
-
-        if (
-
+        if(
             this.clearColor ||
-
-            this.clearDepth ||
-
-            this.clearStencil
-
-        ) {
-
+            this.clearDepth
+        )
+        {
 
             context.clear({
 
-                color:
+                color:this.clearColor,
 
-                    this.clearColor,
-
-
-                depth:
-
-                    this.clearDepth,
-
-
-                stencil:
-
-                    this.clearStencil
-
+                depth:this.clearDepth
 
             });
 
-
         }
 
-
     }
-
 
 
 
 
     protected end(
+        context:RenderContext
+    ):void
+    {}
 
-        context:
 
-            RenderContext
 
-    ): void {
+    protected onInitialize(
+        context:RenderContext
+    ):void
+    {}
 
 
-        void context;
 
+    protected onDispose(
+        context:RenderContext
+    ):void
+    {}
 
-    }
-
-
-
-
-
-    // ==================================================
-    // Resource Declaration
-    // ==================================================
-
-
-    public reads(
-
-        ...resources:string[]
-
-    ):this {
-
-
-
-        this.resources.reads.push(
-
-            ...resources
-
-        );
-
-
-
-        return this;
-
-
-    }
-
-
-
-
-
-    public writes(
-
-        ...resources:string[]
-
-    ):this {
-
-
-
-        this.resources.writes.push(
-
-            ...resources
-
-        );
-
-
-
-        return this;
-
-
-    }
-
-
-
-
-
-    public hasResourceWrite(
-
-        name:string
-
-    ):boolean {
-
-
-        return this.resources.writes.includes(
-
-            name
-
-        );
-
-
-    }
-
-
-
-
-
-    public hasResourceRead(
-
-        name:string
-
-    ):boolean {
-
-
-        return this.resources.reads.includes(
-
-            name
-
-        );
-
-
-    }
-
-
-
-
-
-    // ==================================================
-    // Runtime Control
-    // ==================================================
-
-
-    public setEnabled(
-
-        value:boolean
-
-    ):void {
-
-
-        this.enabled = value;
-
-
-    }
-
-
-
-
-
-    public isEnabled():
-
-    boolean {
-
-
-        return this.enabled;
-
-
-    }
-
-
-
-
-
-    public getFrameTime():
-
-    number {
-
-
-        return this.lastFrameTime;
-
-
-    }
-
-
-
-
-
-    // ==================================================
-    // Debug
-    // ==================================================
-
-
-    public debugInfo()
-
-    {
-
-
-        return {
-
-
-            type:
-
-                this.constructor.name,
-
-
-            name:
-
-                this.name,
-
-
-            enabled:
-
-                this.enabled,
-
-
-            priority:
-
-                this.priority,
-
-
-            initialized:
-
-                this.initialized,
-
-
-            resources:
-
-                {
-
-
-                    reads:
-
-                        [...this.resources.reads],
-
-
-
-                    writes:
-
-                        [...this.resources.writes]
-
-
-                },
-
-
-            frameTime:
-
-                this.lastFrameTime
-
-
-        };
-
-
-    }
-
-
-
-
-
-    public statistics():
-
-    RenderPassStatistics {
-
-
-
-        return {
-
-
-            name:
-
-                this.name,
-
-
-            enabled:
-
-                this.enabled,
-
-
-            priority:
-
-                this.priority,
-
-
-            frameTime:
-
-                this.lastFrameTime
-
-
-        };
-
-
-    }
-
-
-
-
-
-    // ==================================================
-    // Implementation
-    // ==================================================
 
 
     protected abstract execute(
-
-        context:
-
-            RenderContext,
-
-        scene:
-
-            RenderScene,
-
-        camera:
-
-            RenderCamera
-
+        context:RenderContext,
+        scene:RenderScene,
+        camera:RenderCamera
     ):void;
-
-
 
 }
