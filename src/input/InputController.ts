@@ -1,5 +1,6 @@
 // src/input/InputController.ts
 
+
 import {
     InputSystem
 } from "./InputSystem";
@@ -13,8 +14,7 @@ import {
 
 import {
     GestureRecognizer,
-    GestureEvent,
-    GestureType
+    GestureEvent
 } from "./GestureRecognizer";
 
 
@@ -25,11 +25,21 @@ import {
 
 
 
+
+
+
+
+
 export class InputController {
+
+
+
 
 
     private readonly router:
         InputRouter;
+
+
 
 
 
@@ -38,13 +48,30 @@ export class InputController {
 
 
 
+
+
     private initialized =
         false;
 
 
 
+
+
+    private activePointers:
+        Map<number, PointerEvent>
+        =
+        new Map();
+
+
+
+
+
+
+
+
+
     constructor(
-        router: InputRouter
+        router:InputRouter
     ){
 
         this.router =
@@ -60,6 +87,10 @@ export class InputController {
 
 
 
+
+
+
+
     public initialize():void{
 
 
@@ -68,31 +99,76 @@ export class InputController {
 
 
 
+
+
         InputSystem.initialize();
 
 
 
+
+
+
+
         InputSystem.subscribe(
-            event =>
-                this.handlePointer(event)
+
+            (
+                id:number,
+                event:PointerEvent
+            )=>{
+
+
+                this.handlePointer(
+                    id,
+                    event
+                );
+
+
+            }
+
         );
+
+
+
+
 
 
 
         this.gestures.subscribe(
-            event =>
-                this.handleGesture(event)
+
+            (
+                event:GestureEvent
+            )=>{
+
+
+                this.handleGesture(
+                    event
+                );
+
+
+            }
+
         );
 
 
 
-        this.initialized = true;
+
+
+
+
+        this.initialized =
+            true;
+
 
 
         console.info(
             "[InputController] Initialized"
         );
+
+
     }
+
+
+
 
 
 
@@ -100,20 +176,109 @@ export class InputController {
 
 
     private handlePointer(
+
+        id:number,
+
         event:PointerEvent
+
     ):void{
 
 
+
+
+
+        switch(
+            event.action
+        ){
+
+
+
+            case "down":
+
+
+                this.activePointers.set(
+
+                    id,
+
+                    event
+
+                );
+
+
+                break;
+
+
+
+
+
+            case "move":
+
+
+                this.activePointers.set(
+
+                    id,
+
+                    event
+
+                );
+
+
+                break;
+
+
+
+
+
+            case "up":
+
+
+                this.activePointers.delete(
+
+                    id
+
+                );
+
+
+                break;
+
+
+        }
+
+
+
+
+
+
+
+        /*
+         * Gesture motoruna gönder
+         */
         this.gestures.process(
-            0,
+
+            id,
+
             event
+
         );
 
 
+
+
+
+
+
+        /*
+         * Aktif moda yönlendir
+         */
         this.router.route(
+
             event
+
         );
+
+
     }
+
 
 
 
@@ -123,63 +288,21 @@ export class InputController {
 
 
     private handleGesture(
+
         event:GestureEvent
+
     ):void{
 
 
-        switch(event.type){
 
+        this.router.routeGesture(
 
+            event
 
-            case GestureType.Pinch:
-
-
-                this.router.routeGesture(
-                    event
-                );
-
-                break;
-
-
-
-
-            case GestureType.Rotate:
-
-
-                this.router.routeGesture(
-                    event
-                );
-
-                break;
-
-
-
-
-            case GestureType.Pan:
-
-
-                this.router.routeGesture(
-                    event
-                );
-
-                break;
-
-
-
-            case GestureType.DoubleTap:
-
-
-                this.router.routeGesture(
-                    event
-                );
-
-                break;
-
-
-
-        }
+        );
 
     }
+
 
 
 
@@ -189,38 +312,87 @@ export class InputController {
 
 
     public setMode(
+
         mode:InputMode
+
     ):void{
 
 
         this.router.setMode(
+
             mode
+
         );
+
     }
 
 
 
 
+
+
+
+
+
+    public getMode():
+
+        InputMode{
+
+
+        return this.router.getMode();
+
+    }
+
+
+
+
+
+
+
+
+
+    // ------------------------------------------------
+    // External Pointer API
+    // Android Bridge için
+    // ------------------------------------------------
 
 
 
 
     public pointerDown(
+
+        id:number,
+
         x:number,
+
         y:number,
+
         pressure:number = 1,
+
         type:PointerType =
             PointerType.Stylus
+
     ):void{
 
 
+
         InputSystem.pointerDown(
+
+            id,
+
             x,
+
             y,
+
             pressure,
+
             type
+
         );
+
     }
+
+
 
 
 
@@ -229,21 +401,39 @@ export class InputController {
 
 
     public pointerMove(
+
+        id:number,
+
         x:number,
+
         y:number,
+
         pressure:number = 1,
+
         type:PointerType =
             PointerType.Stylus
+
     ):void{
 
 
+
         InputSystem.pointerMove(
+
+            id,
+
             x,
+
             y,
+
             pressure,
+
             type
+
         );
+
     }
+
+
 
 
 
@@ -252,19 +442,84 @@ export class InputController {
 
 
     public pointerUp(
+
+        id:number,
+
         x:number,
+
         y:number,
+
         type:PointerType =
             PointerType.Stylus
+
     ):void{
 
 
+
         InputSystem.pointerUp(
+
+            id,
+
             x,
+
             y,
+
             type
+
         );
+
     }
+
+
+
+
+
+
+
+
+
+    public getActivePointerCount():
+
+        number{
+
+
+        return this.activePointers.size;
+
+    }
+
+
+
+
+
+
+
+
+
+    public isStylusActive():
+
+        boolean{
+
+
+        for(
+            const pointer
+            of
+            this.activePointers.values()
+        ){
+
+
+            if(
+                pointer.type ===
+                PointerType.Stylus
+            )
+                return true;
+
+        }
+
+
+        return false;
+
+    }
+
 
 
 
@@ -276,16 +531,25 @@ export class InputController {
     public shutdown():void{
 
 
+        this.activePointers.clear();
+
+
+
         InputSystem.clear();
+
 
 
         this.initialized =
             false;
 
 
+
         console.info(
             "[InputController] Shutdown"
         );
+
     }
+
+
 
 }
