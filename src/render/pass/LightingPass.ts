@@ -57,42 +57,46 @@ export class LightingPass extends RenderPass {
         SSRComposite | null = null;
 
     constructor(
+    options: LightingPassOptions = {}
+) {
 
-        options:
+    super({
 
-            LightingPassOptions = {}
+        name:"LightingPass",
 
-    ) {
+        priority:200
 
-        super({
+    });
 
-            name: "LightingPass",
 
-            priority: 200
+    this
+    .reads(
 
-        });
+        "Depth",
 
-        this.renderer =
+        "GBuffer",
 
-            options.renderer ?? null;
+        "Shadow",
 
-        this.gBuffer =
+        "SSAO"
 
-            options.gBuffer ?? null;
+    )
+    .writes(
 
-        this.environment =
+        "HDR"
 
-            options.environment ?? null;
+    );
 
-        this.reflectionProbe =
 
-            options.reflectionProbe ?? null;
+    this.renderer =
+        options.renderer ?? null;
 
-        this.ssrComposite =
 
-            options.ssrComposite ?? null;
+    this.gBuffer =
+        options.gBuffer ?? null;
 
-    }
+
+}
 
     public setRenderer(
 
