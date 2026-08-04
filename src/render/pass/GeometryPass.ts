@@ -1,11 +1,14 @@
 import { RenderPass } from "./RenderPass";
+
 import { RenderContext } from "../RenderContext";
 import { RenderScene } from "../RenderScene";
 import { RenderCamera } from "../RenderCamera";
 
 import { GBuffer } from "../postprocess/GBuffer";
+
 import { MeshRenderer } from "../renderer/MeshRenderer";
 import { DisplayMesh } from "../display/DisplayMesh";
+
 
 export interface GeometryPassOptions {
 
@@ -15,66 +18,118 @@ export interface GeometryPassOptions {
 
 }
 
+
+
 export class GeometryPass extends RenderPass {
 
-    private gBuffer: GBuffer | null = null;
 
-    private renderer: MeshRenderer | null = null;
+    private gBuffer:
+        GBuffer | null = null;
+
+
+    private renderer:
+        MeshRenderer | null = null;
+
+
+
 
     constructor(
-    options: GeometryPassOptions = {}
-) {
+        options:GeometryPassOptions={}
+    )
+    {
 
-    super({
+        super({
 
-        name: "GeometryPass",
+            name:"GeometryPass",
 
-        priority: 100,
+            priority:100,
 
-        clearColor: true,
+            clearDepth:true
 
-        clearDepth: true
-
-    });
-
-
-    this
-    .writes(
-
-        "Depth",
-
-        "GBuffer"
-
-    );
+        });
 
 
-    this.gBuffer =
-        options.gBuffer ?? null;
+        this.gBuffer =
+            options.gBuffer ?? null;
 
 
-    this.renderer =
-        options.renderer ?? null;
-
-}
-    public setGBuffer(
-        gBuffer: GBuffer
-    ): void {
-
-        this.gBuffer = gBuffer;
+        this.renderer =
+            options.renderer ?? null;
 
     }
 
-    public setRenderer(
-        renderer: MeshRenderer
-    ): void {
+
+
+
+
+    reads():string[]
+    {
+
+        return [
+
+            "Depth"
+
+        ];
+
+    }
+
+
+
+
+
+    writes():string[]
+    {
+
+        return [
+
+            "GBuffer_Position",
+
+            "GBuffer_Normal",
+
+            "GBuffer_Albedo",
+
+            "GBuffer_Material",
+
+            "ObjectID"
+
+        ];
+
+    }
+
+
+
+
+
+    setGBuffer(
+        buffer:GBuffer
+    )
+    {
+
+        this.gBuffer = buffer;
+
+    }
+
+
+
+
+
+    setRenderer(
+        renderer:MeshRenderer
+    )
+    {
 
         this.renderer = renderer;
 
     }
 
+
+
+
+
     protected override begin(
-        context: RenderContext
-    ): void {
+        context:RenderContext
+    )
+    {
 
         this.gBuffer?.bind();
 
@@ -82,22 +137,35 @@ export class GeometryPass extends RenderPass {
 
     }
 
-    protected execute(
-        context: RenderContext,
-        scene: RenderScene,
-        camera: RenderCamera
-    ): void {
 
-        if (!this.renderer) {
+
+
+
+    protected execute(
+
+        context:RenderContext,
+
+        scene:RenderScene,
+
+        camera:RenderCamera
+
+    )
+    {
+
+        if(!this.renderer)
             return;
-        }
+
+
 
         const meshes =
             scene.getVisibleMeshes
-                ? scene.getVisibleMeshes(camera)
-                : [];
+            ? scene.getVisibleMeshes(camera)
+            : [];
 
-        for (const mesh of meshes) {
+
+
+        for(const mesh of meshes)
+        {
 
             this.renderMesh(
 
@@ -113,19 +181,25 @@ export class GeometryPass extends RenderPass {
 
     }
 
+
+
+
+
     private renderMesh(
 
-        context: RenderContext,
+        context:RenderContext,
 
-        mesh: DisplayMesh,
+        mesh:DisplayMesh,
 
-        camera: RenderCamera
+        camera:RenderCamera
 
-    ): void {
+    )
+    {
 
-        if (!mesh.visible) {
+        if(!mesh.visible)
             return;
-        }
+
+
 
         this.renderer?.render(
 
@@ -139,12 +213,18 @@ export class GeometryPass extends RenderPass {
 
     }
 
+
+
+
+
     protected override end(
-        context: RenderContext
-    ): void {
+        context:RenderContext
+    )
+    {
 
         this.gBuffer?.unbind();
 
     }
+
 
 }
