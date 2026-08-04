@@ -2,8 +2,10 @@
 
 
 import {
-    InputHandler
-} from "../InputRouter";
+    PointerEvent,
+    PointerAction,
+    PointerType
+} from "../PointerEvent";
 
 
 import {
@@ -13,213 +15,272 @@ import {
 
 
 import {
-    PointerEvent
-} from "../PointerEvent";
+    KernelBootstrap
+} from "../../app/KernelBootstrap";
 
 
 
-import {
-    Camera
-} from "../../render/Camera";
 
 
 
 
 
+export class CameraInputHandler {
 
 
-export class CameraInputHandler
-    implements InputHandler {
 
+    private active = false;
 
 
-    private camera:
-        Camera;
 
+    private lastX = 0;
 
 
-    private lastX =
-        0;
 
+    private lastY = 0;
 
 
-    private lastY =
-        0;
 
+    private activePointers =
 
+        new Map<number, {
 
-    private dragging =
-        false;
+            x:number;
 
+            y:number;
 
+        }>();
 
 
 
 
 
-    constructor(
-        camera: Camera
-    ){
 
-        this.camera =
-            camera;
 
-    }
 
 
+    public handlePointer(
 
+        event:PointerEvent
 
-
-
-
-
-
-    public onPointerDown(
-        event: PointerEvent
-    ): void {
-
-
-
-        this.dragging =
-            true;
-
-
-
-        this.lastX =
-            event.position.x;
-
-
-
-        this.lastY =
-            event.position.y;
-
-    }
-
-
-
-
-
-
-
-
-
-    public onPointerMove(
-        event: PointerEvent
-    ): void {
-
-
-
-        if(!this.dragging)
-            return;
-
-
-
-
-        const dx =
-            event.position.x -
-            this.lastX;
-
-
-
-        const dy =
-            event.position.y -
-            this.lastY;
-
-
+    ):void {
 
 
 
         /*
-         * Mouse / stylus orbit
-         */
-        this.camera.orbit(
-            dx,
-            dy
-        );
+            Kalem kamera kontrolü yapmaz.
+            Shapr3D mantığı:
+            kalem = modelleme
+            parmak = kamera
+        */
 
 
+        if(
 
+            event.type ===
 
+            PointerType.Stylus
 
-        this.lastX =
-            event.position.x;
+        ){
 
+            return;
 
-
-        this.lastY =
-            event.position.y;
-
-    }
-
-
-
-
-
-
-
-
-
-    public onPointerUp(
-        event: PointerEvent
-    ): void {
-
-
-
-        this.dragging =
-            false;
-
-    }
+        }
 
 
 
 
 
 
-
-
-
-    public onGesture(
-        event: GestureEvent
-    ): void {
 
 
 
         switch(
-            event.type
+
+            event.action
+
         ){
 
 
+
+            case PointerAction.Down:
+
+
+
+                this.active = true;
+
+
+
+                this.lastX =
+
+                    event.position.x;
+
+
+
+                this.lastY =
+
+                    event.position.y;
+
+
+
+                break;
+
+
+
+
+
+
+
+            case PointerAction.Move:
+
+
+
+                if(
+
+                    !this.active
+
+                )
+
+                    return;
+
+
+
+                const dx =
+
+                    event.position.x -
+
+                    this.lastX;
+
+
+
+
+
+                const dy =
+
+                    event.position.y -
+
+                    this.lastY;
+
+
+
+
+
+                const camera =
+
+                    KernelBootstrap.context()
+
+                    .camera;
+
+
+
+
+
+                camera.orbit(
+
+                    dx * 0.01,
+
+                    dy * 0.01
+
+                );
+
+
+
+
+
+                this.lastX =
+
+                    event.position.x;
+
+
+
+                this.lastY =
+
+                    event.position.y;
+
+
+
+                break;
+
+
+
+
+
+
+
+
+
+            case PointerAction.Up:
+
+
+
+            case PointerAction.Cancel:
+
+
+
+                this.active = false;
+
+
+                break;
+
+
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+
+
+    public handleGesture(
+
+        event:GestureEvent
+
+    ):void {
+
+
+
+        const camera =
+
+            KernelBootstrap.context()
+
+            .camera;
+
+
+
+
+
+
+
+
+
+        switch(
+
+            event.type
+
+        ){
 
 
 
             case GestureType.Pan:
 
 
-                this.camera.pan(
+
+                camera.pan(
+
                     event.deltaX,
+
                     event.deltaY
+
                 );
 
-                break;
-
-
-
-
-
-
-
-
-
-            case GestureType.Pinch:
-
-
-                this.camera.zoom(
-                    event.scale
-                );
 
                 break;
-
-
 
 
 
@@ -230,30 +291,62 @@ export class CameraInputHandler
             case GestureType.Rotate:
 
 
-                this.camera.rotate?.(
-                    event.rotation
+
+                camera.orbit(
+
+                    event.rotationX,
+
+                    event.rotationY
+
                 );
 
-                break;
-
-
-
-
-
-
-
-            case GestureType.DoubleTap:
-
-
-                this.camera.reset?.();
-
 
                 break;
 
+
+
+
+
+
+
+            case GestureType.Zoom:
+
+
+
+                camera.zoom(
+
+                    event.scaleDelta
+
+                );
+
+
+                break;
 
 
         }
 
+
     }
+
+
+
+
+
+
+
+
+
+    public dispose():void{
+
+
+        this.activePointers.clear();
+
+
+        this.active = false;
+
+
+    }
+
+
 
 }
