@@ -1,73 +1,79 @@
 import { Mesh } from "./Mesh";
 
-import { Vector3 } from "../../math/vector/Vector3";
 
-
-
-export interface RayHit {
-
-    hit:boolean;
-
-    distance:number;
-
-    point:Vector3 | null;
-
-}
-
-
-
-
-
+/**
+ * Mesh tabanlı CAD gövdesi
+ *
+ * Shapr3D benzeri modelleme için temel obje.
+ *
+ * Mesh
+ *  |
+ * MeshBody
+ *  |
+ * Feature / History / Renderer
+ *
+ */
 export class MeshBody {
 
 
-
     /**
-     * Unique body identifier
+     * Benzersiz ID
      */
     public readonly id:string;
 
 
 
     /**
-     * Display name
+     * Kullanıcı görünen isim
      */
     public name:string;
 
 
 
     /**
-     * Geometry
+     * Geometri verisi
      */
     public readonly mesh:Mesh;
 
 
 
     /**
-     * Visibility
+     * Görünürlük
      */
-    public visible=true;
+    public visible:boolean = true;
 
 
 
     /**
-     * Lock state
+     * Kilit durumu
+     *
+     * Tablet kalem ile yanlış
+     * düzenlemeleri engellemek için
      */
-    public locked=false;
+    public locked:boolean = false;
 
 
 
     /**
-     * Selection state
+     * Seçim durumu
      */
-    public selected=false;
+    public selected:boolean = false;
+
+
+
+    /**
+     * Aktif CAD objesi mi?
+     */
+    public active:boolean = false;
 
 
 
     /**
      * Transform matrix
+     *
+     * Column-major 4x4
      */
-    public transform:number[]=[
+    public transform:number[] = [
 
         1,0,0,0,
 
@@ -82,12 +88,39 @@ export class MeshBody {
 
 
     /**
-     * Metadata
+     * CAD metadata
+     *
+     * Feature sistemi,
+     * parametric bilgiler,
+     * renk,
+     * malzeme vb.
      */
-    public metadata:Record<string,any>={};
+    public metadata:
+        Record<string,unknown> = {};
 
 
 
+    /**
+     * Versiyon bilgisi
+     *
+     * Otomatik release sistemi
+     * için kullanılacak
+     */
+    public version:number = 1;
+
+
+
+    /**
+     * Oluşturulma zamanı
+     */
+    public readonly createdAt:number;
+
+
+
+    /**
+     * Güncelleme zamanı
+     */
+    public updatedAt:number;
 
 
 
@@ -95,20 +128,29 @@ export class MeshBody {
 
         mesh:Mesh,
 
-        name="MeshBody"
+        name:string = "MeshBody"
 
     ){
 
 
-        this.mesh=mesh;
+        this.mesh = mesh;
 
 
-        this.name=name;
+        this.name = name;
 
 
-        this.id=
-
+        this.id =
             MeshBody.generateId();
+
+
+
+        this.createdAt =
+            Date.now();
+
+
+
+        this.updatedAt =
+            Date.now();
 
 
     }
@@ -117,9 +159,9 @@ export class MeshBody {
 
 
 
-
-
-
+    /**
+     * Vertex sayısı
+     */
     public getVertexCount():number{
 
 
@@ -132,8 +174,9 @@ export class MeshBody {
 
 
 
-
-
+    /**
+     * Triangle sayısı
+     */
     public getTriangleCount():number{
 
 
@@ -146,8 +189,9 @@ export class MeshBody {
 
 
 
-
-
+    /**
+     * Yüzey alanı
+     */
     public getSurfaceArea():number{
 
 
@@ -160,8 +204,9 @@ export class MeshBody {
 
 
 
-
-
+    /**
+     * Bounding box
+     */
     public getBoundingBox(){
 
 
@@ -174,348 +219,35 @@ export class MeshBody {
 
 
 
-
-
-
     /**
-     * Ray picking
-     *
-     * Used by:
-     * SelectionInputHandler
-     *
-     * Future:
-     * BVH acceleration
-     * Triangle intersection
+     * Transform güncelleme
      */
-    public intersectRay(
+    public setTransform(
 
-        origin:Vector3,
+        matrix:number[]
 
-        direction:Vector3
-
-    ):RayHit | null {
+    ):void{
 
 
+        if(matrix.length!==16){
 
-        if(!this.visible){
+            throw new Error(
 
-            return null;
-
-        }
-
-
-
-
-
-        const box =
-
-            this.getBoundingBox();
-
-
-
-
-
-        /*
-            İlk aşama:
-            Bounding box testi
-
-
-            Gerçek kernel aşaması:
-
-            Ray -> Triangle
-            Ray -> Face
-            BVH Tree
-
-        */
-
-
-
-        const hit =
-
-            this.intersectBoundingBox(
-
-                origin,
-
-                direction,
-
-                box
+                "Transform matrix must have 16 values"
 
             );
 
-
-
-
-
-        if(!hit){
-
-
-            return null;
-
-
         }
 
 
+        this.transform = [
 
-
-
-        return {
-
-
-            hit:true,
-
-
-            distance:hit,
-
-
-            point:
-
-                origin.clone()
-
-                .add(
-
-                    direction.clone()
-
-                    .multiplyScalar(hit)
-
-                )
-
-
-        };
-
-    }
-
-
-
-
-
-
-
-
-
-    private intersectBoundingBox(
-
-        origin:Vector3,
-
-        direction:Vector3,
-
-        box:any
-
-    ):number | null {
-
-
-
-        if(!box){
-
-            return null;
-
-        }
-
-
-
-        /*
-            Basit slab yöntemi
-
-            Daha sonra:
-            BoundingBox.ts içine taşınacak
-
-        */
-
-
-
-        let tmin=
-
-            -Infinity;
-
-
-
-        let tmax=
-
-            Infinity;
-
-
-
-
-
-        const min=
-
-            box.min;
-
-
-
-        const max=
-
-            box.max;
-
-
-
-
-
-        const axes=[
-
-            "x",
-
-            "y",
-
-            "z"
+            ...matrix
 
         ];
 
 
-
-
-
-        for(
-
-            const axis of axes
-
-        ){
-
-
-
-            const o=
-
-                origin[axis];
-
-
-
-            const d=
-
-                direction[axis];
-
-
-
-            const mn=
-
-                min[axis];
-
-
-
-            const mx=
-
-                max[axis];
-
-
-
-
-
-            if(
-
-                Math.abs(d)<0.000001
-
-            ){
-
-
-                if(
-
-                    o<mn ||
-
-                    o>mx
-
-                ){
-
-                    return null;
-
-                }
-
-
-            }
-
-            else{
-
-
-                let t1=
-
-                    (mn-o)/d;
-
-
-
-                let t2=
-
-                    (mx-o)/d;
-
-
-
-
-
-                if(t1>t2){
-
-
-                    const temp=t1;
-
-                    t1=t2;
-
-                    t2=temp;
-
-
-                }
-
-
-
-
-
-                tmin=
-
-                    Math.max(
-
-                        tmin,
-
-                        t1
-
-                    );
-
-
-
-                tmax=
-
-                    Math.min(
-
-                        tmax,
-
-                        t2
-
-                    );
-
-
-
-
-
-                if(
-
-                    tmin>tmax
-
-                ){
-
-                    return null;
-
-                }
-
-
-            }
-
-
-        }
-
-
-
-
-
-        if(tmax<0){
-
-
-            return null;
-
-
-        }
-
-
-
-
-
-        return tmin>=0
-
-            ? tmin
-
-            : tmax;
+        this.touch();
 
 
     }
@@ -524,16 +256,32 @@ export class MeshBody {
 
 
 
+    /**
+     * Değişiklik zamanı
+     */
+    public touch():void{
+
+
+        this.updatedAt =
+            Date.now();
+
+
+        this.version++;
+
+
+    }
 
 
 
 
-    public clone():MeshBody {
+
+    /**
+     * Clone
+     */
+    public clone():MeshBody{
 
 
-
-        const body=
-
+        const body =
             new MeshBody(
 
                 this.mesh.clone(),
@@ -544,27 +292,27 @@ export class MeshBody {
 
 
 
-
-
-        body.visible=
-
+        body.visible =
             this.visible;
 
 
 
-        body.locked=
-
+        body.locked =
             this.locked;
 
 
 
-        body.selected=
-
+        body.selected =
             this.selected;
 
 
 
-        body.transform=[
+        body.active =
+            this.active;
+
+
+
+        body.transform = [
 
             ...this.transform
 
@@ -572,13 +320,18 @@ export class MeshBody {
 
 
 
-        body.metadata={
+        body.metadata = {
+
 
             ...this.metadata
+
 
         };
 
 
+
+        body.version =
+            this.version;
 
 
 
@@ -591,34 +344,20 @@ export class MeshBody {
 
 
 
-
-
-
-
-    public setSelected(
-
-        value:boolean
-
-    ):void{
-
-
-        this.selected=value;
-
-
-    }
-
-
-
-
-
-
-
-
-
+    /**
+     * JSON export
+     *
+     * Save system,
+     * GitHub snapshot,
+     * release archive
+     */
     public toJSON(){
 
 
         return {
+
+
+            schemaVersion:1,
 
 
             id:this.id,
@@ -636,10 +375,32 @@ export class MeshBody {
             selected:this.selected,
 
 
-            transform:this.transform,
+            active:this.active,
 
 
-            metadata:this.metadata,
+            version:this.version,
+
+
+            createdAt:this.createdAt,
+
+
+            updatedAt:this.updatedAt,
+
+
+            transform:[
+
+                ...this.transform
+
+            ],
+
+
+            metadata:{
+
+
+                ...this.metadata
+
+
+            },
 
 
             mesh:this.mesh.toJSON()
@@ -654,19 +415,17 @@ export class MeshBody {
 
 
 
-
-
-
-
+    /**
+     * JSON import
+     */
     public static fromJSON(
 
         data:any
 
-    ):MeshBody {
+    ):MeshBody{
 
 
-
-        const body=
+        const body =
 
             new MeshBody(
 
@@ -682,41 +441,57 @@ export class MeshBody {
 
 
 
-
-
-        body.visible=
-
-            data.visible;
+        body.visible =
+            data.visible ?? true;
 
 
 
-        body.locked=
-
-            data.locked;
-
-
-
-        body.selected=
-
-            data.selected;
+        body.locked =
+            data.locked ?? false;
 
 
 
-        body.transform=
+        body.selected =
+            data.selected ?? false;
+
+
+
+        body.active =
+            data.active ?? false;
+
+
+
+        body.transform =
+
+            data.transform ??
 
             [
 
-                ...data.transform
+                1,0,0,0,
+
+                0,1,0,0,
+
+                0,0,1,0,
+
+                0,0,0,1
 
             ];
 
 
 
-        body.metadata=
+        body.metadata =
 
-            data.metadata ?? {};
+            data.metadata ??
+
+            {};
 
 
+
+        body.version =
+
+            data.version ??
+
+            1;
 
 
 
@@ -729,24 +504,55 @@ export class MeshBody {
 
 
 
-
-
-
-
+    /**
+     * ID üretimi
+     */
     private static generateId():string{
 
 
         return (
 
-            `mesh_${Date.now()}_` +
+            "body_" +
 
-            `${Math.floor(
+            Date.now()
 
-                Math.random()*1_000_000
+            +
 
-            )}`
+            "_"
+
+            +
+
+            Math.floor(
+
+                Math.random()*1000000
+
+            )
 
         );
+
+
+    }
+
+
+
+
+
+    /**
+     * Dispose
+     */
+    public dispose():void{
+
+
+        this.visible=false;
+
+
+        this.selected=false;
+
+
+        this.active=false;
+
+
+        this.metadata={};
 
 
     }
