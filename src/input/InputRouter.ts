@@ -1,30 +1,42 @@
 // src/input/InputRouter.ts
 
+
 import {
     PointerEvent,
     PointerAction
 } from "./PointerEvent";
 
 
+import {
+    GestureEvent
+} from "./GestureRecognizer";
+
+
+
+
+
 export enum InputMode {
 
 
     /**
-     * Normal model görüntüleme
+     * Kamera görüntüleme modu
      */
     View = "view",
 
 
+
     /**
-     * Sketch çizimi
+     * Sketch çizim modu
      */
     Sketch = "sketch",
 
 
+
     /**
-     * Obje seçimi
+     * Seçim modu
      */
     Selection = "selection",
+
 
 
     /**
@@ -33,11 +45,17 @@ export enum InputMode {
     FeatureEdit = "feature-edit",
 
 
+
     /**
-     * Assembly hareketi
+     * Assembly hareket modu
      */
     Assembly = "assembly"
+
 }
+
+
+
+
 
 
 
@@ -45,9 +63,12 @@ export enum InputMode {
 export interface InputHandler {
 
 
+
     onPointerDown?(
         event: PointerEvent
     ): void;
+
+
 
 
     onPointerMove?(
@@ -55,11 +76,34 @@ export interface InputHandler {
     ): void;
 
 
+
+
     onPointerUp?(
         event: PointerEvent
     ): void;
 
+
+
+
+    /**
+     * Gesture olayları
+     *
+     * Pan
+     * Pinch
+     * Rotate
+     * DoubleTap
+     */
+    onGesture?(
+        event: GestureEvent
+    ): void;
+
+
 }
+
+
+
+
+
 
 
 
@@ -68,8 +112,10 @@ export interface InputHandler {
 export class InputRouter {
 
 
+
     private mode:
-        InputMode = InputMode.View;
+        InputMode =
+        InputMode.View;
 
 
 
@@ -82,61 +128,103 @@ export class InputRouter {
 
 
 
+
+
+
+
+
+    /**
+     * Aktif çalışma modunu değiştirir
+     */
     public setMode(
         mode: InputMode
-    ):void{
+    ): void {
 
 
         this.mode = mode;
+
     }
 
 
 
 
 
-    public getMode():InputMode{
+
+
+
+
+    /**
+     * Aktif modu döndürür
+     */
+    public getMode():
+        InputMode {
 
 
         return this.mode;
+
     }
 
 
 
 
 
+
+
+
+
+    /**
+     * Input handler kayıt eder
+     */
     public register(
-        mode:InputMode,
-        handler:InputHandler
-    ):void{
+        mode: InputMode,
+        handler: InputHandler
+    ): void {
 
 
         this.handlers.set(
             mode,
             handler
         );
+
     }
 
 
 
 
 
+
+
+
+
+    /**
+     * Handler kaldırır
+     */
     public remove(
-        mode:InputMode
-    ):void{
+        mode: InputMode
+    ): void {
 
 
         this.handlers.delete(
             mode
         );
+
     }
 
 
 
 
 
+
+
+
+
+    /**
+     * Pointer olaylarını yönlendirir
+     */
     public route(
-        event:PointerEvent
-    ):void{
+        event: PointerEvent
+    ): void {
+
 
 
         const handler =
@@ -145,15 +233,22 @@ export class InputRouter {
             );
 
 
-        if(!handler){
+
+        if (!handler) {
 
             return;
+
         }
 
 
 
 
-        switch(event.action){
+
+
+        switch (
+            event.action
+        ) {
+
 
 
             case PointerAction.Down:
@@ -164,6 +259,7 @@ export class InputRouter {
                 );
 
                 break;
+
 
 
 
@@ -180,6 +276,7 @@ export class InputRouter {
 
 
 
+
             case PointerAction.Up:
 
 
@@ -188,7 +285,99 @@ export class InputRouter {
                 );
 
                 break;
+
         }
+
     }
+
+
+
+
+
+
+
+
+
+    /**
+     * Gesture olaylarını yönlendirir
+     *
+     * Tablet:
+     *
+     * iki parmak pan
+     * pinch zoom
+     * rotate
+     * double tap
+     *
+     */
+    public routeGesture(
+        event: GestureEvent
+    ): void {
+
+
+
+        const handler =
+            this.handlers.get(
+                this.mode
+            );
+
+
+
+        if (!handler) {
+
+            return;
+
+        }
+
+
+
+
+
+
+        handler.onGesture?.(
+            event
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    /**
+     * Aktif handler var mı?
+     */
+    public hasHandler():
+        boolean {
+
+
+        return this.handlers.has(
+            this.mode
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    /**
+     * Tüm handlerları temizler
+     */
+    public clear(): void {
+
+
+        this.handlers.clear();
+
+    }
+
+
 
 }
