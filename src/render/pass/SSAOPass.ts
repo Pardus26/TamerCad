@@ -39,27 +39,42 @@ export class SSAOPass extends RenderPass {
     public power = 1.5;
 
     constructor(
-        options: SSAOPassOptions = {}
-    ) {
+    options: SSAOPassOptions = {}
+) {
 
-        super({
+    super({
 
-            name: "SSAOPass",
+        name:"SSAOPass",
 
-            priority: 175
+        priority:175
 
-        });
+    });
 
-        this.gBuffer = options.gBuffer ?? null;
 
-        this.output = options.output ?? null;
+    this
+    .reads(
 
-        this.shader = options.shader ?? null;
+        "Depth",
 
-        this.viewport = options.viewport ?? null;
+        "GBuffer"
 
-    }
+    )
+    .writes(
 
+        "SSAO"
+
+    );
+
+
+    this.gBuffer =
+        options.gBuffer ?? null;
+
+
+    this.output =
+        options.output ?? null;
+
+
+}
     public setGBuffer(
         buffer: GBuffer
     ): void {
