@@ -2,17 +2,25 @@ import { Vector3 } from "../math/vector/Vector3";
 import { Matrix4 } from "../math/matrix/Matrix4";
 
 
+
+
+
 export enum ProjectionType {
+
 
     Perspective,
 
     Orthographic
 
+
 }
 
 
 
+
+
 export enum StandardView {
+
 
     ISO,
 
@@ -28,131 +36,178 @@ export enum StandardView {
 
     RIGHT
 
+
 }
+
+
 
 
 
 export interface CameraRay {
 
-    origin: Vector3;
 
-    direction: Vector3;
+    origin:Vector3;
+
+    direction:Vector3;
+
 
 }
+
+
 
 
 
 export interface CameraState {
 
-    position: Vector3;
 
-    target: Vector3;
+    position:Vector3;
 
-    up: Vector3;
+    target:Vector3;
 
-    distance: number;
+    up:Vector3;
 
-    yaw: number;
+    distance:number;
 
-    pitch: number;
+    yaw:number;
+
+    pitch:number;
+
 
 }
+
+
+
 
 
 
 export class RenderCamera {
 
 
+
     private projection =
+
         ProjectionType.Perspective;
 
 
 
+
+
     private position =
+
         new Vector3(
+
             0,
+
             0,
+
             10
+
         );
+
+
 
 
 
     private target =
+
         new Vector3(
+
             0,
+
             0,
+
             0
+
         );
+
+
 
 
 
     private up =
+
         new Vector3(
+
             0,
+
             1,
+
             0
+
         );
 
 
 
-    private width = 1;
 
-    private height = 1;
+
+    private width=1;
+
+
+    private height=1;
+
+
 
 
 
     private fov =
 
         45 *
+
         Math.PI /
+
         180;
 
 
 
-    private near =
-
-        0.01;
 
 
+    private near=0.01;
 
-    private far =
 
-        100000;
+    private far=100000;
 
 
 
-    private orthoHeight =
-
-        10;
 
 
-
-    private distance =
-
-        10;
+    private orthoHeight=10;
 
 
 
-    private yaw = 0;
 
-    private pitch = 0;
+
+    private distance=10;
+
+
+
+
+
+    private yaw=0;
+
+
+    private pitch=0;
+
+
+
+
 
 
 
     constructor(){
 
+
         this.updateOrbitPosition();
+
 
     }
 
 
 
-    // --------------------------------------------------
-    // Viewport
-    // --------------------------------------------------
 
 
-    setViewport(
+
+
+    public setViewport(
 
         width:number,
 
@@ -161,44 +216,67 @@ export class RenderCamera {
     ):void{
 
 
-        this.width =
-            Math.max(
-                width,
-                1
-            );
+        this.width=Math.max(
 
+            1,
 
-        this.height =
-            Math.max(
-                height,
-                1
-            );
-
-
-    }
-
-
-
-    getAspectRatio():number{
-
-        return (
-
-            this.width /
-
-            this.height
+            width
 
         );
 
+
+        this.height=Math.max(
+
+            1,
+
+            height
+
+        );
+
+
     }
 
 
 
-    // --------------------------------------------------
-    // Projection
-    // --------------------------------------------------
 
 
-    setPerspective(
+
+    public setAspectRatio(
+
+        ratio:number
+
+    ):void{
+
+
+        this.width=ratio;
+
+        this.height=1;
+
+
+    }
+
+
+
+
+
+
+    public getAspectRatio():number{
+
+
+        return this.width /
+
+            this.height;
+
+
+    }
+
+
+
+
+
+
+
+    public setPerspective(
 
         fov:number,
 
@@ -209,22 +287,26 @@ export class RenderCamera {
     ):void{
 
 
-        this.projection =
+        this.projection=
+
             ProjectionType.Perspective;
 
 
-        this.fov =
+
+        this.fov=
+
             fov *
+
             Math.PI /
+
             180;
 
 
-        this.near =
-            near;
+
+        this.near=near;
 
 
-        this.far =
-            far;
+        this.far=far;
 
 
     }
@@ -232,7 +314,10 @@ export class RenderCamera {
 
 
 
-    setOrthographic(
+
+
+
+    public setOrthographic(
 
         height:number,
 
@@ -243,82 +328,93 @@ export class RenderCamera {
     ):void{
 
 
-        this.projection =
+        this.projection=
+
             ProjectionType.Orthographic;
 
 
-        this.orthoHeight =
-            height;
+
+        this.orthoHeight=height;
 
 
-        this.near =
-            near;
+        this.near=near;
 
 
-        this.far =
-            far;
+        this.far=far;
 
 
     }
 
 
 
-    getProjection():
 
-        ProjectionType{
+
+
+
+
+    public getProjection():ProjectionType{
 
 
         return this.projection;
 
+
     }
 
 
 
 
-    // --------------------------------------------------
-    // Transform
-    // --------------------------------------------------
 
 
-    lookAt(
+
+    public lookAt(
 
         position:Vector3,
 
         target:Vector3,
 
-        up =
-            new Vector3(
-                0,
-                1,
-                0
-            )
+        up:Vector3 = new Vector3(
+
+            0,
+
+            1,
+
+            0
+
+        )
 
     ):void{
 
 
         this.position =
+
             position.clone();
 
 
+
         this.target =
+
             target.clone();
 
 
+
         this.up =
+
             up.clone();
+
+
 
 
         this.distance =
 
             this.position
 
-            .subtract(
+                .subtract(
 
-                this.target
+                    this.target
 
-            )
+                )
 
-            .length();
+                .length();
 
 
     }
@@ -326,36 +422,52 @@ export class RenderCamera {
 
 
 
-    private updateOrbitPosition():
-
-        void{
 
 
-        const cp =
+
+
+    private updateOrbitPosition():void{
+
+
+        const cp=
+
             Math.cos(
+
                 this.pitch
+
             );
 
 
-        const sp =
+        const sp=
+
             Math.sin(
+
                 this.pitch
+
             );
 
 
-        const cy =
+        const cy=
+
             Math.cos(
+
                 this.yaw
+
             );
 
 
-        const sy =
+        const sy=
+
             Math.sin(
+
                 this.yaw
+
             );
 
 
-        this.position.x =
+
+
+        this.position.x=
 
             this.target.x +
 
@@ -367,7 +479,7 @@ export class RenderCamera {
 
 
 
-        this.position.y =
+        this.position.y=
 
             this.target.y +
 
@@ -377,7 +489,7 @@ export class RenderCamera {
 
 
 
-        this.position.z =
+        this.position.z=
 
             this.target.z +
 
@@ -392,14 +504,12 @@ export class RenderCamera {
 
 
 
-    // --------------------------------------------------
-    // Matrices
-    // --------------------------------------------------
 
 
-    getViewMatrix():
 
-        Matrix4{
+
+
+    public getViewMatrix():Matrix4{
 
 
         return Matrix4.lookAt(
@@ -412,26 +522,28 @@ export class RenderCamera {
 
         );
 
+
     }
 
 
 
 
 
-    getProjectionMatrix():
-
-        Matrix4{
 
 
-        const aspect =
+    public getProjectionMatrix():Matrix4{
+
+
+        const aspect=
 
             this.getAspectRatio();
 
 
 
+
         if(
 
-            this.projection ===
+            this.projection===
 
             ProjectionType.Perspective
 
@@ -450,23 +562,24 @@ export class RenderCamera {
 
             );
 
+
         }
 
 
 
-        const half =
 
-            this.orthoHeight *
 
-            0.5;
+        const half=
+
+            this.orthoHeight*0.5;
 
 
 
         return Matrix4.orthographic(
 
-            -half * aspect,
+            -half*aspect,
 
-            half * aspect,
+            half*aspect,
 
             -half,
 
@@ -484,19 +597,17 @@ export class RenderCamera {
 
 
 
-    // --------------------------------------------------
-    // Picking
-    // --------------------------------------------------
 
 
-    worldToScreen(
+
+    public worldToScreen(
 
         world:Vector3
 
     ):Vector3{
 
 
-        const vp =
+        const matrix=
 
             this.getProjectionMatrix()
 
@@ -507,9 +618,10 @@ export class RenderCamera {
             );
 
 
-        const clip =
 
-            vp.transformPoint(
+        const clip=
+
+            matrix.transformPoint(
 
                 world
 
@@ -519,18 +631,10 @@ export class RenderCamera {
 
         return new Vector3(
 
-            (clip.x + 1) *
-
-            0.5 *
-
-            this.width,
+            (clip.x+1)*0.5*this.width,
 
 
-            (1 - clip.y) *
-
-            0.5 *
-
-            this.height,
+            (1-clip.y)*0.5*this.height,
 
 
             clip.z
@@ -543,7 +647,10 @@ export class RenderCamera {
 
 
 
-    screenToWorld(
+
+
+
+    public screenToWorld(
 
         x:number,
 
@@ -554,7 +661,7 @@ export class RenderCamera {
     ):Vector3{
 
 
-        const ndcX =
+        const nx=
 
             x /
 
@@ -566,7 +673,7 @@ export class RenderCamera {
 
 
 
-        const ndcY =
+        const ny=
 
             1 -
 
@@ -578,8 +685,9 @@ export class RenderCamera {
 
 
 
-        const inverse =
 
+
+        const inv=
 
             this.getProjectionMatrix()
 
@@ -593,13 +701,14 @@ export class RenderCamera {
 
 
 
-        return inverse.transformPoint(
+
+        return inv.transformPoint(
 
             new Vector3(
 
-                ndcX,
+                nx,
 
-                ndcY,
+                ny,
 
                 depth
 
@@ -614,7 +723,9 @@ export class RenderCamera {
 
 
 
-    pickRay(
+
+
+    public pickRay(
 
         x:number,
 
@@ -623,7 +734,7 @@ export class RenderCamera {
     ):CameraRay{
 
 
-        const near =
+        const near=
 
             this.screenToWorld(
 
@@ -636,8 +747,7 @@ export class RenderCamera {
             );
 
 
-
-        const far =
+        const far=
 
             this.screenToWorld(
 
@@ -654,9 +764,7 @@ export class RenderCamera {
         return {
 
 
-            origin:
-
-                near,
+            origin:near,
 
 
             direction:
@@ -680,12 +788,40 @@ export class RenderCamera {
 
 
 
-    // --------------------------------------------------
-    // CAD Views
-    // --------------------------------------------------
 
 
-    topView():void{
+
+    public isoView():void{
+
+
+        this.yaw=
+
+            Math.PI/4;
+
+
+
+        this.pitch=
+
+            Math.PI/6;
+
+
+
+        this.distance=10;
+
+
+
+        this.updateOrbitPosition();
+
+
+    }
+
+
+
+
+
+
+
+    public topView():void{
 
 
         this.lookAt(
@@ -700,12 +836,7 @@ export class RenderCamera {
 
             ),
 
-            new Vector3()
-
-        );
-
-
-        this.up =
+            new Vector3(),
 
             new Vector3(
 
@@ -715,7 +846,9 @@ export class RenderCamera {
 
                 -1
 
-            );
+            )
+
+        );
 
 
     }
@@ -723,7 +856,10 @@ export class RenderCamera {
 
 
 
-    frontView():void{
+
+
+
+    public frontView():void{
 
 
         this.lookAt(
@@ -749,7 +885,9 @@ export class RenderCamera {
 
 
 
-    rightView():void{
+
+
+    public rightView():void{
 
 
         this.lookAt(
@@ -775,36 +913,9 @@ export class RenderCamera {
 
 
 
-    isoView():void{
 
 
-        this.yaw =
-
-            Math.PI / 4;
-
-
-
-        this.pitch =
-
-            Math.PI / 6;
-
-
-
-        this.distance =
-
-            10;
-
-
-
-        this.updateOrbitPosition();
-
-
-    }
-
-
-
-
-    fitBounds(
+    public fitBounds(
 
         min:Vector3,
 
@@ -813,7 +924,7 @@ export class RenderCamera {
     ):void{
 
 
-        const center =
+        const center=
 
             new Vector3(
 
@@ -827,7 +938,7 @@ export class RenderCamera {
 
 
 
-        const size =
+        const size=
 
             new Vector3(
 
@@ -841,50 +952,30 @@ export class RenderCamera {
 
 
 
-        const radius =
+        const radius=
 
-            size.length()*0.5;
+            Math.max(
 
+                size.length()*0.5,
 
+                0.01
 
-        this.target =
-
-            center;
-
-
-
-        if(
-
-            this.projection ===
-
-            ProjectionType.Perspective
-
-        ){
+            );
 
 
-            this.distance =
 
-                radius /
-
-                Math.sin(
-
-                    this.fov*0.5
-
-                );
+        this.target=center;
 
 
-        }
+        this.distance=
 
-        else{
+            radius /
 
+            Math.sin(
 
-            this.orthoHeight =
+                this.fov*0.5
 
-                radius*2;
-
-
-        }
-
+            );
 
 
         this.updateOrbitPosition();
@@ -895,37 +986,31 @@ export class RenderCamera {
 
 
 
-    // --------------------------------------------------
-    // Access
-    // --------------------------------------------------
 
 
-    getPosition():
 
-        Vector3{
+    public getPosition():Vector3{
 
 
         return this.position.clone();
 
+
     }
 
 
 
-    getTarget():
-
-        Vector3{
+    public getTarget():Vector3{
 
 
         return this.target.clone();
 
+
     }
 
 
 
 
-    getForward():
-
-        Vector3{
+    public getForward():Vector3{
 
 
         return this.target
@@ -944,9 +1029,10 @@ export class RenderCamera {
 
 
 
-    getRight():
 
-        Vector3{
+
+
+    public getRight():Vector3{
 
 
         return this.getForward()
@@ -965,42 +1051,30 @@ export class RenderCamera {
 
 
 
-    saveState():
 
-        CameraState{
+
+    public saveState():CameraState{
 
 
         return {
 
 
-            position:
-
-                this.position.clone(),
+            position:this.position.clone(),
 
 
-            target:
-
-                this.target.clone(),
+            target:this.target.clone(),
 
 
-            up:
-
-                this.up.clone(),
+            up:this.up.clone(),
 
 
-            distance:
-
-                this.distance,
+            distance:this.distance,
 
 
-            yaw:
-
-                this.yaw,
+            yaw:this.yaw,
 
 
-            pitch:
-
-                this.pitch
+            pitch:this.pitch
 
 
         };
@@ -1011,34 +1085,47 @@ export class RenderCamera {
 
 
 
-    restoreState(
+
+
+    public restoreState(
 
         state:CameraState
 
     ):void{
 
 
-        this.position =
+        this.position=
+
             state.position.clone();
 
 
-        this.target =
+
+        this.target=
+
             state.target.clone();
 
 
-        this.up =
+
+        this.up=
+
             state.up.clone();
 
 
-        this.distance =
+
+        this.distance=
+
             state.distance;
 
 
-        this.yaw =
+
+        this.yaw=
+
             state.yaw;
 
 
-        this.pitch =
+
+        this.pitch=
+
             state.pitch;
 
 
@@ -1047,7 +1134,9 @@ export class RenderCamera {
 
 
 
-    dispose():void{
+
+
+    public dispose():void{
 
 
         this.position.set(
