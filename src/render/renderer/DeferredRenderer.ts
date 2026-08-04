@@ -945,80 +945,49 @@ export class DeferredRenderer {
 
 
     protected connectResources(
+    graphPass: RenderGraphPass,
+    pass: RenderPass
+): void {
 
-        graphPass:RenderGraphPass,
+    for (const name of pass.reads()) {
 
-        pass:RenderPass
+        const resource =
+            this.graphBuilder
+                .getResource(name);
 
-    ):void{
-
-
-        /*
-        
-            Her RenderPass artık:
-
-            reads():
-
-                [
-                    "Depth",
-                    "GBuffer_Normal"
-                ]
-
-
-            writes():
-
-                [
-                    "HDR_Lighting"
-                ]
-
-
-            döndürebilir.
-
-
-        */
-
-
-        const reads =
-
-            pass.reads();
-
-
-
-        const writes =
-
-            pass.writes();
-
-
-
-
-
-        for (const resource of reads) {
-
-    this.graphBuilder.read(
-        graphPass,
-        resource
-    );
-
-}
-
-for (const resource of writes) {
-
-    this.graphBuilder.write(
-        graphPass,
-        resource
-    );
-
-}
-
+        if (!resource) {
+            throw new Error(
+                `RenderGraph resource "${name}" not found`
+            );
         }
 
+        this.graphBuilder.read(
+            graphPass,
+            resource
+        );
 
     }
 
+    for (const name of pass.writes()) {
 
+        const resource =
+            this.graphBuilder
+                .getResource(name);
 
+        if (!resource) {
+            throw new Error(
+                `RenderGraph resource "${name}" not found`
+            );
+        }
 
+        this.graphBuilder.write(
+            graphPass,
+            resource
+        );
 
+    }
+
+}
     // ------------------------------------------------
     // Compile
     // ------------------------------------------------
