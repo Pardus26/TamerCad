@@ -1,18 +1,19 @@
-// src/cad/sketch/SketchRecognizer.ts
-
-
 import {
     Vector2
 }
 from "../../math/Vector2";
 
 
-
 import {
+
     SketchEntity,
+
     SketchLine,
+
     SketchPoint,
+
     SketchCircle
+
 }
 from "./SketchEntity";
 
@@ -47,7 +48,13 @@ export enum SketchRecognitionType {
     Arc,
 
 
-    Polyline
+    Rectangle,
+
+
+    Polyline,
+
+
+    ClosedProfile
 
 
 
@@ -75,7 +82,11 @@ export interface SketchRecognitionResult {
 
 
 
-    confidence:number;
+
+    confidence:
+
+        number;
+
 
 
 
@@ -85,13 +96,24 @@ export interface SketchRecognitionResult {
 
 
 
+
     points:
 
         Vector2[];
 
 
 
+
+
     suggestions:
+
+        string[];
+
+
+
+
+
+    constraints:
 
         string[];
 
@@ -115,13 +137,38 @@ export interface SketchRecognitionResult {
 export interface SketchRecognizerOptions {
 
 
-    lineTolerance?:number;
+    lineTolerance?:
+
+        number;
 
 
-    circleTolerance?:number;
 
 
-    simplifyTolerance?:number;
+    circleTolerance?:
+
+        number;
+
+
+
+
+    arcTolerance?:
+
+        number;
+
+
+
+
+    simplifyTolerance?:
+
+        number;
+
+
+
+
+    rectangleTolerance?:
+
+        number;
+
 
 
 }
@@ -151,7 +198,15 @@ export class SketchRecognizer {
 
 
 
+    private readonly arcTolerance:number;
+
+
+
     private readonly simplifyTolerance:number;
+
+
+
+    private readonly rectangleTolerance:number;
 
 
 
@@ -169,51 +224,46 @@ export class SketchRecognizer {
 
         this.lineTolerance =
 
-            options.lineTolerance ??
-
-            3;
+            options.lineTolerance ?? 3;
 
 
 
         this.circleTolerance =
 
-            options.circleTolerance ??
+            options.circleTolerance ?? 5;
 
-            5;
+
+
+        this.arcTolerance =
+
+            options.arcTolerance ?? 8;
 
 
 
         this.simplifyTolerance =
 
-            options.simplifyTolerance ??
+            options.simplifyTolerance ?? 2;
 
-            2;
+
+
+        this.rectangleTolerance =
+
+            options.rectangleTolerance ?? 8;
 
 
 
     }
-
-
-
-
-
-
-
-
-
     // -------------------------------------------------
-    // Main Recognition
+    // Main Recognition Pipeline
     // -------------------------------------------------
-
 
     recognize(
 
-        inputPoints:Vector2[]
+        inputPoints: Vector2[]
 
     ):
 
-    SketchRecognitionResult{
-
+    SketchRecognitionResult {
 
 
         const points =
@@ -226,9 +276,45 @@ export class SketchRecognizer {
 
 
 
+        if (
+
+            points.length === 0
+
+        ) {
 
 
-        if(points.length < 2){
+            return {
+
+                type:
+
+                    SketchRecognitionType.None,
+
+
+                confidence:
+
+                    0,
+
+
+                points: [],
+
+
+                suggestions: [],
+
+
+                constraints: []
+
+            };
+
+        }
+
+
+
+
+        if (
+
+            points.length === 1
+
+        ) {
 
 
             return {
@@ -244,12 +330,20 @@ export class SketchRecognizer {
                     1,
 
 
-                points
+                points,
 
+
+                suggestions:
+
+                    [],
+
+
+                constraints:
+
+                    []
 
 
             };
-
 
         }
 
@@ -258,14 +352,86 @@ export class SketchRecognizer {
 
 
 
+        /*
+         * Recognition Order
+         *
+         * 1 - Rectangle
+         * 2 - Circle
+         * 3 - Arc
+         * 4 - Line
+         * 5 - Closed Profile
+         * 6 - Polyline
+         */
 
-        const lineScore =
 
-            this.detectLine(
+
+        const rectangleScore =
+
+            this.detectRectangle(
 
                 points
 
             );
+
+
+
+        if (
+
+            rectangleScore >
+
+            0.85
+
+        ) {
+
+
+            return {
+
+
+                type:
+
+                    SketchRecognitionType.Rectangle,
+
+
+                confidence:
+
+                    rectangleScore,
+
+
+                points,
+
+
+                suggestions:
+
+                    [
+
+                        "Add Horizontal Constraints",
+
+                        "Add Vertical Constraints",
+
+                        "Add Equal Length Constraints"
+
+                    ],
+
+
+                constraints:
+
+                    [
+
+                        "HORIZONTAL",
+
+                        "VERTICAL",
+
+                        "PERPENDICULAR"
+
+                    ]
+
+
+            };
+
+        }
+
+
+
 
 
 
@@ -281,23 +447,13 @@ export class SketchRecognizer {
 
 
 
-
-
-
-
-
-        if(
-
-            circleScore >
-
-            lineScore &&
+        if (
 
             circleScore >
 
             0.8
 
-        ){
-
+        ) {
 
 
             return {
@@ -318,15 +474,22 @@ export class SketchRecognizer {
 
                 suggestions:
 
-                [
+                    [
 
-                    "Add Radius Constraint"
+                        "Add Radius Constraint"
 
-                ]
+                    ],
 
+
+                constraints:
+
+                    [
+
+                        "RADIUS"
+
+                    ]
 
             };
-
 
         }
 
@@ -337,13 +500,100 @@ export class SketchRecognizer {
 
 
 
-        if(
+        const arcScore =
+
+            this.detectArc(
+
+                points
+
+            );
+
+
+
+        if (
+
+            arcScore >
+
+            0.75
+
+        ) {
+
+
+            return {
+
+
+                type:
+
+                    SketchRecognitionType.Arc,
+
+
+                confidence:
+
+                    arcScore,
+
+
+                points,
+
+
+                suggestions:
+
+                    [
+
+                        "Add Radius Constraint",
+
+                        "Add Tangent Constraint"
+
+                    ],
+
+
+                constraints:
+
+                    [
+
+                        "RADIUS",
+
+                        "TANGENT"
+
+                    ]
+
+
+            };
+
+        }
+
+
+
+
+
+
+
+
+        const lineScore =
+
+            this.detectLine(
+
+                points
+
+            );
+
+
+
+        if (
 
             lineScore >
 
             0.8
 
-        ){
+        ) {
+
+
+            const constraintInfo =
+
+                this.lineConstraints(
+
+                    points
+
+                );
 
 
 
@@ -365,12 +615,64 @@ export class SketchRecognizer {
 
                 suggestions:
 
-                this.lineSuggestions(
+                    constraintInfo.suggestions,
 
-                    points
 
-                )
+                constraints:
 
+                    constraintInfo.constraints
+
+
+            };
+
+        }
+
+
+
+
+
+
+
+
+        if (
+
+            this.isClosedProfile(
+
+                points
+
+            )
+
+        ) {
+
+
+            return {
+
+
+                type:
+
+                    SketchRecognitionType.ClosedProfile,
+
+
+                confidence:
+
+                    0.7,
+
+
+                points,
+
+
+                suggestions:
+
+                    [
+
+                        "Create Extrude Feature"
+
+                    ],
+
+
+                constraints:
+
+                    []
 
             };
 
@@ -397,37 +699,38 @@ export class SketchRecognizer {
                 0.5,
 
 
-            points
+            points,
 
+
+            suggestions:
+
+                [
+
+                    "Convert To Spline"
+
+                ],
+
+
+            constraints:
+
+                []
 
 
         };
 
 
-
     }
-
-
-
-
-
-
-
-
-
     // -------------------------------------------------
     // Line Detection
     // -------------------------------------------------
 
-
     private detectLine(
 
-        points:Vector2[]
+        points: Vector2[]
 
     ):
 
-    number{
-
+    number {
 
 
         const start =
@@ -440,11 +743,9 @@ export class SketchRecognizer {
 
             points[
 
-                points.length-1
+                points.length - 1
 
             ];
-
-
 
 
 
@@ -458,37 +759,36 @@ export class SketchRecognizer {
 
 
 
+        if (
 
+            length === 0
 
-        if(length===0)
+        ) {
 
             return 0;
 
+        }
 
 
 
 
 
-
-        let error=0;
-
+        let totalError = 0;
 
 
 
+        for (
 
-        for(
+            const point of points
 
-            const p of points
-
-        ){
-
+        ) {
 
 
-            const distance =
+            totalError +=
 
                 this.pointLineDistance(
 
-                    p,
+                    point,
 
                     start,
 
@@ -497,18 +797,17 @@ export class SketchRecognizer {
                 );
 
 
-
-            error += distance;
-
-
-
         }
 
 
 
 
 
-        error /= points.length;
+        const averageError =
+
+            totalError /
+
+            points.length;
 
 
 
@@ -522,14 +821,13 @@ export class SketchRecognizer {
 
             (
 
-                error /
+                averageError /
 
                 this.lineTolerance
 
             )
 
         );
-
 
 
     }
@@ -543,23 +841,349 @@ export class SketchRecognizer {
 
 
     // -------------------------------------------------
-    // Circle Detection
+    // Line Constraint Analysis
     // -------------------------------------------------
 
+    private lineConstraints(
 
-    private detectCircle(
+        points: Vector2[]
 
-        points:Vector2[]
+    ) {
+
+
+        const start =
+
+            points[0];
+
+
+
+        const end =
+
+            points[
+
+                points.length - 1
+
+            ];
+
+
+
+
+
+        const dx =
+
+            end.x -
+
+            start.x;
+
+
+
+        const dy =
+
+            end.y -
+
+            start.y;
+
+
+
+
+
+        const absX =
+
+            Math.abs(
+
+                dx
+
+            );
+
+
+
+        const absY =
+
+            Math.abs(
+
+                dy
+
+            );
+
+
+
+
+
+
+        const suggestions:string[] = [];
+
+
+
+        const constraints:string[] = [];
+
+
+
+
+
+
+
+
+        // Horizontal Detection
+
+        if (
+
+            absY < this.lineTolerance
+
+        ) {
+
+
+            suggestions.push(
+
+                "Horizontal Line"
+
+            );
+
+
+            constraints.push(
+
+                "HORIZONTAL"
+
+            );
+
+
+        }
+
+
+
+
+
+
+
+
+        // Vertical Detection
+
+        else if (
+
+            absX < this.lineTolerance
+
+        ) {
+
+
+            suggestions.push(
+
+                "Vertical Line"
+
+            );
+
+
+            constraints.push(
+
+                "VERTICAL"
+
+            );
+
+
+        }
+
+
+
+
+
+
+
+
+        // Near 45 Degree
+
+        else {
+
+
+            const angle =
+
+                Math.atan2(
+
+                    dy,
+
+                    dx
+
+                )
+
+                *
+
+                180
+
+                /
+
+                Math.PI;
+
+
+
+
+            const snappedAngle =
+
+                Math.round(
+
+                    angle /
+
+                    45
+
+                )
+
+                *
+
+                45;
+
+
+
+
+            if (
+
+                Math.abs(
+
+                    angle -
+
+                    snappedAngle
+
+                )
+
+                < 5
+
+            ) {
+
+
+                suggestions.push(
+
+                    `Angle ${snappedAngle}°`
+
+                );
+
+
+                constraints.push(
+
+                    "ANGLE"
+
+                );
+
+
+            }
+
+
+        }
+
+
+
+
+
+
+
+
+        return {
+
+
+            suggestions,
+
+
+            constraints
+
+
+        };
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // Horizontal Test
+    // -------------------------------------------------
+
+    private isHorizontal(
+
+        start:Vector2,
+
+        end:Vector2
 
     ):
 
-    number{
+
+    boolean {
+
+
+        return Math.abs(
+
+            end.y -
+
+            start.y
+
+        )
+
+        <
+
+        this.lineTolerance;
+
+
+    }
 
 
 
-        if(points.length < 5)
+
+
+
+
+
+
+    // -------------------------------------------------
+    // Vertical Test
+    // -------------------------------------------------
+
+    private isVertical(
+
+        start:Vector2,
+
+        end:Vector2
+
+    ):
+
+
+    boolean {
+
+
+        return Math.abs(
+
+            end.x -
+
+            start.x
+
+        )
+
+        <
+
+        this.lineTolerance;
+
+
+    }
+    // -------------------------------------------------
+    // Circle Detection
+    // -------------------------------------------------
+
+    private detectCircle(
+
+        points: Vector2[]
+
+    ):
+
+    number {
+
+
+        if (
+
+            points.length < 5
+
+        ) {
 
             return 0;
+
+        }
 
 
 
@@ -581,7 +1205,7 @@ export class SketchRecognizer {
 
             points.map(
 
-                p=>
+                p =>
 
                     p.distanceTo(
 
@@ -595,11 +1219,19 @@ export class SketchRecognizer {
 
 
 
-        const avg =
+        const averageRadius =
 
             radii.reduce(
 
-                (a,b)=>a+b,
+                (
+
+                    sum,
+
+                    value
+
+                ) =>
+
+                    sum + value,
 
                 0
 
@@ -613,28 +1245,26 @@ export class SketchRecognizer {
 
 
 
-
-
-        let deviation=0;
+        let error = 0;
 
 
 
 
 
-        for(
+        for (
 
-            const r of radii
+            const radius of radii
 
-        ){
+        ) {
 
 
-            deviation +=
+            error +=
 
                 Math.abs(
 
-                    r -
+                    radius -
 
-                    avg
+                    averageRadius
 
                 );
 
@@ -645,7 +1275,10 @@ export class SketchRecognizer {
 
 
 
-        deviation /= radii.length;
+        error /=
+
+            radii.length;
+
 
 
 
@@ -659,15 +1292,13 @@ export class SketchRecognizer {
 
             (
 
-                deviation /
+                error /
 
                 this.circleTolerance
 
             )
 
         );
-
-
 
     }
 
@@ -680,17 +1311,711 @@ export class SketchRecognizer {
 
 
     // -------------------------------------------------
-    // Constraint Suggestions
+    // Arc Detection
     // -------------------------------------------------
 
+    private detectArc(
 
-    private lineSuggestions(
-
-        points:Vector2[]
+        points: Vector2[]
 
     ):
 
-    string[]{
+    number {
+
+
+
+        if (
+
+            points.length < 4
+
+        ) {
+
+            return 0;
+
+        }
+
+
+
+
+
+
+
+        const start =
+
+            points[0];
+
+
+
+        const middle =
+
+            points[
+
+                Math.floor(
+
+                    points.length / 2
+
+                )
+
+            ];
+
+
+
+        const end =
+
+            points[
+
+                points.length - 1
+
+            ];
+
+
+
+
+
+
+
+
+        const center =
+
+            this.circleCenterFromThreePoints(
+
+                start,
+
+                middle,
+
+                end
+
+            );
+
+
+
+
+
+        if (
+
+            !center
+
+        ) {
+
+            return 0;
+
+        }
+
+
+
+
+
+
+        const radius =
+
+            center.distanceTo(
+
+                start
+
+            );
+
+
+
+
+
+        let deviation = 0;
+
+
+
+
+
+        for (
+
+            const point of points
+
+        ) {
+
+
+            deviation +=
+
+                Math.abs(
+
+                    point.distanceTo(
+
+                        center
+
+                    )
+
+                    -
+
+                    radius
+
+                );
+
+
+        }
+
+
+
+
+
+        deviation /=
+
+            points.length;
+
+
+
+
+
+
+
+
+        const score =
+
+            Math.max(
+
+                0,
+
+                1 -
+
+                (
+
+                    deviation /
+
+                    this.arcTolerance
+
+                )
+
+            );
+
+
+
+
+
+        return score;
+
+    }
+
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // Circle Center From Three Points
+    // -------------------------------------------------
+
+    private circleCenterFromThreePoints(
+
+        a:Vector2,
+
+        b:Vector2,
+
+        c:Vector2
+
+    ):
+
+    Vector2 | null {
+
+
+
+        const denominator =
+
+            2 *
+
+            (
+
+                a.x *
+
+                (
+
+                    b.y -
+
+                    c.y
+
+                )
+
+                +
+
+                b.x *
+
+                (
+
+                    c.y -
+
+                    a.y
+
+                )
+
+                +
+
+                c.x *
+
+                (
+
+                    a.y -
+
+                    b.y
+
+                )
+
+            );
+
+
+
+
+
+        if (
+
+            Math.abs(
+
+                denominator
+
+            )
+
+            <
+
+            0.000001
+
+        ) {
+
+
+            return null;
+
+        }
+
+
+
+
+
+
+
+        const a2 =
+
+            a.x *
+
+            a.x +
+
+            a.y *
+
+            a.y;
+
+
+
+        const b2 =
+
+            b.x *
+
+            b.x +
+
+            b.y *
+
+            b.y;
+
+
+
+        const c2 =
+
+            c.x *
+
+            c.x +
+
+            c.y *
+
+            c.y;
+
+
+
+
+
+
+
+
+        const x =
+
+            (
+
+                a2 *
+
+                (
+
+                    b.y -
+
+                    c.y
+
+                )
+
+                +
+
+                b2 *
+
+                (
+
+                    c.y -
+
+                    a.y
+
+                )
+
+                +
+
+                c2 *
+
+                (
+
+                    a.y -
+
+                    b.y
+
+                )
+
+            )
+
+            /
+
+            denominator;
+
+
+
+
+
+
+        const y =
+
+            (
+
+                a2 *
+
+                (
+
+                    c.x -
+
+                    b.x
+
+                )
+
+                +
+
+                b2 *
+
+                (
+
+                    a.x -
+
+                    c.x
+
+                )
+
+                +
+
+                c2 *
+
+                (
+
+                    b.x -
+
+                    a.x
+
+                )
+
+            )
+
+            /
+
+            denominator;
+
+
+
+
+
+        return new Vector2(
+
+            x,
+
+            y
+
+        );
+
+    }
+    // -------------------------------------------------
+    // Rectangle Detection
+    // -------------------------------------------------
+
+    private detectRectangle(
+
+        points: Vector2[]
+
+    ):
+
+    number {
+
+
+        if (
+
+            points.length < 4
+
+        ) {
+
+            return 0;
+
+        }
+
+
+
+
+
+        if (
+
+            !this.isClosedProfile(
+
+                points
+
+            )
+
+        ) {
+
+            return 0;
+
+        }
+
+
+
+
+
+
+
+        const simplified =
+
+            this.simplify(
+
+                points
+
+            );
+
+
+
+
+
+        if (
+
+            simplified.length !== 5
+
+        ) {
+
+            return 0;
+
+        }
+
+
+
+
+
+
+
+        let rightAngleCount = 0;
+
+
+
+
+
+        for (
+
+            let i = 0;
+
+            i < 4;
+
+            i++
+
+        ) {
+
+
+
+            const a =
+
+                simplified[i];
+
+
+
+            const b =
+
+                simplified[i + 1];
+
+
+
+            const c =
+
+                simplified[
+
+                    (
+
+                        i + 2
+
+                    )
+
+                    %
+
+                    4
+
+                ];
+
+
+
+
+
+
+            const v1 =
+
+                new Vector2(
+
+                    a.x - b.x,
+
+                    a.y - b.y
+
+                );
+
+
+
+            const v2 =
+
+                new Vector2(
+
+                    c.x - b.x,
+
+                    c.y - b.y
+
+                );
+
+
+
+
+
+
+            const dot =
+
+                v1.dot(
+
+                    v2
+
+                );
+
+
+
+
+
+            const len =
+
+                v1.length()
+
+                *
+
+                v2.length();
+
+
+
+
+
+
+            if (
+
+                len === 0
+
+            ) {
+
+                continue;
+
+            }
+
+
+
+
+
+
+
+            const cos =
+
+                dot /
+
+                len;
+
+
+
+
+
+
+
+            if (
+
+                Math.abs(
+
+                    cos
+
+                )
+
+                <
+
+                0.15
+
+            ) {
+
+
+                rightAngleCount++;
+
+
+            }
+
+
+        }
+
+
+
+
+
+
+
+
+        return (
+
+            rightAngleCount /
+
+            4
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // Closed Profile Detection
+    // -------------------------------------------------
+
+    private isClosedProfile(
+
+        points: Vector2[]
+
+    ):
+
+    boolean {
+
+
+
+        if (
+
+            points.length < 3
+
+        ) {
+
+            return false;
+
+        }
+
+
+
+
 
 
 
@@ -704,7 +2029,7 @@ export class SketchRecognizer {
 
             points[
 
-                points.length-1
+                points.length - 1
 
             ];
 
@@ -712,29 +2037,23 @@ export class SketchRecognizer {
 
 
 
-        const dx =
-
-            Math.abs(
-
-                end.x -
-
-                start.x
-
-            );
 
 
+        return (
 
+            start.distanceTo(
 
+                end
 
-        const dy =
+            )
 
-            Math.abs(
+            <
 
-                end.y -
+            this.simplifyTolerance * 2
 
-                start.y
+        );
 
-            );
+    }
 
 
 
@@ -742,21 +2061,83 @@ export class SketchRecognizer {
 
 
 
-        const suggestions:string[]=[];
+
+
+    // -------------------------------------------------
+    // Polygon Area
+    // -------------------------------------------------
+
+    private polygonArea(
+
+        points:Vector2[]
+
+    ):
+
+    number {
+
+
+        let area = 0;
 
 
 
 
 
+        for (
 
-        if(dx > dy*10){
+            let i = 0;
+
+            i < points.length;
+
+            i++
+
+        ) {
 
 
-            suggestions.push(
+            const current =
 
-                "Horizontal Constraint"
+                points[i];
 
-            );
+
+
+            const next =
+
+                points[
+
+                    (
+
+                        i + 1
+
+                    )
+
+                    %
+
+                    points.length
+
+                ];
+
+
+
+
+
+            area +=
+
+                (
+
+                    current.x *
+
+                    next.y
+
+                )
+
+                -
+
+                (
+
+                    next.x *
+
+                    current.y
+
+                );
 
 
         }
@@ -765,23 +2146,14 @@ export class SketchRecognizer {
 
 
 
-        if(dy > dx*10){
 
+        return Math.abs(
 
-            suggestions.push(
+            area /
 
-                "Vertical Constraint"
+            2
 
-            );
-
-
-        }
-
-
-
-
-
-        return suggestions;
+        );
 
 
     }
@@ -795,79 +2167,396 @@ export class SketchRecognizer {
 
 
     // -------------------------------------------------
-    // Geometry Helpers
+    // Profile Validation
     // -------------------------------------------------
 
-
-    private simplify(
+    private validateProfile(
 
         points:Vector2[]
 
-    ):
-
-    Vector2[]{
+    ) {
 
 
 
-        if(points.length < 3)
-
-            return points;
+        return {
 
 
+            closed:
+
+                this.isClosedProfile(
+
+                    points
+
+                ),
 
 
+            area:
 
-        const result:Vector2[]=[
+                this.polygonArea(
 
-            points[0]
+                    points
 
-        ];
-
-
-
+                ),
 
 
-        for(
+            pointCount:
 
-            let i=1;
-
-            i<points.length-1;
-
-            i++
-
-        ){
+                points.length
 
 
-
-            const prev =
-
-                points[i-1];
+        };
 
 
+    }
+    // -------------------------------------------------
+    // Advanced Constraint Suggestion Engine
+    // -------------------------------------------------
 
-            const next =
+    private generateConstraintSuggestions(
 
-                points[i+1];
+        points: Vector2[]
 
-
-
-            const current =
-
-                points[i];
+    ) {
 
 
 
+        const suggestions:string[] = [];
 
 
-            const d =
 
-                this.pointLineDistance(
+        const constraints:string[] = [];
 
-                    current,
 
-                    prev,
 
-                    next
+
+
+
+
+        if (
+
+            points.length < 2
+
+        ) {
+
+
+            return {
+
+                suggestions,
+
+                constraints
+
+            };
+
+
+        }
+
+
+
+
+
+
+
+        const start =
+
+            points[0];
+
+
+
+        const end =
+
+            points[
+
+                points.length - 1
+
+            ];
+
+
+
+
+
+
+
+        const dx =
+
+            end.x -
+
+            start.x;
+
+
+
+        const dy =
+
+            end.y -
+
+            start.y;
+
+
+
+
+
+
+        const length =
+
+            Math.sqrt(
+
+                dx * dx +
+
+                dy * dy
+
+            );
+
+
+
+
+
+
+
+        if (
+
+            length === 0
+
+        ) {
+
+
+            return {
+
+                suggestions,
+
+                constraints
+
+            };
+
+
+        }
+
+
+
+
+
+
+
+
+        // ---------------------------------------------
+        // Horizontal / Vertical
+        // ---------------------------------------------
+
+
+        if (
+
+            Math.abs(
+
+                dy
+
+            )
+
+            <
+
+            this.lineTolerance
+
+        ) {
+
+
+            suggestions.push(
+
+                "Horizontal Alignment"
+
+            );
+
+
+            constraints.push(
+
+                "HORIZONTAL"
+
+            );
+
+        }
+
+
+
+
+
+
+        if (
+
+            Math.abs(
+
+                dx
+
+            )
+
+            <
+
+            this.lineTolerance
+
+        ) {
+
+
+            suggestions.push(
+
+                "Vertical Alignment"
+
+            );
+
+
+            constraints.push(
+
+                "VERTICAL"
+
+            );
+
+        }
+
+
+
+
+
+
+
+
+
+        // ---------------------------------------------
+        // Angle Detection
+        // ---------------------------------------------
+
+
+        const angle =
+
+            Math.atan2(
+
+                dy,
+
+                dx
+
+            )
+
+            *
+
+            180
+
+            /
+
+            Math.PI;
+
+
+
+
+
+
+
+        const commonAngles =
+
+            [
+
+                0,
+
+                30,
+
+                45,
+
+                60,
+
+                90,
+
+                120,
+
+                135,
+
+                150,
+
+                180
+
+            ];
+
+
+
+
+
+
+
+
+        for (
+
+            const target of commonAngles
+
+        ) {
+
+
+            if (
+
+                Math.abs(
+
+                    angle -
+
+                    target
+
+                )
+
+                <
+
+                4
+
+            ) {
+
+
+                suggestions.push(
+
+                    `Angle ${target}°`
+
+                );
+
+
+                constraints.push(
+
+                    "ANGLE"
+
+                );
+
+
+                break;
+
+            }
+
+        }
+
+
+
+
+
+
+
+
+        // ---------------------------------------------
+        // Equal Length Candidate
+        // ---------------------------------------------
+
+
+        if (
+
+            points.length === 3
+
+        ) {
+
+
+
+            const a =
+
+                points[0]
+
+                .distanceTo(
+
+                    points[1]
+
+                );
+
+
+
+            const b =
+
+                points[1]
+
+                .distanceTo(
+
+                    points[2]
 
                 );
 
@@ -875,18 +2564,32 @@ export class SketchRecognizer {
 
 
 
-            if(
 
-                d >
+            if (
 
-                this.simplifyTolerance
+                Math.abs(
 
-            ){
+                    a-b
+
+                )
+
+                <
+
+                this.lineTolerance
+
+            ) {
 
 
-                result.push(
+                suggestions.push(
 
-                    current
+                    "Equal Length"
+
+                );
+
+
+                constraints.push(
+
+                    "EQUAL_LENGTH"
 
                 );
 
@@ -900,21 +2603,19 @@ export class SketchRecognizer {
 
 
 
-        result.push(
-
-            points[
-
-                points.length-1
-
-            ]
-
-        );
 
 
 
 
+        return {
 
-        return result;
+
+            suggestions,
+
+            constraints
+
+
+        };
 
 
     }
@@ -927,36 +2628,255 @@ export class SketchRecognizer {
 
 
 
-    private average(
+    // -------------------------------------------------
+    // Parallel Detection
+    // -------------------------------------------------
 
-        points:Vector2[]
+    private detectParallel(
+
+        lineA:SketchLine,
+
+        lineB:SketchLine
 
     ):
 
-    Vector2{
-
-
-        let x=0;
-
-        let y=0;
+    boolean {
 
 
 
+        const dirA =
 
-
-        for(
-
-            const p of points
-
-        ){
+            lineA.direction();
 
 
 
-            x+=p.x;
+        const dirB =
 
-            y+=p.y;
+            lineB.direction();
 
 
+
+
+
+        const cross =
+
+            Math.abs(
+
+                dirA.x *
+
+                dirB.y
+
+                -
+
+                dirA.y *
+
+                dirB.x
+
+            );
+
+
+
+
+
+
+        return (
+
+            cross <
+
+            0.01
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // Perpendicular Detection
+    // -------------------------------------------------
+
+    private detectPerpendicular(
+
+        lineA:SketchLine,
+
+        lineB:SketchLine
+
+    ):
+
+    boolean {
+
+
+        const dot =
+
+            lineA.direction()
+
+            .dot(
+
+                lineB.direction()
+
+            );
+
+
+
+
+        return (
+
+            Math.abs(
+
+                dot
+
+            )
+
+            <
+
+            0.01
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // Tangent Suggestion
+    // -------------------------------------------------
+
+    private detectTangent(
+
+        circle:SketchCircle,
+
+        line:SketchLine
+
+    ):
+
+    boolean {
+
+
+        const closest =
+
+            this.closestPointOnLine(
+
+                circle.center,
+
+                line
+
+            );
+
+
+
+
+
+        const distance =
+
+            closest.distanceTo(
+
+                circle.center
+
+            );
+
+
+
+
+
+
+
+        return (
+
+            Math.abs(
+
+                distance -
+
+                circle.radius
+
+            )
+
+            <
+
+            this.circleTolerance
+
+        );
+
+
+    }
+    // -------------------------------------------------
+    // Closest Point On Line
+    // -------------------------------------------------
+
+    private closestPointOnLine(
+
+        point:Vector2,
+
+        line:SketchLine
+
+    ):
+
+    Vector2 {
+
+
+
+        const start =
+
+            line.start;
+
+
+
+        const end =
+
+            line.end;
+
+
+
+
+
+        const direction =
+
+            new Vector2(
+
+                end.x-start.x,
+
+                end.y-start.y
+
+            );
+
+
+
+
+
+
+        const lengthSq =
+
+            direction.dot(
+
+                direction
+
+            );
+
+
+
+
+
+        if (
+
+            lengthSq === 0
+
+        ) {
+
+
+            return start.clone();
 
         }
 
@@ -964,11 +2884,264 @@ export class SketchRecognizer {
 
 
 
+
+        const offset =
+
+            new Vector2(
+
+                point.x-start.x,
+
+                point.y-start.y
+
+            );
+
+
+
+
+
+
+
+        let t =
+
+            offset.dot(
+
+                direction
+
+            )
+
+            /
+
+            lengthSq;
+
+
+
+
+
+
+        t = Math.max(
+
+            0,
+
+            Math.min(
+
+                1,
+
+                t
+
+            )
+
+        );
+
+
+
+
+
+
+
         return new Vector2(
 
-            x/points.length,
+            start.x +
 
-            y/points.length
+            direction.x *
+
+            t,
+
+
+
+            start.y +
+
+            direction.y *
+
+            t
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    // -------------------------------------------------
+    // Point Distance To Segment
+    // -------------------------------------------------
+
+    private pointSegmentDistance(
+
+        point:Vector2,
+
+        start:Vector2,
+
+        end:Vector2
+
+    ):
+
+    number {
+
+
+
+        const closest =
+
+            this.closestPointOnSegment(
+
+                point,
+
+                start,
+
+                end
+
+            );
+
+
+
+
+
+        return closest.distanceTo(
+
+            point
+
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+    private closestPointOnSegment(
+
+        point:Vector2,
+
+        start:Vector2,
+
+        end:Vector2
+
+    ):
+
+    Vector2 {
+
+
+
+        const segment =
+
+            new Vector2(
+
+                end.x-start.x,
+
+                end.y-start.y
+
+            );
+
+
+
+
+
+        const lengthSq =
+
+            segment.dot(
+
+                segment
+
+            );
+
+
+
+
+
+        if (
+
+            lengthSq === 0
+
+        ) {
+
+
+            return start.clone();
+
+        }
+
+
+
+
+
+        let t =
+
+            (
+
+                (
+
+                    point.x-start.x
+
+                )
+
+                *
+
+                segment.x
+
+                +
+
+                (
+
+                    point.y-start.y
+
+                )
+
+                *
+
+                segment.y
+
+            )
+
+            /
+
+            lengthSq;
+
+
+
+
+
+
+
+        t = Math.max(
+
+            0,
+
+            Math.min(
+
+                1,
+
+                t
+
+            )
+
+        );
+
+
+
+
+
+
+        return new Vector2(
+
+            start.x +
+
+            segment.x *
+
+            t,
+
+
+            start.y +
+
+            segment.y *
+
+            t
 
         );
 
@@ -983,92 +3156,9 @@ export class SketchRecognizer {
 
 
 
-    private pointLineDistance(
-
-        p:Vector2,
-
-        a:Vector2,
-
-        b:Vector2
-
-    ):
-
-    number{
-
-
-
-        const area =
-
-            Math.abs(
-
-                (
-
-                    b.x-a.x
-
-                )
-
-                *
-
-                (
-
-                    a.y-p.y
-
-                )
-
-                -
-
-                (
-
-                    a.x-p.x
-
-                )
-
-                *
-
-                (
-
-                    b.y-a.y
-
-                )
-
-            );
-
-
-
-
-
-        const length =
-
-            a.distanceTo(
-
-                b
-
-            );
-
-
-
-
-
-        if(length===0)
-
-            return p.distanceTo(a);
-
-
-
-
-
-        return area/length;
-
-
-    }
-
-
-
-
-
-
-
-
+    // -------------------------------------------------
+    // Debug Information
+    // -------------------------------------------------
 
     debugInfo(){
 
@@ -1086,9 +3176,22 @@ export class SketchRecognizer {
                 this.circleTolerance,
 
 
+
+            arcTolerance:
+
+                this.arcTolerance,
+
+
+
             simplifyTolerance:
 
-                this.simplifyTolerance
+                this.simplifyTolerance,
+
+
+
+            rectangleTolerance:
+
+                this.rectangleTolerance
 
 
 
@@ -1096,7 +3199,6 @@ export class SketchRecognizer {
 
 
     }
-
 
 
 }
