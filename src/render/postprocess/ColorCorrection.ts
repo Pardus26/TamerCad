@@ -8,30 +8,21 @@ import { ShaderProgram } from "../shader/ShaderProgram";
 import { RenderContext } from "../RenderContext";
 
 
-
 export interface ColorCorrectionOptions {
-
 
     enabled?: boolean;
 
-
     brightness?: number;
-
 
     contrast?: number;
 
-
     saturation?: number;
-
 
     exposure?: number;
 
-
     temperature?: number;
 
-
 }
-
 
 
 export class ColorCorrection extends PostProcess {
@@ -47,12 +38,10 @@ export class ColorCorrection extends PostProcess {
     public brightness = 0;
 
 
-
     /**
      * Kontrast seviyesi
      */
     public contrast = 1;
-
 
 
     /**
@@ -61,12 +50,10 @@ export class ColorCorrection extends PostProcess {
     public saturation = 1;
 
 
-
     /**
      * Renk exposure
      */
     public exposure = 1;
-
 
 
     /**
@@ -78,22 +65,17 @@ export class ColorCorrection extends PostProcess {
     public temperature = 0;
 
 
-
     constructor(
 
-        options:
-
-            ColorCorrectionOptions = {}
+        options: ColorCorrectionOptions = {}
 
     ) {
-
 
         super({
 
             type:
 
                 PostProcessType.None,
-
 
             enabled:
 
@@ -102,12 +84,7 @@ export class ColorCorrection extends PostProcess {
         });
 
 
-
         if (
-
-            options.brightness !== undefined
-
-               if (
 
             options.brightness !== undefined
 
@@ -174,7 +151,6 @@ export class ColorCorrection extends PostProcess {
     }
 
 
-
     public process(
 
         context: RenderContext
@@ -182,7 +158,6 @@ export class ColorCorrection extends PostProcess {
     ): void {
 
         // Shader uniform güncellemesi
-
         // GPU pipeline entegrasyonu burada yapılacak.
 
     }

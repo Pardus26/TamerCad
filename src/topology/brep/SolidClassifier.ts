@@ -1254,10 +1254,51 @@ export class SolidClassifier {
 
 
 
-    private getBoundingBox(
+       private getBoundingBox(
 
-        solid:Solid
+        solid: Solid
 
-    ):
+    ): BoundingBox | null {
 
-   
+        const vertices =
+
+            solid.getVertices();
+
+
+        if (
+
+            vertices.length === 0
+
+        ) {
+
+            return null;
+
+        }
+
+
+        const box =
+
+            new BoundingBox();
+
+
+        for (
+
+            const vertex of vertices
+
+        ) {
+
+            box.expandByPoint(
+
+                vertex.position
+
+            );
+
+        }
+
+
+        return box;
+
+    }
+
+
+}

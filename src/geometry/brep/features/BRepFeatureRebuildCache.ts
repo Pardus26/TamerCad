@@ -152,28 +152,25 @@ export class BRepFeatureRebuildCache{
 
     }
 
-    statistics():CacheStatistics{
+       statistics(): CacheStatistics {
 
-        const memoryUsage=
-
+        const memoryUsage =
             Array.from(this.entries.values())
-
             .reduce(
-
-                (sum,e)=>sum+e.memorySize,
-
+                (sum, e) => sum + e.memorySize,
                 0
-
             );
 
-        const total=this.hits+this.misses;
+        const total = this.hits + this.misses;
 
-        return{
+        return {
+            entries: this.entries.size,
+            hits: this.hits,
+            misses: this.misses,
+            hitRatio: total === 0 ? 0 : this.hits / total,
+            memoryUsage
+        };
 
-            entries:this.entries.size,
+    }
 
-            hits:this.hits,
-
-            misses:this.misses,
-
-           
+}

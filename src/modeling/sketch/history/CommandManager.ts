@@ -58,15 +58,7 @@ export class CommandManager {
 
 
 
-    private listeners:
-
-    (
-
-        event:CommandEvent
-
-    )=>void
-
-    [] = [];
+  private listeners: Array<(event: CommandEvent) => void> = [];
 
 
 

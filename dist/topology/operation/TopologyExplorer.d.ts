@@ -1,0 +1,30 @@
+import { Solid } from "../core/Solid";
+import { Shell } from "../core/Shell";
+import { Face } from "../core/Face";
+import { Edge } from "../core/Edge";
+import { Vertex } from "../core/Vertex";
+import { Wire } from "../core/Wire";
+export declare class TopologyExplorer {
+    solid: Solid;
+    constructor(solid: Solid);
+    getSolids(): Solid[];
+    getShells(): Shell[];
+    getFaces(): Face[];
+    getEdges(): Edge[];
+    getVertices(): Vertex[];
+    getWires(): Wire[];
+    getEdgesOfFace(face: Face): Edge[];
+    getVerticesOfFace(face: Face): Vertex[];
+    getFacesOfEdge(edge: Edge): Face[];
+    getEdgesOfVertex(vertex: Vertex): Edge[];
+    getFacesOfVertex(vertex: Vertex): Face[];
+    getConnectedFaces(face: Face): Face[];
+    getAdjacentEdges(edge: Edge): Edge[];
+    findFaceByEdge(edge: Edge): Face | null;
+    findFacesByEdge(edge: Edge): Face[];
+    findVertexByPosition(vertex: Vertex, tolerance?: number): Vertex | null;
+    countFaces(): number;
+    countEdges(): number;
+    countVertices(): number;
+    isManifold(): boolean;
+}

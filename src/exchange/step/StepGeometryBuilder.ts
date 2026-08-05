@@ -305,7 +305,6 @@ export class StepGeometryBuilder {
     }
 
 
-
     private buildPlane(
 
         entity:
@@ -317,3 +316,5 @@ export class StepGeometryBuilder {
         // TODO
 
     }
+
+}

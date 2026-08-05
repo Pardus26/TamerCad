@@ -379,9 +379,8 @@ export class SurfaceIntersection {
 
 
 
-        return tangent.normalize();
+               return tangent.normalize();
 
     }
 
-
-
+}

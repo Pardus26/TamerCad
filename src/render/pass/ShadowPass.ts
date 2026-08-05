@@ -11,7 +11,7 @@ import { DirectionalLight } from "../light/DirectionalLight";
 import { PointLight } from "../light/PointLight";
 import { SpotLight } from "../light/SpotLight";
 
-import { DirectionalShadow } from";
+import { DirectionalShadow } from "../shadow/DirectionalShadow";
 import { PointShadow } from "../shadow/PointShadow";
 import { SpotShadow } from "../shadow/SpotShadow";
 

@@ -1,0 +1,40 @@
+import { Vector3 } from "../vector/Vector3";
+export declare class Matrix4 {
+    readonly elements: Float64Array;
+    constructor(elements?: ArrayLike<number>);
+    static identity(): Matrix4;
+    clone(): Matrix4;
+    copy(matrix: Matrix4): Matrix4;
+    equals(matrix: Matrix4, epsilon?: number): boolean;
+    setIdentity(): Matrix4;
+    transpose(): Matrix4;
+    determinant(): number;
+    multiply(matrix: Matrix4): Matrix4;
+    transformPoint(point: Vector3): Vector3;
+    transformVector(vector: Vector3): Vector3;
+    transformDirection(direction: Vector3): Vector3;
+    static translation(x: number, y: number, z: number): Matrix4;
+    static scale(x: number, y: number, z: number): Matrix4;
+    static rotationX(angle: number): Matrix4;
+    static rotationY(angle: number): Matrix4;
+    static rotationZ(angle: number): Matrix4;
+    static rotationAxis(axis: Vector3, angle: number): Matrix4;
+    static compose(translation: Vector3, rotation: Matrix4, scale: Vector3): Matrix4;
+    decompose(): {
+        translation: Vector3;
+        scale: Vector3;
+    };
+    static lookAt(eye: Vector3, target: Vector3, up: Vector3): Matrix4;
+    static perspective(fov: number, aspect: number, near: number, far: number): Matrix4;
+    static orthographic(left: number, right: number, bottom: number, top: number, near: number, far: number): Matrix4;
+    static frustum(left: number, right: number, bottom: number, top: number, near: number, far: number): Matrix4;
+    transformNormal(normal: Vector3): Vector3;
+    toFloat32Array(): Float32Array;
+    inverse(): Matrix4;
+    invertRigidBody(): Matrix4;
+    transformPoints(points: Vector3[]): Vector3[];
+    transformVectors(vectors: Vector3[]): Vector3[];
+    isIdentity(epsilon?: number): boolean;
+    toArray(): number[];
+    static fromArray(array: number[]): Matrix4;
+}
