@@ -1,427 +1,195 @@
-// src/cad/sketch/SketchToolController.ts
+import { Sketch } from "./Sketch";
 
+import { SketchSolverManager } from "./SketchSolverManager";
 
-import {
-    Sketch
-}
-from "./Sketch";
-
+import { ConstraintSystem } from "./ConstraintSystem";
 
 import {
-    SketchSolverManager
-}
-from "./SketchSolverManager";
 
+    SketchEntity,
 
-import {
     SketchPoint,
-    SketchLine,
-    SketchEntity
-}
-from "./SketchEntity";
 
+    SketchLine,
+
+    SketchCircle
+
+} from "./SketchEntity";
 
 import {
-    Vector2
-}
-from "../../math/Vector2";
 
+    SnapEngine,
 
+    SnapResult,
 
+    SnapType
 
+} from "./SnapEngine";
 
+import { Vector2 } from "../../math/Vector2";
 
-
-
-
-// =====================================================
-// Tool Types
-// =====================================================
-
+/* ======================================================
+ * Tool Types
+ * ====================================================== */
 
 export enum SketchToolType {
 
-
     Select,
-
 
     Point,
 
-
     Line,
-
 
     Rectangle,
 
-
     Circle,
-
 
     Arc,
 
-
     Trim,
-
 
     Extend,
 
-
     Pan
-
-
 
 }
 
-
-
-
-
-
-
-
-
-// =====================================================
-// Stylus Event
-// =====================================================
-
+/* ======================================================
+ * Stylus Event
+ * ====================================================== */
 
 export interface StylusEvent {
 
-
     x:number;
-
 
     y:number;
 
-
     pressure?:number;
-
 
     timestamp:number;
 
-
 }
 
-
-
-
-
-
-
-
-
-// =====================================================
-// Snap Result
-// =====================================================
-
-
-export interface SnapResult {
-
-
-    snapped:boolean;
-
-
-    position:Vector2;
-
-
-    type:string;
-
-
-    entity?:SketchEntity;
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Controller Options
-// =====================================================
-
+/* ======================================================
+ * Controller Options
+ * ====================================================== */
 
 export interface SketchToolControllerOptions {
 
-
     sketch:Sketch;
 
+    solver:SketchSolverManager;
 
-    solver:
+    constraints:ConstraintSystem;
 
-        SketchSolverManager;
-
+    snap?:SnapEngine;
 
 }
 
-
-
-
-
-
-
-
-
-// =====================================================
-// Sketch Tool Controller
-// =====================================================
-
+/* ======================================================
+ * Tool Controller
+ * ====================================================== */
 
 export class SketchToolController {
 
+    private readonly sketch:Sketch;
 
+    private readonly solver:SketchSolverManager;
 
-    private readonly sketch:
+    private readonly constraints:ConstraintSystem;
 
-        Sketch;
+    private readonly snapEngine:SnapEngine;
 
+    private activeTool =
 
-
-    private readonly solver:
-
-        SketchSolverManager;
-
-
-
-
-
-    private activeTool:
-
-        SketchToolType =
-
-            SketchToolType.Select;
-
-
-
-
+        SketchToolType.Select;
 
     private pointerDown = false;
 
-
-
-
+    private dragStarted = false;
 
     private startPoint:
 
         Vector2 | null = null;
 
-
-
-
-
     private currentPoint:
 
         Vector2 | null = null;
-
-
-
-
 
     private selectedEntity:
 
         SketchEntity | null = null;
 
+    private previewEntity:
 
-
-
-
-
-
-
+        SketchEntity | null = null;
 
     constructor(
 
-        options:
-
-        SketchToolControllerOptions
+        options:SketchToolControllerOptions
 
     ){
-
 
         this.sketch =
 
             options.sketch;
 
-
-
         this.solver =
 
             options.solver;
 
+        this.constraints =
+
+            options.constraints;
+
+        this.snapEngine =
+
+            options.snap ??
+
+            new SnapEngine();
 
     }
-
-
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Tool Selection
-    // -------------------------------------------------
-
+    /* ======================================================
+     * Tool Selection
+     * ====================================================== */
 
     setTool(
 
-        tool:SketchToolType
+        tool: SketchToolType
 
-    ):void{
-
+    ): void {
 
         this.cancel();
 
-
-        this.activeTool =
-
-            tool;
-
+        this.activeTool = tool;
 
     }
-
-
-
-
-
-
 
     getTool():
 
-        SketchToolType{
-
+        SketchToolType {
 
         return this.activeTool;
 
-
     }
 
-
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Stylus Down
-    // -------------------------------------------------
-
+    /* ======================================================
+     * Pointer Down
+     * ====================================================== */
 
     pointerDownEvent(
 
-        event:StylusEvent
+        event: StylusEvent
 
-    ):void{
+    ): void {
 
+        this.pointerDown = true;
 
-        this.pointerDown=true;
-
-
-
-        const point =
-
-            this.snap(
-
-                new Vector2(
-
-                    event.x,
-
-                    event.y
-
-                )
-
-            );
-
-
-
-        this.startPoint =
-
-            point.position;
-
-
-
-        this.currentPoint =
-
-            point.position;
-
-
-
-
-        switch(this.activeTool){
-
-
-
-            case SketchToolType.Point:
-
-
-                this.createPoint(
-
-                    point.position
-
-                );
-
-                break;
-
-
-
-
-
-            case SketchToolType.Select:
-
-
-                this.selectAt(
-
-                    point.position
-
-                );
-
-                break;
-
-
-
-        }
-
-
-    }
-
-
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Stylus Move
-    // -------------------------------------------------
-
-
-    pointerMoveEvent(
-
-        event:StylusEvent
-
-    ):void{
-
-
-        if(!this.pointerDown)
-
-            return;
-
-
-
-
+        this.dragStarted = false;
 
         const snap =
 
-            this.snap(
+            this.snapEngine.snap(
 
                 new Vector2(
 
@@ -429,75 +197,120 @@ export class SketchToolController {
 
                     event.y
 
-                )
+                ),
+
+                this.sketch.entities
 
             );
 
+        this.startPoint =
 
-
-
+            snap.position.clone();
 
         this.currentPoint =
 
-            snap.position;
+            snap.position.clone();
 
+        switch (
 
+            this.activeTool
 
+        ) {
 
+            case SketchToolType.Select:
 
+                this.selectAt(
 
+                    snap.position
 
-        if(
+                );
 
-            this.activeTool ===
+                if (
 
-            SketchToolType.Select
+                    this.selectedEntity
 
-        ){
+                ) {
 
+                    this.solver.beginDrag();
 
-            this.dragSelected(
+                }
 
-                snap.position
+                break;
 
-            );
+            case SketchToolType.Point:
 
+                this.createPoint(
+
+                    snap.position
+
+                );
+
+                this.pointerDown = false;
+
+                break;
+
+            case SketchToolType.Line:
+
+                this.previewEntity =
+
+                    new SketchLine(
+
+                        "__preview__",
+
+                        snap.position,
+
+                        snap.position
+
+                    );
+
+                break;
+
+            case SketchToolType.Circle:
+
+                this.previewEntity =
+
+                    new SketchCircle(
+
+                        "__preview__",
+
+                        snap.position,
+
+                        0
+
+                    );
+
+                break;
+
+            default:
+
+                break;
 
         }
 
-
     }
+    /* ======================================================
+     * Pointer Move
+     * ====================================================== */
 
+    pointerMoveEvent(
 
+        event: StylusEvent
 
+    ): void {
 
+        if (
 
+            !this.pointerDown
 
-
-
-
-    // -------------------------------------------------
-    // Stylus Up
-    // -------------------------------------------------
-
-
-    pointerUpEvent(
-
-        event:StylusEvent
-
-    ):void{
-
-
-        if(!this.pointerDown)
+        ) {
 
             return;
 
+        }
 
+        const snap =
 
-
-        const point =
-
-            this.snap(
+            this.snapEngine.snap(
 
                 new Vector2(
 
@@ -505,87 +318,269 @@ export class SketchToolController {
 
                     event.y
 
-                )
+                ),
+
+                this.sketch.entities
 
             );
 
+        this.currentPoint =
 
+            snap.position.clone();
 
+        if (
 
+            this.startPoint &&
 
-        switch(this.activeTool){
+            this.currentPoint.distanceTo(
 
+                this.startPoint
 
+            ) > 1
 
-            case SketchToolType.Line:
+        ) {
 
-
-                this.createLine(
-
-                    this.startPoint!,
-
-                    point.position
-
-                );
-
-                break;
-
-
-
-
-            case SketchToolType.Circle:
-
-
-                this.createCircle(
-
-                    this.startPoint!,
-
-                    point.position
-
-                );
-
-                break;
-
-
+            this.dragStarted = true;
 
         }
 
+        switch (
 
+            this.activeTool
 
+        ) {
 
-        this.pointerDown=false;
+            /* ----------------------------------------------
+             * Selection Drag
+             * ---------------------------------------------- */
 
+            case SketchToolType.Select:
 
+                if (
 
-        this.startPoint=null;
+                    this.selectedEntity &&
 
+                    this.dragStarted
 
+                ) {
 
-        this.currentPoint=null;
+                    this.dragSelected(
 
+                        snap.position
 
+                    );
+
+                }
+
+                break;
+
+            /* ----------------------------------------------
+             * Line Preview
+             * ---------------------------------------------- */
+
+            case SketchToolType.Line:
+
+                if (
+
+                    this.previewEntity instanceof SketchLine
+
+                ) {
+
+                    let end =
+
+                        snap.position.clone();
+
+                    end =
+
+                        this.snapEngine.snapAngle(
+
+                            this.startPoint!,
+
+                            end
+
+                        );
+
+                    this.previewEntity.end = end;
+
+                }
+
+                break;
+
+            /* ----------------------------------------------
+             * Circle Preview
+             * ---------------------------------------------- */
+
+            case SketchToolType.Circle:
+
+                if (
+
+                    this.previewEntity instanceof SketchCircle
+
+                ) {
+
+                    this.previewEntity.radius =
+
+                        this.startPoint!.distanceTo(
+
+                            snap.position
+
+                        );
+
+                }
+
+                break;
+
+            default:
+
+                break;
+
+        }
 
     }
+    /* ======================================================
+     * Pointer Up
+     * ====================================================== */
 
+    pointerUpEvent(
 
+        event: StylusEvent
 
+    ): void {
 
+        if (
 
+            !this.pointerDown
 
+        ) {
 
+            return;
 
+        }
 
-    // -------------------------------------------------
-    // Geometry Creation
-    // -------------------------------------------------
+        const snap =
 
+            this.snapEngine.snap(
+
+                new Vector2(
+
+                    event.x,
+
+                    event.y
+
+                ),
+
+                this.sketch.entities
+
+            );
+
+        switch (
+
+            this.activeTool
+
+        ) {
+
+            /* ----------------------------------------------
+             * Finish Line
+             * ---------------------------------------------- */
+
+            case SketchToolType.Line:
+
+                if (
+
+                    this.startPoint
+
+                ) {
+
+                    let end =
+
+                        this.snapEngine.snapAngle(
+
+                            this.startPoint,
+
+                            snap.position
+
+                        );
+
+                    this.createLine(
+
+                        this.startPoint,
+
+                        end
+
+                    );
+
+                }
+
+                break;
+
+            /* ----------------------------------------------
+             * Finish Circle
+             * ---------------------------------------------- */
+
+            case SketchToolType.Circle:
+
+                if (
+
+                    this.startPoint
+
+                ) {
+
+                    this.createCircle(
+
+                        this.startPoint,
+
+                        snap.position
+
+                    );
+
+                }
+
+                break;
+
+            /* ----------------------------------------------
+             * Finish Drag
+             * ---------------------------------------------- */
+
+            case SketchToolType.Select:
+
+                if (
+
+                    this.selectedEntity
+
+                ) {
+
+                    this.solver.endDrag();
+
+                }
+
+                break;
+
+            default:
+
+                break;
+
+        }
+
+        this.previewEntity = null;
+
+        this.pointerDown = false;
+
+        this.dragStarted = false;
+
+        this.startPoint = null;
+
+        this.currentPoint = null;
+
+    }
+    /* ======================================================
+     * Geometry Creation
+     * ====================================================== */
 
     private createPoint(
 
-        position:Vector2
+        position: Vector2
 
-    ):void{
-
+    ): void {
 
         const point =
 
@@ -593,11 +588,9 @@ export class SketchToolController {
 
                 crypto.randomUUID(),
 
-                position
+                position.clone()
 
             );
-
-
 
         this.solver.addEntity(
 
@@ -605,25 +598,25 @@ export class SketchToolController {
 
         );
 
-
     }
-
-
-
-
-
-
-
-
 
     private createLine(
 
-        start:Vector2,
+        start: Vector2,
 
-        end:Vector2
+        end: Vector2
 
-    ):void{
+    ): void {
 
+        if (
+
+            start.distanceTo(end) < 0.001
+
+        ) {
+
+            return;
+
+        }
 
         const line =
 
@@ -631,13 +624,11 @@ export class SketchToolController {
 
                 crypto.randomUUID(),
 
-                start,
+                start.clone(),
 
-                end
+                end.clone()
 
             );
-
-
 
         this.solver.addEntity(
 
@@ -645,88 +636,110 @@ export class SketchToolController {
 
         );
 
-
     }
-
-
-
-
-
-
-
-
 
     private createCircle(
 
-        center:Vector2,
+        center: Vector2,
 
-        edge:Vector2
+        edge: Vector2
 
-    ):void{
-
+    ): void {
 
         const radius =
 
-            center.distanceTo(
+            center.distanceTo(edge);
 
-                edge
+        if (
+
+            radius < 0.001
+
+        ) {
+
+            return;
+
+        }
+
+        const circle =
+
+            new SketchCircle(
+
+                crypto.randomUUID(),
+
+                center.clone(),
+
+                radius
 
             );
 
+        this.solver.addEntity(
 
+            circle
 
-        // Circle entity sonraki aşamada eklenecek
-
-
-        void radius;
-
+        );
 
     }
 
+    /* ======================================================
+     * Preview
+     * ====================================================== */
 
+    getPreviewEntity():
 
+        SketchEntity | null {
 
+        return this.previewEntity;
 
-
-
-
-
-    // -------------------------------------------------
-    // Selection
-    // -------------------------------------------------
-
+    }
+    /* ======================================================
+     * Selection
+     * ====================================================== */
 
     private selectAt(
 
-        position:Vector2
+        position: Vector2
 
-    ):void{
+    ): void {
 
+        // Önce eski seçimi temizle
 
+        if (
+
+            this.selectedEntity
+
+        ) {
+
+            this.selectedEntity.deselect();
+
+            this.selectedEntity = null;
+
+        }
 
         let closest:
 
             SketchEntity | null = null;
 
-
-
-        let distance =
+        let bestDistance =
 
             Number.MAX_VALUE;
 
-
-
-
-
-        for(
+        for (
 
             const entity of this.sketch.entities
 
-        ){
+        ) {
 
+            if (
 
+                !entity.visible
 
-            const d =
+            ) {
+
+                continue;
+
+            }
+
+            const distance =
 
                 entity.distanceTo(
 
@@ -734,301 +747,274 @@ export class SketchToolController {
 
                 );
 
+            if (
 
+                distance < bestDistance
 
-            if(d < distance){
+            ) {
 
+                bestDistance = distance;
 
-
-                distance=d;
-
-
-
-                closest=entity;
-
-
+                closest = entity;
 
             }
 
+        }
+
+        if (
+
+            closest &&
+
+            bestDistance <= 12
+
+        ) {
+
+            closest.select();
+
+            this.selectedEntity = closest;
+
+            this.solver.beginDrag();
 
         }
 
+    }
 
+    /* ======================================================
+     * Selection API
+     * ====================================================== */
 
+    clearSelection(): void {
 
+        if (
 
-        this.selectedEntity =
+            this.selectedEntity
 
-            closest;
+        ) {
 
+            this.selectedEntity.deselect();
 
+            this.selectedEntity = null;
 
-
-        closest?.select();
-
-
+        }
 
     }
 
+    getSelectedEntity():
 
+        SketchEntity | null {
 
+        return this.selectedEntity;
 
-
-
-
-
-
-    // -------------------------------------------------
-    // Drag
-    // -------------------------------------------------
-
+    }
+    /* ======================================================
+     * Drag Selected Entity
+     * ====================================================== */
 
     private dragSelected(
 
-        position:Vector2
+        position: Vector2
 
-    ):void{
+    ): void {
 
-
-
-        if(
+        if (
 
             !this.selectedEntity ||
 
             !this.startPoint
 
-        )
+        ) {
 
             return;
 
+        }
 
-
-
+        // Hareket miktarı
 
         const delta =
 
-            new Vector2(
+            position.subtract(
 
-                position.x -
-
-                this.startPoint.x,
-
-
-
-                position.y -
-
-                this.startPoint.y
+                this.startPoint
 
             );
 
+        // Entity kilitliyse hareket etmez
 
+        if (
 
+            this.selectedEntity.canModify()
 
+        ) {
 
-        this.selectedEntity.move(
+            this.selectedEntity.move(
 
-            delta
+                delta
 
-        );
+            );
 
+            // Yeni referans noktası
 
+            this.startPoint =
 
+                position.clone();
 
+            // Constraint solver canlı çalışır
 
-        this.startPoint =
-
-            position;
-
-
-
-        this.solver.solve();
-
-
-
-    }
-
-
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Snap Engine
-    // -------------------------------------------------
-
-
-    private snap(
-
-        position:Vector2
-
-    ):
-
-    SnapResult{
-
-
-
-        const threshold =
-
-            10;
-
-
-
-
-
-        for(
-
-            const entity of this.sketch.entities
-
-        ){
-
-
-
-            for(
-
-                const point of entity.getPoints()
-
-            ){
-
-
-
-                if(
-
-                    point.distanceTo(
-
-                        position
-
-                    )
-
-                    < threshold
-
-                ){
-
-
-
-                    return {
-
-
-                        snapped:true,
-
-
-                        position:
-
-                            point.clone(),
-
-
-                        type:"Point",
-
-
-                        entity
-
-
-                    };
-
-
-                }
-
-
-            }
-
+            this.solver.solve();
 
         }
 
+    }
 
+    /* ======================================================
+     * Current Pointer Position
+     * ====================================================== */
 
+    getCurrentPoint():
 
+        Vector2 | null {
 
-        return {
+        return this.currentPoint
 
+            ? this.currentPoint.clone()
 
-            snapped:false,
-
-
-            position,
-
-
-            type:"None"
-
-
-
-        };
-
+            : null;
 
     }
 
+    /* ======================================================
+     * Current Drag State
+     * ====================================================== */
 
+    isDragging():
 
+        boolean {
 
+        return (
 
+            this.pointerDown &&
 
+            this.selectedEntity !== null
 
-
-
-    // -------------------------------------------------
-    // Cancel
-    // -------------------------------------------------
-
-
-    cancel():
-
-        void{
-
-
-        this.pointerDown=false;
-
-
-        this.startPoint=null;
-
-
-        this.currentPoint=null;
-
+        );
 
     }
 
+    /* ======================================================
+     * Hover Preview
+     * ====================================================== */
 
+    getHoverPoint():
 
+        Vector2 | null {
 
+        if (
 
+            this.currentPoint
 
+        ) {
 
+            return this.currentPoint.clone();
 
+        }
 
-    // -------------------------------------------------
-    // Debug
-    // -------------------------------------------------
+        return null;
 
+    }
+    /* ======================================================
+     * Cancel Current Tool Operation
+     * ====================================================== */
 
-    debugInfo(){
+    cancel(): void {
 
+        this.pointerDown = false;
+
+        this.dragStarted = false;
+
+        this.startPoint = null;
+
+        this.currentPoint = null;
+
+        this.previewEntity = null;
+
+        if (
+
+            this.selectedEntity
+
+        ) {
+
+            this.solver.endDrag();
+
+        }
+
+    }
+
+    /* ======================================================
+     * Reset Controller
+     * ====================================================== */
+
+    reset(): void {
+
+        this.cancel();
+
+        this.clearSelection();
+
+        this.activeTool =
+
+            SketchToolType.Select;
+
+    }
+
+    /* ======================================================
+     * Debug
+     * ====================================================== */
+
+    debugInfo() {
 
         return {
-
 
             tool:
 
-                SketchToolType[this.activeTool],
+                SketchToolType[
 
+                    this.activeTool
 
+                ],
 
             pointerDown:
 
                 this.pointerDown,
 
+            dragStarted:
 
+                this.dragStarted,
 
             selected:
 
-                this.selectedEntity?.id ?? null
+                this.selectedEntity?.id ??
 
+                null,
 
+            preview:
+
+                this.previewEntity?.id ??
+
+                null,
+
+            currentPoint:
+
+                this.currentPoint,
+
+            startPoint:
+
+                this.startPoint
 
         };
 
-
     }
 
-
-
 }
+
+/* ======================================================
+ * End Of File
+ * ====================================================== */
