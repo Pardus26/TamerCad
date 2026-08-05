@@ -21,11 +21,6 @@ export class TopologyOptimizer extends Optimizer {
         return;
         this.computeCompliance();
     }
-    abstract;
-    abstract;
-    abstract;
-    abstract;
-    abstract;
     getDensity() {
         return [
             ...this.densities

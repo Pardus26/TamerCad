@@ -170,25 +170,19 @@ export abstract class FEMOptimizationManager {
 
 
 
-    protected abstract
-
-    prepareProblem():
+    protected abstract prepareProblem():
 
     void;
 
 
 
-    protected abstract
-
-    createOptimizer():
+    protected abstract createOptimizer():
 
     any;
 
 
 
-    protected abstract
-
-    applyResult(
+    protected abstract applyResult(
 
         result:any
 

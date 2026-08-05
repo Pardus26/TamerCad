@@ -10,12 +10,9 @@ export declare abstract class GeometryOptimizer {
     protected parameters: number[];
     setOptimizer(optimizer: Optimizer): void;
     optimize(): GeometryOptimizationResult;
-    protected abstract: any;
-    evaluateGeometry(): void;
-    protected abstract: any;
-    objectiveFunction(): number;
-    protected abstract: any;
-    constraints(): boolean;
+    protected abstract evaluateGeometry(): void;
+    protected abstract objectiveFunction(): number;
+    protected abstract constraints(): boolean;
     setParameters(parameters: number[]): void;
     getParameters(): number[];
     info(): {

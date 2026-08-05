@@ -24,7 +24,6 @@ export class FEMConstraintEvaluator {
             ...this.constraints
         ];
     }
-    abstract;
     info() {
         return {
             engine: "FEMConstraintEvaluator",

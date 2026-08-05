@@ -61,29 +61,17 @@ extends Optimizer {
 
     }
 
-    protected abstract
+    protected abstract initialParameters():number[];
 
-    initialParameters():number[];
+    protected abstract initializeApproximation():void;
 
-    protected abstract
+    protected abstract updateApproximation():void;
 
-    initializeApproximation():void;
+    protected abstract computeStep():number[];
 
-    protected abstract
+    protected abstract evaluateObjective():number;
 
-    updateApproximation():void;
-
-    protected abstract
-
-    computeStep():number[];
-
-    protected abstract
-
-    evaluateObjective():number;
-
-    protected abstract
-
-    gradientNorm():number;
+    protected abstract gradientNorm():number;
 
     getParameters(){
 

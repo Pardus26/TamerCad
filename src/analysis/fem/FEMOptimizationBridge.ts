@@ -106,25 +106,19 @@ export abstract class FEMOptimizationBridge {
 
 
 
-    protected abstract
-
-    updateGeometry():
+    protected abstract updateGeometry():
 
     void;
 
 
 
-    protected abstract
-
-    rebuildMesh():
+    protected abstract rebuildMesh():
 
     void;
 
 
 
-    protected abstract
-
-    solveFEM():
+    protected abstract solveFEM():
 
     {
 
@@ -136,9 +130,7 @@ export abstract class FEMOptimizationBridge {
 
 
 
-    protected abstract
-
-    evaluateObjective(
+    protected abstract evaluateObjective(
 
         result:any
 
@@ -148,9 +140,7 @@ export abstract class FEMOptimizationBridge {
 
 
 
-    protected abstract
-
-    evaluateConstraints(
+    protected abstract evaluateConstraints(
 
         result:any
 
@@ -160,9 +150,7 @@ export abstract class FEMOptimizationBridge {
 
 
 
-    protected abstract
-
-    createOptimizer():
+    protected abstract createOptimizer():
 
     any;
 

@@ -27,9 +27,6 @@ export class FEMOptimizationManager {
             parameters: result.parameters
         };
     }
-    abstract;
-    abstract;
-    abstract;
     info() {
         return {
             engine: "FEMOptimizationManager",

@@ -79,9 +79,7 @@ export abstract class FEMObjectiveFunction {
 
 
 
-    protected abstract
-
-    compute(
+    protected abstract compute(
 
         context:FEMObjectiveContext
 
@@ -89,9 +87,7 @@ export abstract class FEMObjectiveFunction {
 
 
 
-    protected abstract
-
-    computeGradient(
+    protected abstract computeGradient(
 
         context:FEMObjectiveContext
 

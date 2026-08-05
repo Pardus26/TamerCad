@@ -21,12 +21,6 @@ export class FEMOptimizationBridge {
         return;
         OptimizationSolver.solve(this.problem, this.createOptimizer());
     }
-    abstract;
-    abstract;
-    abstract;
-    abstract;
-    abstract;
-    abstract;
     info() {
         return {
             engine: "FEMOptimizationBridge"

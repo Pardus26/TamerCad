@@ -20,12 +20,9 @@ export declare abstract class FEMOptimizationManager {
     protected objectiveFunction: FEMObjectiveFunction;
     constructor(config: FEMOptimizationConfig, problem: OptimizationProblem, responseEvaluator: FEMResponseEvaluator, constraintEvaluator: FEMConstraintEvaluator, objectiveFunction: FEMObjectiveFunction);
     optimize(): FEMOptimizationResult;
-    protected abstract: any;
-    prepareProblem(): void;
-    protected abstract: any;
-    createOptimizer(): any;
-    protected abstract: any;
-    applyResult(result: any): void;
+    protected abstract prepareProblem(): void;
+    protected abstract createOptimizer(): any;
+    protected abstract applyResult(result: any): void;
     info(): {
         engine: string;
         maxIterations: number;

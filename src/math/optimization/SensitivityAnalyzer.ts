@@ -52,25 +52,19 @@ export abstract class SensitivityAnalyzer {
 
 
 
-    protected abstract
-
-    computeObjectiveGradient():
+    protected abstract computeObjectiveGradient():
 
     number[];
 
 
 
-    protected abstract
-
-    computeConstraintGradients():
+    protected abstract computeConstraintGradients():
 
     number[][];
 
 
 
-    protected abstract
-
-    evaluateResponse():
+    protected abstract evaluateResponse():
 
     number;
 

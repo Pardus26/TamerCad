@@ -103,25 +103,19 @@ export abstract class ConstraintOptimizer {
 
 
 
-    protected abstract
-
-    evaluateResiduals():
+    protected abstract evaluateResiduals():
 
     number[];
 
 
 
-    protected abstract
-
-    computeJacobian():
+    protected abstract computeJacobian():
 
     number[][];
 
 
 
-    protected abstract
-
-    residualNorm():
+    protected abstract residualNorm():
 
     number;
 

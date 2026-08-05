@@ -10,9 +10,6 @@ export class SensitivityAnalyzer {
             constraintGradients: this.computeConstraintGradients()
         };
     }
-    abstract;
-    abstract;
-    abstract;
     getVariables() {
         return [
             ...this.variables

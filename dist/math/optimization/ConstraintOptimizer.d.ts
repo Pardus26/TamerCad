@@ -11,12 +11,9 @@ export declare abstract class ConstraintOptimizer {
     solve(): ConstraintResult;
     setParameters(parameters: number[]): void;
     getParameters(): number[];
-    protected abstract: any;
-    evaluateResiduals(): number[];
-    protected abstract: any;
-    computeJacobian(): number[][];
-    protected abstract: any;
-    residualNorm(): number;
+    protected abstract evaluateResiduals(): number[];
+    protected abstract computeJacobian(): number[][];
+    protected abstract residualNorm(): number;
     info(): {
         engine: string;
     };

@@ -119,9 +119,7 @@ export abstract class FEMConstraintEvaluator {
 
 
 
-    protected abstract
-
-    normalize(
+    protected abstract normalize(
 
         value:number
 

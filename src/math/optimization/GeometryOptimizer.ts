@@ -74,25 +74,19 @@ export abstract class GeometryOptimizer {
 
 
 
-    protected abstract
-
-    evaluateGeometry():
+    protected abstract evaluateGeometry():
 
     void;
 
 
 
-    protected abstract
-
-    objectiveFunction():
+    protected abstract objectiveFunction():
 
     number;
 
 
 
-    protected abstract
-
-    constraints():
+    protected abstract constraints():
 
     boolean;
 

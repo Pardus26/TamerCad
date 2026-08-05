@@ -85,25 +85,19 @@ extends Optimizer {
 
 
 
-    protected abstract
-
-    initialDensity():
+    protected abstract initialDensity():
 
     number[];
 
 
 
-    protected abstract
-
-    computeSensitivity():
+    protected abstract computeSensitivity():
 
     number[];
 
 
 
-    protected abstract
-
-    updateDensity(
+    protected abstract updateDensity(
 
         sensitivity:number[]
 
@@ -111,17 +105,13 @@ extends Optimizer {
 
 
 
-    protected abstract
-
-    computeCompliance():
+    protected abstract computeCompliance():
 
     number;
 
 
 
-    protected abstract
-
-    changeNorm():
+    protected abstract changeNorm():
 
     number;
 

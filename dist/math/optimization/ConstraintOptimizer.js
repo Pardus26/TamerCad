@@ -23,9 +23,6 @@ export class ConstraintOptimizer {
             ...this.parameters
         ];
     }
-    abstract;
-    abstract;
-    abstract;
     info() {
         return {
             engine: "ConstraintOptimizer"

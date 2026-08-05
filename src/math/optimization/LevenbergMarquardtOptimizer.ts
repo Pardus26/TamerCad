@@ -83,27 +83,19 @@ extends Optimizer {
 
 
 
-    protected abstract
-
-    initialParameters():number[];
+    protected abstract initialParameters():number[];
 
 
 
-    protected abstract
-
-    computeLMUpdate():number[];
+    protected abstract computeLMUpdate():number[];
 
 
 
-    protected abstract
-
-    updateDamping():void;
+    protected abstract updateDamping():void;
 
 
 
-    protected abstract
-
-    residualNorm():number;
+    protected abstract residualNorm():number;
 
 
 

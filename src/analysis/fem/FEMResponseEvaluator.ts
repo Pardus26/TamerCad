@@ -103,9 +103,7 @@ export abstract class FEMResponseEvaluator {
 
 
 
-    protected abstract
-
-    computeCompliance(
+    protected abstract computeCompliance(
 
         result:FEMResult
 
@@ -113,9 +111,7 @@ export abstract class FEMResponseEvaluator {
 
 
 
-    protected abstract
-
-    computeMaxStress(
+    protected abstract computeMaxStress(
 
         result:FEMResult
 
@@ -123,9 +119,7 @@ export abstract class FEMResponseEvaluator {
 
 
 
-    protected abstract
-
-    computeMaxDisplacement(
+    protected abstract computeMaxDisplacement(
 
         result:FEMResult
 
@@ -133,9 +127,7 @@ export abstract class FEMResponseEvaluator {
 
 
 
-    protected abstract
-
-    computeStrainEnergy(
+    protected abstract computeStrainEnergy(
 
         result:FEMResult
 

@@ -49,25 +49,19 @@ extends SensitivityAnalyzer {
 
 
 
-    protected abstract
-
-    solveAdjoint():
+    protected abstract solveAdjoint():
 
     void;
 
 
 
-    protected abstract
-
-    computeAdjointGradient():
+    protected abstract computeAdjointGradient():
 
     number[];
 
 
 
-    protected abstract
-
-    assembleAdjointSystem():
+    protected abstract assembleAdjointSystem():
 
     unknown;
 

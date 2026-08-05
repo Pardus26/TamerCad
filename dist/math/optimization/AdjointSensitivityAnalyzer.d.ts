@@ -6,12 +6,9 @@ export interface AdjointResult {
 export declare abstract class AdjointSensitivityAnalyzer extends SensitivityAnalyzer {
     protected adjointVariables: number[];
     analyzeAdjoint(): AdjointResult;
-    protected abstract: any;
-    solveAdjoint(): void;
-    protected abstract: any;
-    computeAdjointGradient(): number[];
-    protected abstract: any;
-    assembleAdjointSystem(): unknown;
+    protected abstract solveAdjoint(): void;
+    protected abstract computeAdjointGradient(): number[];
+    protected abstract assembleAdjointSystem(): unknown;
     getAdjointVariables(): number[];
     info(): {
         engine: string;

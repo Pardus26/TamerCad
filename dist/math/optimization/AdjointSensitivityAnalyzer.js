@@ -10,9 +10,6 @@ export class AdjointSensitivityAnalyzer extends SensitivityAnalyzer {
             gradient: this.computeAdjointGradient()
         };
     }
-    abstract;
-    abstract;
-    abstract;
     getAdjointVariables() {
         return [
             ...this.adjointVariables

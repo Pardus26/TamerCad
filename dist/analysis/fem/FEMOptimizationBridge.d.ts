@@ -10,21 +10,15 @@ export declare abstract class FEMOptimizationBridge {
     constructor(problem: OptimizationProblem);
     solve(): FEMOptimizationResult;
     optimize(): void;
-    protected abstract: any;
-    updateGeometry(): void;
-    protected abstract: any;
-    rebuildMesh(): void;
-    protected abstract: any;
-    solveFEM(): {
+    protected abstract updateGeometry(): void;
+    protected abstract rebuildMesh(): void;
+    protected abstract solveFEM(): {
         displacement: number[];
         stress: number[];
     };
-    protected abstract: any;
-    evaluateObjective(result: any): number;
-    protected abstract: any;
-    evaluateConstraints(result: any): number[];
-    protected abstract: any;
-    createOptimizer(): any;
+    protected abstract evaluateObjective(result: any): number;
+    protected abstract evaluateConstraints(result: any): number[];
+    protected abstract createOptimizer(): any;
     info(): {
         engine: string;
     };

@@ -6,14 +6,10 @@ export declare abstract class LevenbergMarquardtOptimizer extends Optimizer {
     protected iterate(): void;
     protected stopCriterion(): boolean;
     protected objective(): number;
-    protected abstract: any;
-    initialParameters(): number[];
-    protected abstract: any;
-    computeLMUpdate(): number[];
-    protected abstract: any;
-    updateDamping(): void;
-    protected abstract: any;
-    residualNorm(): number;
+    protected abstract initialParameters(): number[];
+    protected abstract computeLMUpdate(): number[];
+    protected abstract updateDamping(): void;
+    protected abstract residualNorm(): number;
     getParameters(): number[];
     info(): {
         engine: string;

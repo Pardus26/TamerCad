@@ -13,8 +13,7 @@ export declare abstract class FEMConstraintEvaluator {
     addConstraint(constraint: FEMConstraint): void;
     evaluate(response: any): ConstraintEvaluation;
     getConstraints(): FEMConstraint[];
-    protected abstract: any;
-    normalize(value: number): number;
+    protected abstract normalize(value: number): number;
     info(): {
         engine: string;
         constraints: number;

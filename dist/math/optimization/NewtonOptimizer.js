@@ -21,10 +21,6 @@ export class NewtonOptimizer extends Optimizer {
         return;
         this.evaluateObjective();
     }
-    abstract;
-    abstract;
-    abstract;
-    abstract;
     getParameters() {
         return;
         [...this.parameters];

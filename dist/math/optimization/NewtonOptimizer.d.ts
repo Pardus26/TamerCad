@@ -5,14 +5,10 @@ export declare abstract class NewtonOptimizer extends Optimizer {
     protected iterate(): void;
     protected stopCriterion(): boolean;
     protected objective(): number;
-    protected abstract: any;
-    initialParameters(): number[];
-    protected abstract: any;
-    computeNewtonStep(): number[];
-    protected abstract: any;
-    evaluateObjective(): number;
-    protected abstract: any;
-    stepNorm(): number;
+    protected abstract initialParameters(): number[];
+    protected abstract computeNewtonStep(): number[];
+    protected abstract evaluateObjective(): number;
+    protected abstract stepNorm(): number;
     getParameters(): void;
     info(): {
         engine: string;

@@ -53,21 +53,13 @@ extends Optimizer {
 
     }
 
-    protected abstract
+    protected abstract initialParameters():number[];
 
-    initialParameters():number[];
+    protected abstract computeNewtonStep():number[];
 
-    protected abstract
+    protected abstract evaluateObjective():number;
 
-    computeNewtonStep():number[];
-
-    protected abstract
-
-    evaluateObjective():number;
-
-    protected abstract
-
-    stepNorm():number;
+    protected abstract stepNorm():number;
 
     getParameters(){
 

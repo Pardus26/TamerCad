@@ -12,16 +12,11 @@ export declare abstract class TopologyOptimizer extends Optimizer {
     protected iterate(): void;
     protected stopCriterion(): boolean;
     protected objective(): number;
-    protected abstract: any;
-    initialDensity(): number[];
-    protected abstract: any;
-    computeSensitivity(): number[];
-    protected abstract: any;
-    updateDensity(sensitivity: number[]): void;
-    protected abstract: any;
-    computeCompliance(): number;
-    protected abstract: any;
-    changeNorm(): number;
+    protected abstract initialDensity(): number[];
+    protected abstract computeSensitivity(): number[];
+    protected abstract updateDensity(sensitivity: number[]): void;
+    protected abstract computeCompliance(): number;
+    protected abstract changeNorm(): number;
     getDensity(): number[];
     info(): {
         engine: string;

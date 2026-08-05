@@ -16,10 +16,6 @@ export class FEMResponseEvaluator {
             response.maxDisplacement
         ];
     }
-    abstract;
-    abstract;
-    abstract;
-    abstract;
     info() {
         return {
             engine: "FEMResponseEvaluator"

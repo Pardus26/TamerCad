@@ -14,14 +14,10 @@ export declare abstract class FEMResponseEvaluator {
     evaluate(result: FEMResult): FEMResponse;
     objective(response: FEMResponse): number;
     constraints(response: FEMResponse): number[];
-    protected abstract: any;
-    computeCompliance(result: FEMResult): number;
-    protected abstract: any;
-    computeMaxStress(result: FEMResult): number;
-    protected abstract: any;
-    computeMaxDisplacement(result: FEMResult): number;
-    protected abstract: any;
-    computeStrainEnergy(result: FEMResult): number;
+    protected abstract computeCompliance(result: FEMResult): number;
+    protected abstract computeMaxStress(result: FEMResult): number;
+    protected abstract computeMaxDisplacement(result: FEMResult): number;
+    protected abstract computeStrainEnergy(result: FEMResult): number;
     info(): {
         engine: string;
     };

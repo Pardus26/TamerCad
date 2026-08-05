@@ -6,12 +6,9 @@ export declare abstract class SensitivityAnalyzer {
     protected variables: number[];
     setVariables(variables: number[]): void;
     analyze(): SensitivityResult;
-    protected abstract: any;
-    computeObjectiveGradient(): number[];
-    protected abstract: any;
-    computeConstraintGradients(): number[][];
-    protected abstract: any;
-    evaluateResponse(): number;
+    protected abstract computeObjectiveGradient(): number[];
+    protected abstract computeConstraintGradients(): number[][];
+    protected abstract evaluateResponse(): number;
     getVariables(): number[];
     info(): {
         engine: string;

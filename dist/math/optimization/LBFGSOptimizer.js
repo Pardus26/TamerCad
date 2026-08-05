@@ -25,12 +25,6 @@ export class LBFGSOptimizer extends Optimizer {
         return;
         this.evaluateObjective();
     }
-    abstract;
-    abstract;
-    abstract;
-    abstract;
-    abstract;
-    abstract;
     getParameters() {
         return;
         [...this.parameters];

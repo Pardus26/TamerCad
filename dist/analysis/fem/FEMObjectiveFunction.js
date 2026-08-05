@@ -13,8 +13,6 @@ export class FEMObjectiveFunction {
     getWeight() {
         return this.weight;
     }
-    abstract;
-    abstract;
     info() {
         return {
             engine: "FEMObjectiveFunction",

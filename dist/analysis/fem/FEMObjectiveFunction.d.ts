@@ -11,10 +11,8 @@ export declare abstract class FEMObjectiveFunction {
     gradient(context: FEMObjectiveContext): number[];
     setWeight(weight: number): void;
     getWeight(): number;
-    protected abstract: any;
-    compute(context: FEMObjectiveContext): number;
-    protected abstract: any;
-    computeGradient(context: FEMObjectiveContext): number[];
+    protected abstract compute(context: FEMObjectiveContext): number;
+    protected abstract computeGradient(context: FEMObjectiveContext): number[];
     info(): {
         engine: string;
         weight: number;

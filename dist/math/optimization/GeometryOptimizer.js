@@ -16,9 +16,6 @@ export class GeometryOptimizer {
             parameters: this.parameters
         };
     }
-    abstract;
-    abstract;
-    abstract;
     setParameters(parameters) {
         this.parameters =
             [...parameters];

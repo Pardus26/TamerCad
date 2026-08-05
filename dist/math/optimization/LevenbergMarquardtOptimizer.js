@@ -23,10 +23,6 @@ export class LevenbergMarquardtOptimizer extends Optimizer {
         const norm = this.residualNorm();
         return norm * norm;
     }
-    abstract;
-    abstract;
-    abstract;
-    abstract;
     getParameters() {
         return [
             ...this.parameters
