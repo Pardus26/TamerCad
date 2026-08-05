@@ -1,907 +1,529 @@
 // src/cad/sketch/ConstraintTypes.ts
 
+import { Vector2 } from "../../math/Vector2";
+import { SketchEntity } from "./SketchEntity";
 
-// =====================================================
-// Sketch Constraint Types
-// =====================================================
-
+/*
+======================================================
+Constraint Types
+======================================================
+*/
 
 export enum ConstraintType {
 
+    Coincident,
 
-    // Two points share same location
-    Coincident =
+    Horizontal,
 
-        "Coincident",
+    Vertical,
 
+    Parallel,
 
+    Perpendicular,
 
+    EqualLength,
 
-    // Line direction constraints
-    Horizontal =
+    EqualRadius,
 
-        "Horizontal",
+    Midpoint,
 
+    Tangent,
 
+    Concentric,
 
-    Vertical =
+    Symmetry,
 
-        "Vertical",
+    Fix,
 
+    Distance,
 
+    Radius,
 
+    Diameter,
 
-
-    Parallel =
-
-        "Parallel",
-
-
-
-    Perpendicular =
-
-        "Perpendicular",
-
-
-
-
-
-    // Curve relations
-
-    Tangent =
-
-        "Tangent",
-
-
-
-    Equal =
-
-        "Equal",
-
-
-
-
-
-    // Dimensional constraints
-
-    Distance =
-
-        "Distance",
-
-
-
-    DistanceX =
-
-        "DistanceX",
-
-
-
-    DistanceY =
-
-        "DistanceY",
-
-
-
-
-
-    Angle =
-
-        "Angle",
-
-
-
-    Radius =
-
-        "Radius",
-
-
-
-    Diameter =
-
-        "Diameter",
-
-
-
-
-
-    // Position lock
-
-    Fixed =
-
-        "Fixed",
-
-
-
-
-
-    // Symmetry
-
-    Symmetric =
-
-        "Symmetric",
-
-
-
-
-
-    // Construction
-
-    Construction =
-
-        "Construction"
-
-
+    Angle
 
 }
 
+/*
+======================================================
+Status
+======================================================
+*/
 
+export enum ConstraintStatus {
 
+    Active,
 
+    Suppressed,
 
+    Failed
 
+}
 
+/*
+======================================================
+Dimension Mode
+======================================================
+*/
 
+export enum DimensionMode {
 
-// =====================================================
-// Constraint Priority
-// =====================================================
+    Driving,
 
+    Driven
+
+}
+
+/*
+======================================================
+Constraint Priority
+======================================================
+*/
 
 export enum ConstraintPriority {
 
-
-    // Automatically generated constraints
-
-    Weak = 0,
-
-
-
-    // User suggested constraints
+    Low = 0,
 
     Normal = 1,
 
+    High = 2,
 
-
-    // User confirmed constraints
-
-    Strong = 2,
-
-
-
-    // Locked engineering constraints
-
-    Driving = 3
-
-
+    Critical = 3
 
 }
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Constraint Source
-// =====================================================
-
-
-export enum ConstraintSource {
-
-
-    // User created
-
-    User =
-
-        "User",
-
-
-
-    // Generated from snapping
-
-    Auto =
-
-        "Auto",
-
-
-
-    // Recognizer suggestion
-
-    Recognizer =
-
-        "Recognizer",
-
-
-
-    // Imported CAD data
-
-    Import =
-
-        "Import"
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Constraint State
-// =====================================================
-
-
-export enum ConstraintState {
-
-
-    Active =
-
-        "Active",
-
-
-
-    Suppressed =
-
-        "Suppressed",
-
-
-
-    Conflicted =
-
-        "Conflicted",
-
-
-
-    Redundant =
-
-        "Redundant"
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Constraint Metadata
-// =====================================================
-
+/* ======================================================
+ * Constraint Value
+ * ====================================================== */
+
+export type ConstraintValue =
+
+    | number
+    | boolean
+    | Vector2;
+
+/* ======================================================
+ * Constraint Definition
+ * ====================================================== */
 
 export interface ConstraintDefinition {
 
+    id: string;
 
-    type:
+    type: ConstraintType;
 
-        ConstraintType;
+    entities: SketchEntity[];
 
+    value?: ConstraintValue;
 
+    status: ConstraintStatus;
 
-    name:
+    priority: ConstraintPriority;
 
-        string;
-
-
-
-    description:
-
-        string;
-
-
-
-    degreesOfFreedom:number;
-
-
-
-    priority:
-
-        ConstraintPriority;
-
-
+    driving: boolean;
 
 }
 
+/* ======================================================
+ * Constraint Metadata
+ * ====================================================== */
 
+export interface ConstraintMetadata {
 
+    name: string;
 
+    displayName: string;
 
+    description: string;
 
+    icon?: string;
 
+    color?: string;
 
+    editable: boolean;
 
-// =====================================================
-// Constraint Library
-// =====================================================
+}
 
+/* ======================================================
+ * Constraint Creation Options
+ * ====================================================== */
 
-export const ConstraintLibrary:
-
-Record<
-
-    ConstraintType,
-
-    ConstraintDefinition
-
-> = {
-
-
-
-    [ConstraintType.Coincident]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Coincident,
-
-
-        name:
-
-            "Coincident",
-
-
-        description:
-
-            "Two points are merged",
-
-
-        degreesOfFreedom:
-
-            2,
-
-
-        priority:
-
-            ConstraintPriority.Strong
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Horizontal]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Horizontal,
-
-
-        name:
-
-            "Horizontal",
-
-
-        description:
-
-            "Line is horizontal",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Normal
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Vertical]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Vertical,
-
-
-        name:
-
-            "Vertical",
-
-
-        description:
-
-            "Line is vertical",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Normal
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Parallel]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Parallel,
-
-
-        name:
-
-            "Parallel",
-
-
-        description:
-
-            "Two entities have same direction",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Normal
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Perpendicular]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Perpendicular,
-
-
-        name:
-
-            "Perpendicular",
-
-
-        description:
-
-            "Entities intersect at 90 degrees",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Normal
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Tangent]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Tangent,
-
-
-        name:
-
-            "Tangent",
-
-
-        description:
-
-            "Curve touches another entity smoothly",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Strong
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Equal]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Equal,
-
-
-        name:
-
-            "Equal",
-
-
-        description:
-
-            "Equal length or radius",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Normal
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Distance]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Distance,
-
-
-        name:
-
-            "Distance",
-
-
-        description:
-
-            "Fixed distance",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Driving
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Angle]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Angle,
-
-
-        name:
-
-            "Angle",
-
-
-        description:
-
-            "Fixed angular relation",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Driving
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Radius]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Radius,
-
-
-        name:
-
-            "Radius",
-
-
-        description:
-
-            "Fixed circle radius",
-
-
-        degreesOfFreedom:
-
-            1,
-
-
-        priority:
-
-            ConstraintPriority.Driving
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Fixed]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Fixed,
-
-
-        name:
-
-            "Fixed",
-
-
-        description:
-
-            "Lock geometry position",
-
-
-        degreesOfFreedom:
-
-            0,
-
-
-        priority:
-
-            ConstraintPriority.Driving
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Symmetric]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Symmetric,
-
-
-        name:
-
-            "Symmetric",
-
-
-        description:
-
-            "Entities symmetric around axis",
-
-
-        degreesOfFreedom:
-
-            2,
-
-
-        priority:
-
-            ConstraintPriority.Strong
-
-
-    },
-
-
-
-
-
-    [ConstraintType.Construction]:
-
-    {
-
-
-        type:
-
-            ConstraintType.Construction,
-
-
-        name:
-
-            "Construction",
-
-
-        description:
-
-            "Reference geometry only",
-
-
-        degreesOfFreedom:
-
-            0,
-
-
-        priority:
-
-            ConstraintPriority.Weak
-
-
-    }
-
-
-
-};
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Helper Functions
-// =====================================================
-
+export interface ConstraintOptions {
+
+    value?: ConstraintValue;
+
+    priority?: ConstraintPriority;
+
+    driving?: boolean;
+
+    enabled?: boolean;
+
+}
+
+/* ======================================================
+ * Constraint Solve Result
+ * ====================================================== */
+
+export interface ConstraintSolveResult {
+
+    success: boolean;
+
+    error: number;
+
+    iterations: number;
+
+    changed: boolean;
+
+}
+/* ======================================================
+ * Constraint Registry
+ * ====================================================== */
+
+export const ConstraintRegistry =
+
+new Map<ConstraintType, ConstraintMetadata>([
+
+[
+ConstraintType.Coincident,
+{
+name: "Coincident",
+displayName: "Coincident",
+description: "Makes two points coincide.",
+editable: false
+}
+],
+
+[
+ConstraintType.Horizontal,
+{
+name: "Horizontal",
+displayName: "Horizontal",
+description: "Forces a line to be horizontal.",
+editable: false
+}
+],
+
+[
+ConstraintType.Vertical,
+{
+name: "Vertical",
+displayName: "Vertical",
+description: "Forces a line to be vertical.",
+editable: false
+}
+],
+
+[
+ConstraintType.Parallel,
+{
+name: "Parallel",
+displayName: "Parallel",
+description: "Keeps two lines parallel.",
+editable: false
+}
+],
+
+[
+ConstraintType.Perpendicular,
+{
+name: "Perpendicular",
+displayName: "Perpendicular",
+description: "Keeps two lines perpendicular.",
+editable: false
+}
+],
+
+[
+ConstraintType.EqualLength,
+{
+name: "EqualLength",
+displayName: "Equal Length",
+description: "Makes two line lengths equal.",
+editable: false
+}
+],
+
+[
+ConstraintType.EqualRadius,
+{
+name: "EqualRadius",
+displayName: "Equal Radius",
+description: "Makes radii equal.",
+editable: false
+}
+],
+
+[
+ConstraintType.Midpoint,
+{
+name: "Midpoint",
+displayName: "Midpoint",
+description: "Locks a point to the midpoint.",
+editable: false
+}
+],
+
+[
+ConstraintType.Tangent,
+{
+name: "Tangent",
+displayName: "Tangent",
+description: "Creates tangency.",
+editable: false
+}
+],
+
+[
+ConstraintType.Concentric,
+{
+name: "Concentric",
+displayName: "Concentric",
+description: "Keeps centers together.",
+editable: false
+}
+],
+
+[
+ConstraintType.Distance,
+{
+name: "Distance",
+displayName: "Distance",
+description: "Driving distance dimension.",
+editable: true
+}
+],
+
+[
+ConstraintType.Angle,
+{
+name: "Angle",
+displayName: "Angle",
+description: "Driving angle dimension.",
+editable: true
+}
+],
+
+[
+ConstraintType.Radius,
+{
+name: "Radius",
+displayName: "Radius",
+description: "Driving radius dimension.",
+editable: true
+}
+],
+
+[
+ConstraintType.Diameter,
+{
+name: "Diameter",
+displayName: "Diameter",
+description: "Driving diameter dimension.",
+editable: true
+}
+],
+
+[
+ConstraintType.Fix,
+{
+name: "Fix",
+displayName: "Fix",
+description: "Locks entity in space.",
+editable: false
+}
+]
+
+]);
+
+/* ======================================================
+ * Lookup
+ * ====================================================== */
+
+export function getConstraintMetadata(
+
+type: ConstraintType
+
+):
+
+ConstraintMetadata {
+
+return (
+
+ConstraintRegistry.get(type)!
+
+);
+
+}
+/* ======================================================
+ * Validation Helpers
+ * ====================================================== */
 
 export function isDimensionalConstraint(
 
-    type:ConstraintType
+    type: ConstraintType
 
-):
+): boolean {
 
-boolean{
+    switch (type) {
 
+        case ConstraintType.Distance:
 
-    return (
+        case ConstraintType.Radius:
 
-        type === ConstraintType.Distance ||
+        case ConstraintType.Diameter:
 
-        type === ConstraintType.DistanceX ||
+        case ConstraintType.Angle:
 
-        type === ConstraintType.DistanceY ||
+            return true;
 
-        type === ConstraintType.Angle ||
+        default:
 
-        type === ConstraintType.Radius ||
+            return false;
 
-        type === ConstraintType.Diameter
-
-    );
-
+    }
 
 }
-
-
-
-
-
-
 
 export function isGeometricConstraint(
 
-    type:ConstraintType
+    type: ConstraintType
 
-):
+): boolean {
 
-boolean{
+    return !isDimensionalConstraint(
 
-
-    return (
-
-        type === ConstraintType.Coincident ||
-
-        type === ConstraintType.Horizontal ||
-
-        type === ConstraintType.Vertical ||
-
-        type === ConstraintType.Parallel ||
-
-        type === ConstraintType.Perpendicular ||
-
-        type === ConstraintType.Tangent ||
-
-        type === ConstraintType.Equal ||
-
-        type === ConstraintType.Symmetric
+        type
 
     );
 
+}
+
+export function requiresValue(
+
+    type: ConstraintType
+
+): boolean {
+
+    return isDimensionalConstraint(
+
+        type
+
+    );
 
 }
 
+/* ======================================================
+ * Factory Defaults
+ * ====================================================== */
 
+export function createConstraintDefinition(
 
+    type: ConstraintType,
 
+    entities: SketchEntity[],
 
+    options: ConstraintOptions = {}
 
+): ConstraintDefinition {
 
-export function getConstraintDefinition(
+    return {
 
-    type:ConstraintType
+        id: crypto.randomUUID(),
 
-):
+        type,
 
-ConstraintDefinition{
+        entities,
 
+        value: options.value,
 
-    return ConstraintLibrary[type];
+        status: ConstraintStatus.Active,
 
+        priority:
+
+            options.priority ??
+
+            ConstraintPriority.Normal,
+
+        driving:
+
+            options.driving ??
+
+            true
+
+    };
 
 }
+
+/* ======================================================
+ * Utility
+ * ====================================================== */
+
+export function constraintTypeName(
+
+    type: ConstraintType
+
+): string {
+
+    return ConstraintType[type];
+
+}
+
+export function constraintStatusName(
+
+    status: ConstraintStatus
+
+): string {
+
+    return ConstraintStatus[status];
+
+}
+
+export function constraintPriorityName(
+
+    priority: ConstraintPriority
+
+): string {
+
+    return ConstraintPriority[priority];
+
+}
+
+/* ======================================================
+ * Export List
+ * ====================================================== */
+
+export const AllConstraintTypes = [
+
+    ConstraintType.Coincident,
+
+    ConstraintType.Horizontal,
+
+    ConstraintType.Vertical,
+
+    ConstraintType.Parallel,
+
+    ConstraintType.Perpendicular,
+
+    ConstraintType.EqualLength,
+
+    ConstraintType.EqualRadius,
+
+    ConstraintType.Midpoint,
+
+    ConstraintType.Tangent,
+
+    ConstraintType.Concentric,
+
+    ConstraintType.Symmetry,
+
+    ConstraintType.Fix,
+
+    ConstraintType.Distance,
+
+    ConstraintType.Radius,
+
+    ConstraintType.Diameter,
+
+    ConstraintType.Angle
+
+] as const;
