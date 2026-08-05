@@ -107,4 +107,85 @@ export class ColorCorrection extends PostProcess {
 
             options.brightness !== undefined
 
-       
+               if (
+
+            options.brightness !== undefined
+
+        ) {
+
+            this.brightness =
+
+                options.brightness;
+
+        }
+
+
+        if (
+
+            options.contrast !== undefined
+
+        ) {
+
+            this.contrast =
+
+                options.contrast;
+
+        }
+
+
+        if (
+
+            options.saturation !== undefined
+
+        ) {
+
+            this.saturation =
+
+                options.saturation;
+
+        }
+
+
+        if (
+
+            options.exposure !== undefined
+
+        ) {
+
+            this.exposure =
+
+                options.exposure;
+
+        }
+
+
+        if (
+
+            options.temperature !== undefined
+
+        ) {
+
+            this.temperature =
+
+                options.temperature;
+
+        }
+
+    }
+
+
+
+    public process(
+
+        context: RenderContext
+
+    ): void {
+
+        // Shader uniform güncellemesi
+
+        // GPU pipeline entegrasyonu burada yapılacak.
+
+    }
+
+
+}
