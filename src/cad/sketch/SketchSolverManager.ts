@@ -1,255 +1,149 @@
-// src/cad/sketch/SketchSolverManager.ts
-
-
-import {
-    Sketch
-}
-from "./Sketch";
-
-
+import { Sketch } from "./Sketch";
 
 import {
+
     Solver2D,
+
     Solver2DResult
-}
-from "./Solver2D";
 
+} from "./Solver2D";
 
+import { SketchEntity } from "./SketchEntity";
 
-import {
-    SketchEntity
-}
-from "./SketchEntity";
+import { SketchConstraint } from "./SketchConstraint";
 
-
-
-import {
-    SketchConstraint
-}
-from "./SketchConstraint";
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Solver Events
-// =====================================================
-
+/* ======================================================
+ * Solver Events
+ * ====================================================== */
 
 export interface SketchSolverEvents {
 
+    onSolved?(
 
-    onSolved?:
+        result: Solver2DResult
 
-        (
-            result:Solver2DResult
-        )=>void;
+    ): void;
 
+    onConstraintAdded?(
 
+        constraint: SketchConstraint
 
-    onConstraintAdded?:
+    ): void;
 
-        (
-            constraint:SketchConstraint
-        )=>void;
+    onConstraintRemoved?(
 
+        constraint: SketchConstraint
 
+    ): void;
 
-    onConstraintRemoved?:
+    onEntityAdded?(
 
-        (
-            constraint:SketchConstraint
-        )=>void;
+        entity: SketchEntity
 
+    ): void;
 
+    onEntityRemoved?(
 
-    onError?:
+        entity: SketchEntity
 
-        (
-            error:Error
-        )=>void;
+    ): void;
 
+    onUpdated?(): void;
 
+    onError?(
+
+        error: Error
+
+    ): void;
 
 }
 
-
-
-
-
-
-
-
-
-// =====================================================
-// Solver Snapshot
-// =====================================================
-
+/* ======================================================
+ * Snapshot
+ * ====================================================== */
 
 interface SolverSnapshot {
 
+    entities: any[];
 
-    entities:any[];
-
-
-    constraints:any[];
-
+    constraints: any[];
 
 }
 
-
-
-
-
-
-
-
-
-// =====================================================
-// Manager Options
-// =====================================================
-
+/* ======================================================
+ * Options
+ * ====================================================== */
 
 export interface SketchSolverManagerOptions {
 
+    sketch: Sketch;
 
-    sketch:Sketch;
-
-
-    events?:
-
-        SketchSolverEvents;
-
+    events?: SketchSolverEvents;
 
 }
 
-
-
-
-
-
-
-
-
-// =====================================================
-// SketchSolverManager
-// =====================================================
-
+/* ======================================================
+ * SketchSolverManager
+ * ====================================================== */
 
 export class SketchSolverManager {
-
-
 
     private readonly sketch:
 
         Sketch;
 
-
-
     private readonly solver:
 
         Solver2D;
-
-
-
-
 
     private readonly events?:
 
         SketchSolverEvents;
 
-
-
-
-
-    private undoStack:
+    private readonly undoStack:
 
         SolverSnapshot[] = [];
 
-
-
-
-
-    private redoStack:
+    private readonly redoStack:
 
         SolverSnapshot[] = [];
-
-
-
-
 
     private solving = false;
 
-
-
-
-
-
-
-
-
     constructor(
 
-        options:SketchSolverManagerOptions
+        options: SketchSolverManagerOptions
 
-    ){
-
-
+    ) {
 
         this.sketch =
 
             options.sketch;
 
-
-
         this.events =
 
             options.events;
-
-
 
         this.solver =
 
             new Solver2D();
 
-
-
         this.registerSketch();
 
-
-
     }
+    /* ======================================================
+     * Initialization
+     * ====================================================== */
 
+    private registerSketch(): void {
 
+        this.solver.clear();
 
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Initialization
-    // -------------------------------------------------
-
-
-    private registerSketch():
-
-        void{
-
-
-
-        for(
+        for (
 
             const entity of this.sketch.entities
 
-        ){
-
+        ) {
 
             this.solver.addEntity(
 
@@ -257,19 +151,13 @@ export class SketchSolverManager {
 
             );
 
-
         }
 
-
-
-
-
-        for(
+        for (
 
             const constraint of this.sketch.constraints
 
-        ){
-
+        ) {
 
             this.solver.addConstraint(
 
@@ -277,37 +165,21 @@ export class SketchSolverManager {
 
             );
 
-
         }
-
-
 
     }
 
-
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Entity Management
-    // -------------------------------------------------
-
+    /* ======================================================
+     * Entity Management
+     * ====================================================== */
 
     addEntity(
 
-        entity:SketchEntity
+        entity: SketchEntity
 
-    ):void{
-
-
+    ): void {
 
         this.saveState();
-
-
 
         this.sketch.addEntity(
 
@@ -315,40 +187,31 @@ export class SketchSolverManager {
 
         );
 
-
-
         this.solver.addEntity(
 
             entity
 
         );
 
+        this.events?.onEntityAdded?.(
 
+            entity
+
+        );
+
+        this.events?.onUpdated?.();
 
         this.solve();
 
-
     }
-
-
-
-
-
-
-
-
 
     removeEntity(
 
-        entity:SketchEntity
+        entity: SketchEntity
 
-    ):void{
-
-
+    ): void {
 
         this.saveState();
-
-
 
         this.sketch.removeEntity(
 
@@ -356,37 +219,50 @@ export class SketchSolverManager {
 
         );
 
+        this.solver.removeEntity(
 
+            entity
+
+        );
+
+        this.events?.onEntityRemoved?.(
+
+            entity
+
+        );
+
+        this.events?.onUpdated?.();
 
         this.solve();
 
+    }
+
+    getSolver():
+
+        Solver2D {
+
+        return this.solver;
 
     }
 
+    getSketch():
 
+        Sketch {
 
+        return this.sketch;
 
-
-
-
-
-
-    // -------------------------------------------------
-    // Constraint Management
-    // -------------------------------------------------
-
+    }
+    /* ======================================================
+     * Constraint Management
+     * ====================================================== */
 
     addConstraint(
 
-        constraint:SketchConstraint
+        constraint: SketchConstraint
 
-    ):void{
-
-
+    ): void {
 
         this.saveState();
-
-
 
         this.sketch.addConstraint(
 
@@ -394,15 +270,11 @@ export class SketchSolverManager {
 
         );
 
-
-
         this.solver.addConstraint(
 
             constraint
 
         );
-
-
 
         this.events?.onConstraintAdded?.(
 
@@ -410,32 +282,19 @@ export class SketchSolverManager {
 
         );
 
-
+        this.events?.onUpdated?.();
 
         this.solve();
 
-
     }
-
-
-
-
-
-
-
-
 
     removeConstraint(
 
-        constraint:SketchConstraint
+        constraint: SketchConstraint
 
-    ):void{
-
-
+    ): void {
 
         this.saveState();
-
-
 
         this.sketch.removeConstraint(
 
@@ -443,15 +302,11 @@ export class SketchSolverManager {
 
         );
 
-
-
         this.solver.removeConstraint(
 
             constraint
 
         );
-
-
 
         this.events?.onConstraintRemoved?.(
 
@@ -459,83 +314,49 @@ export class SketchSolverManager {
 
         );
 
-
+        this.events?.onUpdated?.();
 
         this.solve();
 
-
     }
 
-
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Live Pen Solving
-    // -------------------------------------------------
-
+    /* ======================================================
+     * Solve
+     * ====================================================== */
 
     solve():
 
-        Solver2DResult{
+        Solver2DResult {
 
+        if (
 
+            this.solving
 
-        if(this.solving)
-
-        {
-
+        ) {
 
             return {
 
+                success: false,
 
-                success:false,
+                error: 0,
 
-
-                error:0,
-
-
-                iterations:0,
-
+                iterations: 0,
 
                 dof:
 
-                    this.solver
-
-                    .calculateDOF()
-
-
+                    this.solver.calculateDOF()
 
             };
 
-
         }
-
-
-
-
 
         this.solving = true;
 
-
-
-
-
-        try{
-
-
+        try {
 
             const result =
 
                 this.solver.solve();
-
-
-
-
 
             this.events?.onSolved?.(
 
@@ -543,39 +364,25 @@ export class SketchSolverManager {
 
             );
 
-
-
-
+            this.events?.onUpdated?.();
 
             return result;
 
-
-
         }
 
-        catch(error){
-
-
+        catch (error) {
 
             const err =
 
                 error instanceof Error
 
-                ?
+                    ? error
 
-                error
+                    : new Error(
 
-                :
+                        String(error)
 
-                new Error(
-
-                    String(error)
-
-                );
-
-
-
-
+                    );
 
             this.events?.onError?.(
 
@@ -583,53 +390,40 @@ export class SketchSolverManager {
 
             );
 
-
-
-
-
             throw err;
 
-
-
         }
 
-        finally{
+        finally {
 
-
-
-            this.solving=false;
-
-
+            this.solving = false;
 
         }
-
 
     }
-
-
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Pen Drag Update
-    // -------------------------------------------------
-
+    /* ======================================================
+     * Live Update
+     * ====================================================== */
 
     updateEntityPosition(
 
-        entity:SketchEntity,
+        entity: SketchEntity,
 
-        x:number,
+        x: number,
 
-        y:number
+        y: number
 
-    ):void{
+    ): void {
 
+        if (
 
+            entity.fixed
+
+        ) {
+
+            return;
+
+        }
 
         entity.setPosition(
 
@@ -639,70 +433,78 @@ export class SketchSolverManager {
 
         );
 
-
-
         this.solve();
-
 
     }
 
+    /* ======================================================
+     * Drag Transaction
+     * ====================================================== */
 
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Drag Transaction
-    // -------------------------------------------------
-
-
-    beginDrag():
-
-        void{
-
+    beginDrag(): void {
 
         this.saveState();
 
+    }
+
+    updateDrag(
+
+        entity: SketchEntity,
+
+        x: number,
+
+        y: number
+
+    ): void {
+
+        this.updateEntityPosition(
+
+            entity,
+
+            x,
+
+            y
+
+        );
 
     }
 
-
-
-
-
-
-
-    endDrag():
-
-        void{
-
+    endDrag(): void {
 
         this.solve();
 
+        this.events?.onUpdated?.();
 
     }
 
+    cancelDrag(): void {
 
+        this.undo();
 
+    }
 
+    /* ======================================================
+     * Full Synchronization
+     * ====================================================== */
 
+    rebuildSolver(): void {
 
+        this.registerSketch();
 
+        this.solve();
 
+    }
 
-    // -------------------------------------------------
-    // Undo / Redo
-    // -------------------------------------------------
+    synchronize(): void {
 
+        this.registerSketch();
 
-    private saveState():
+    }
+    /* ======================================================
+     * History
+     * ====================================================== */
 
-        void{
-
-
+    private saveState(): void {
 
         this.undoStack.push(
 
@@ -710,41 +512,25 @@ export class SketchSolverManager {
 
         );
 
-
-
-        this.redoStack.length=0;
-
-
+        this.redoStack.length = 0;
 
     }
 
+    undo(): void {
 
-
-
-
-
-
-
-
-    undo():
-
-        void{
-
-
-
-        const state =
+        const snapshot =
 
             this.undoStack.pop();
 
+        if (
 
+            !snapshot
 
-        if(!state)
+        ) {
 
             return;
 
-
-
-
+        }
 
         this.redoStack.push(
 
@@ -752,49 +538,33 @@ export class SketchSolverManager {
 
         );
 
-
-
         this.restoreSnapshot(
 
-            state
+            snapshot
 
         );
 
-
-
         this.solve();
 
-
+        this.events?.onUpdated?.();
 
     }
 
+    redo(): void {
 
-
-
-
-
-
-
-
-    redo():
-
-        void{
-
-
-
-        const state =
+        const snapshot =
 
             this.redoStack.pop();
 
+        if (
 
+            !snapshot
 
-        if(!state)
+        ) {
 
             return;
 
-
-
-
+        }
 
         this.undoStack.push(
 
@@ -802,82 +572,57 @@ export class SketchSolverManager {
 
         );
 
-
-
         this.restoreSnapshot(
 
-            state
+            snapshot
 
         );
 
-
-
         this.solve();
 
-
+        this.events?.onUpdated?.();
 
     }
 
-
-
-
-
-
-
-
+    /* ======================================================
+     * Snapshot
+     * ====================================================== */
 
     private createSnapshot():
 
-        SolverSnapshot{
-
+        SolverSnapshot {
 
         return {
 
-
             entities:
 
-                this.sketch.entities
+                this.sketch.entities.map(
 
-                .map(
+                    entity =>
 
-                    e=>e.serialize()
+                        entity.serialize()
 
                 ),
 
-
-
             constraints:
 
-                this.sketch.constraints
+                this.sketch.constraints.map(
 
-                .map(
+                    constraint =>
 
-                    c=>c.serialize()
+                        constraint.serialize()
 
                 )
 
-
-
         };
-
 
     }
 
-
-
-
-
-
-
-
-
     private restoreSnapshot(
 
-        snapshot:SolverSnapshot
+        snapshot: SolverSnapshot
 
-    ):void{
-
-
+    ): void {
 
         this.sketch.restore(
 
@@ -887,128 +632,107 @@ export class SketchSolverManager {
 
         );
 
-
-
-        this.solver.clear();
-
-
-
         this.registerSketch();
 
-
-
     }
-
-
-
-
-
-
-
-
-
-    // -------------------------------------------------
-    // Analysis
-    // -------------------------------------------------
-
+    /* ======================================================
+     * Analysis
+     * ====================================================== */
 
     getDegreesOfFreedom():
 
-        number{
+        number {
 
-
-        return this.solver
-
-        .calculateDOF();
-
-
+        return this.solver.calculateDOF();
 
     }
-
-
-
-
-
-
-
-
 
     isSolved():
 
-        boolean{
-
+        boolean {
 
         return this.solver
 
-        .getStatistics()
+            .getStatistics()
 
-        .converged;
-
-
+            .converged;
 
     }
 
+    validate() {
 
-
-
-
-
-
-
-
-    getSolver():
-
-        Solver2D{
-
-
-        return this.solver;
-
+        return this.solver.validate();
 
     }
 
+    getStatistics() {
 
+        return this.solver.getStatistics();
 
+    }
 
+    /* ======================================================
+     * Utilities
+     * ====================================================== */
 
+    clearHistory(): void {
 
+        this.undoStack.length = 0;
 
+        this.redoStack.length = 0;
 
+    }
 
-    debugInfo(){
+    dispose(): void {
 
+        this.clearHistory();
+
+        this.solver.clear();
+
+    }
+
+    /* ======================================================
+     * Debug
+     * ====================================================== */
+
+    debugInfo() {
 
         return {
-
 
             solving:
 
                 this.solving,
 
-
-
             undo:
 
                 this.undoStack.length,
-
-
 
             redo:
 
                 this.redoStack.length,
 
+            sketch: {
 
+                entities:
+
+                    this.sketch.entities.length,
+
+                constraints:
+
+                    this.sketch.constraints.length
+
+            },
 
             solver:
 
                 this.solver.debugInfo()
 
-
-
         };
-
 
     }
 
-
-
 }
+
+/* ======================================================
+ * End Of File
+ * ====================================================== */
