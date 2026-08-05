@@ -1,6 +1,7 @@
 import { SketchConstraint } from "./SketchConstraint";
 import { SketchEntity } from "./SketchEntity";
 
+
 /* ======================================================
  * Solver Options
  * ====================================================== */
@@ -15,21 +16,23 @@ export interface Solver2DOptions {
 
 }
 
+
 /* ======================================================
  * Solver Result
  * ====================================================== */
 
 export interface Solver2DResult {
 
-    success: boolean;
+    success:boolean;
 
-    error: number;
+    error:number;
 
-    iterations: number;
+    iterations:number;
 
-    dof: number;
+    dof:number;
 
 }
+
 
 /* ======================================================
  * Solver Statistics
@@ -37,17 +40,18 @@ export interface Solver2DResult {
 
 export interface Solver2DStatistics {
 
-    iterations: number;
+    iterations:number;
 
-    finalError: number;
+    finalError:number;
 
-    converged: boolean;
+    converged:boolean;
 
-    degreesOfFreedom: number;
+    degreesOfFreedom:number;
 
-    solveTime: number;
+    solveTime:number;
 
 }
+
 
 /* ======================================================
  * Solver State
@@ -65,112 +69,150 @@ enum SolverState {
 
 }
 
+
 /* ======================================================
  * Solver2D
  * ====================================================== */
 
 export class Solver2D {
 
+
     private readonly entities:
 
         SketchEntity[] = [];
+
+
 
     private readonly constraints:
 
         SketchConstraint[] = [];
 
-    private readonly maxIterations: number;
 
-    private readonly tolerance: number;
 
-    private readonly relaxation: number;
+    private readonly maxIterations:number;
+
+
+    private readonly tolerance:number;
+
+
+    private readonly relaxation:number;
+
+
 
     private state:
 
         SolverState = SolverState.Idle;
 
+
+
     private statistics:
 
         Solver2DStatistics = {
 
-            iterations: 0,
 
-            finalError: 0,
+            iterations:0,
 
-            converged: false,
 
-            degreesOfFreedom: 0,
+            finalError:0,
 
-            solveTime: 0
+
+            converged:false,
+
+
+            degreesOfFreedom:0,
+
+
+            solveTime:0
+
 
         };
 
+
+
+
+
     constructor(
 
-        options: Solver2DOptions = {}
+        options:Solver2DOptions = {}
 
-    ) {
+    ){
+
 
         this.maxIterations =
 
-            options.maxIterations ?? 40;
+            options.maxIterations ??
+
+            40;
+
+
 
         this.tolerance =
 
-            options.tolerance ?? 1e-6;
+            options.tolerance ??
+
+            1e-6;
+
+
 
         this.relaxation =
 
-            options.relaxation ?? 1.0;
+            options.relaxation ??
+
+            1.0;
+
 
     }
+
+
+
+
+
     /* ======================================================
      * Entity Registration
      * ====================================================== */
 
+
     addEntity(
 
-        entity: SketchEntity
+        entity:SketchEntity
 
-    ): void {
+    ):void{
 
-        if (
+
+        if(
 
             this.entities.includes(entity)
 
-        ) {
+        ){
 
             return;
 
         }
 
-        this.entities.push(
 
-            entity
 
-        );
+        this.entities.push(entity);
+
 
     }
 
+
+
     removeEntity(
 
-        entity: SketchEntity
+        entity:SketchEntity
 
-    ): void {
+    ):void{
+
 
         const index =
 
-            this.entities.indexOf(
+            this.entities.indexOf(entity);
 
-                entity
 
-            );
 
-        if (
+        if(index!==-1){
 
-            index !== -1
-
-        ) {
 
             this.entities.splice(
 
@@ -180,9 +222,10 @@ export class Solver2D {
 
             );
 
+
         }
 
-        // Entity'ye bağlı constraintleri de temizle
+
 
         this.constraints.splice(
 
@@ -204,27 +247,34 @@ export class Solver2D {
 
         );
 
+
     }
+
+
+
 
     getEntities():
 
         readonly SketchEntity[] {
 
+
         return this.entities;
 
-    }
 
+    }
     /* ======================================================
      * Constraint Registration
      * ====================================================== */
 
+
     addConstraint(
 
-        constraint: SketchConstraint
+        constraint:SketchConstraint
 
-    ): void {
+    ):void{
 
-        if (
+
+        if(
 
             this.constraints.includes(
 
@@ -232,11 +282,13 @@ export class Solver2D {
 
             )
 
-        ) {
+        ){
 
             return;
 
         }
+
+
 
         this.constraints.push(
 
@@ -244,13 +296,19 @@ export class Solver2D {
 
         );
 
+
     }
+
+
+
+
 
     removeConstraint(
 
-        constraint: SketchConstraint
+        constraint:SketchConstraint
 
-    ): void {
+    ):void{
+
 
         const index =
 
@@ -260,11 +318,14 @@ export class Solver2D {
 
             );
 
-        if (
+
+
+        if(
 
             index !== -1
 
-        ) {
+        ){
+
 
             this.constraints.splice(
 
@@ -274,52 +335,87 @@ export class Solver2D {
 
             );
 
+
         }
 
+
     }
+
+
+
+
 
     getConstraints():
 
         readonly SketchConstraint[] {
 
+
         return this.constraints;
+
 
     }
 
-    clear(): void {
+
+
+
+
+    clear():void{
+
 
         this.entities.length = 0;
 
+
         this.constraints.length = 0;
+
+
 
         this.state =
 
             SolverState.Idle;
 
+
     }
+
+
+
+
+
+
     /* ======================================================
      * Solve
      * ====================================================== */
+
 
     solve():
 
         Solver2DResult {
 
+
         this.state =
 
             SolverState.Solving;
+
+
 
         const startTime =
 
             performance.now();
 
+
+
         let totalError =
 
             Number.MAX_VALUE;
 
+
+
         let iteration = 0;
 
-        for (
+
+
+
+
+        for(
 
             iteration = 0;
 
@@ -327,49 +423,78 @@ export class Solver2D {
 
             iteration++
 
-        ) {
+        ){
+
+
 
             totalError = 0;
 
-            for (
+
+
+
+
+            for(
 
                 const constraint of this.constraints
 
-            ) {
+            ){
 
-                if (
+
+
+                if(
 
                     !constraint.enabled
 
-                ) {
+                ){
 
                     continue;
 
                 }
 
+
+
+
+
                 const error =
 
                     constraint.solve();
+
+
+
+
 
                 totalError +=
 
                     Math.abs(error);
 
+
+
             }
 
-            if (
+
+
+
+
+            if(
 
                 totalError <=
 
                 this.tolerance
 
-            ) {
+            ){
+
 
                 break;
 
+
             }
 
+
         }
+
+
+
+
 
         const converged =
 
@@ -377,51 +502,88 @@ export class Solver2D {
 
             this.tolerance;
 
+
+
+
+
         this.state =
 
             converged
 
-                ? SolverState.Converged
+                ?
 
-                : SolverState.Failed;
+                SolverState.Converged
+
+                :
+
+                SolverState.Failed;
+
+
+
+
+
 
         this.statistics = {
+
 
             iterations:
 
                 iteration + 1,
+
+
 
             finalError:
 
                 totalError,
 
+
+
             converged,
+
+
 
             degreesOfFreedom:
 
                 this.calculateDOF(),
 
+
+
             solveTime:
 
-                performance.now() -
+                performance.now()
+
+                -
 
                 startTime
 
+
+
         };
 
+
+
+
+
         return {
+
 
             success:
 
                 converged,
 
+
+
             error:
 
                 totalError,
 
+
+
             iterations:
 
                 iteration + 1,
+
+
 
             dof:
 
@@ -429,22 +591,41 @@ export class Solver2D {
 
                     .degreesOfFreedom
 
+
+
         };
 
+
     }
+
+
+
+
+
+
+
     /* ======================================================
      * Degrees Of Freedom
      * ====================================================== */
 
-    calculateDOF(): number {
+
+    calculateDOF():
+
+        number {
+
 
         let variableCount = 0;
 
-        for (
+
+
+
+
+        for(
 
             const entity of this.entities
 
-        ) {
+        ){
+
 
             variableCount +=
 
@@ -454,33 +635,55 @@ export class Solver2D {
 
                 );
 
+
         }
+
+
+
+
 
         let activeConstraintCount = 0;
 
-        for (
+
+
+
+
+        for(
 
             const constraint of this.constraints
 
-        ) {
+        ){
 
-            if (
+
+
+            if(
 
                 constraint.enabled
 
-            ) {
+            ){
+
 
                 activeConstraintCount++;
 
+
             }
 
+
         }
+
+
+
+
 
         const dof =
 
             variableCount -
 
             activeConstraintCount;
+
+
+
+
 
         return Math.max(
 
@@ -490,78 +693,138 @@ export class Solver2D {
 
         );
 
+
     }
+
+
+
+
+
+
 
     /* ======================================================
      * Entity DOF
      * ====================================================== */
 
+
     private entityDOF(
 
-        entity: SketchEntity
+        entity:SketchEntity
 
-    ): number {
+    ):
 
-        if (
+    number {
+
+
+
+        if(
 
             entity.fixed
 
-        ) {
+        ){
+
 
             return 0;
 
+
         }
 
-        switch (
+
+
+
+
+        switch(
 
             entity.type
 
-        ) {
+        ){
+
+
 
             // Point
+
             case 0:
+
                 return 2;
 
+
+
+
+
             // Line
+
             case 1:
+
                 return 4;
 
+
+
+
+
             // Circle
+
             case 2:
+
                 return 3;
 
+
+
+
+
             // Arc
+
             case 3:
+
                 return 5;
 
+
+
+
+
             default:
+
                 return 0;
+
 
         }
 
-    }
 
+    }
     /* ======================================================
      * Validation
      * ====================================================== */
 
-    validate() {
+
+    validate(){
+
 
         const dof =
 
             this.calculateDOF();
 
+
+
+
         return {
 
-            degreesOfFreedom: dof,
+
+            degreesOfFreedom:
+
+                dof,
+
+
 
             fullyConstrained:
 
                 dof === 0,
 
+
+
             underConstrained:
 
                 dof > 0,
+
+
 
             overConstrained:
 
@@ -571,28 +834,45 @@ export class Solver2D {
 
                 dof === 0
 
+
+
         };
 
+
     }
+
+
+
+
+
+
+
     /* ======================================================
      * Synchronization
      * ====================================================== */
 
+
     synchronize(
 
-        entities: readonly SketchEntity[],
+        entities:readonly SketchEntity[],
 
-        constraints: readonly SketchConstraint[]
+        constraints:readonly SketchConstraint[]
 
-    ): void {
+    ):void{
+
 
         this.clear();
 
-        for (
+
+
+
+
+        for(
 
             const entity of entities
 
-        ) {
+        ){
+
 
             this.addEntity(
 
@@ -600,13 +880,19 @@ export class Solver2D {
 
             );
 
+
         }
 
-        for (
+
+
+
+
+        for(
 
             const constraint of constraints
 
-        ) {
+        ){
+
 
             this.addConstraint(
 
@@ -614,31 +900,61 @@ export class Solver2D {
 
             );
 
+
         }
 
+
     }
+
+
+
+
+
+
+
 
     /* ======================================================
      * Rebuild
      * ====================================================== */
 
-    rebuild(): void {
+
+    rebuild():void{
+
 
         const entities =
 
-            [...this.entities];
+            [
+
+                ...this.entities
+
+            ];
+
+
 
         const constraints =
 
-            [...this.constraints];
+            [
+
+                ...this.constraints
+
+            ];
+
+
+
+
 
         this.clear();
 
-        for (
+
+
+
+
+        for(
 
             const entity of entities
 
-        ) {
+        ){
+
 
             this.addEntity(
 
@@ -646,13 +962,19 @@ export class Solver2D {
 
             );
 
+
         }
 
-        for (
+
+
+
+
+        for(
 
             const constraint of constraints
 
-        ) {
+        ){
+
 
             this.addConstraint(
 
@@ -660,69 +982,119 @@ export class Solver2D {
 
             );
 
+
         }
 
+
     }
+
+
+
+
+
+
 
     /* ======================================================
      * Reset
      * ====================================================== */
 
-    reset(): void {
+
+    reset():void{
+
 
         this.state =
 
             SolverState.Idle;
 
+
+
+
+
         this.statistics = {
 
-            iterations: 0,
 
-            finalError: 0,
+            iterations:0,
 
-            converged: false,
+
+
+            finalError:0,
+
+
+
+            converged:false,
+
+
 
             degreesOfFreedom:
 
                 this.calculateDOF(),
 
-            solveTime: 0
+
+
+            solveTime:0
+
+
 
         };
 
+
     }
+
+
+
+
+
+
 
     /* ======================================================
      * Auto Fix
      * ====================================================== */
 
-    autoFix(): void {
+
+    autoFix():void{
+
 
         const validation =
 
             this.validate();
 
-        if (
+
+
+
+
+        if(
 
             validation.fullyConstrained
 
-        ) {
+        ){
+
 
             return;
 
+
         }
 
-        for (
+
+
+
+
+
+
+        for(
 
             const entity of this.entities
 
-        ) {
+        ){
 
-            if (
+
+
+            if(
 
                 !entity.fixed
 
-            ) {
+            ){
+
+
 
                 entity.setFixed(
 
@@ -730,70 +1102,111 @@ export class Solver2D {
 
                 );
 
-                if (
+
+
+
+
+                if(
 
                     this.calculateDOF() === 0
 
-                ) {
+                ){
+
 
                     break;
 
+
                 }
+
 
             }
 
+
         }
 
+
     }
+
+
+
+
+
+
+
     /* ======================================================
      * Solver State
      * ====================================================== */
+
 
     getState():
 
         SolverState {
 
+
         return this.state;
 
+
     }
+
+
+
+
+
 
     isSolved():
 
         boolean {
 
+
         return this.state ===
 
             SolverState.Converged;
 
+
     }
+
+
+
+
+
 
     isSolving():
 
         boolean {
 
+
         return this.state ===
 
             SolverState.Solving;
 
+
     }
+
+
+
+
+
 
     hasFailed():
 
         boolean {
 
+
         return this.state ===
 
             SolverState.Failed;
 
-    }
 
+    }
     /* ======================================================
      * Statistics
      * ====================================================== */
 
+
     getStatistics():
 
-        Readonly<SolverStatistics> {
+        Readonly<Solver2DStatistics> {
+
 
         return {
 
@@ -801,111 +1214,81 @@ export class Solver2D {
 
         };
 
+
     }
+
+
+
+
+
+
 
     /* ======================================================
      * Counts
      * ====================================================== */
 
+
     getEntityCount():
 
         number {
 
+
         return this.entities.length;
 
+
     }
+
+
+
 
     getConstraintCount():
 
         number {
 
+
         return this.constraints.length;
 
-    }
-
-    /* ======================================================
-     * Readonly Access
-     * ====================================================== */
-
-    getEntities():
-
-        readonly SketchEntity[] {
-
-        return this.entities;
 
     }
 
-    getConstraints():
 
-        readonly SketchConstraint[] {
 
-        return this.constraints;
 
-    }
+
+
+
     /* ======================================================
      * Diagnostics
      * ====================================================== */
 
-    validate():
-
-        {
-
-            fullyConstrained:boolean;
-
-            underConstrained:boolean;
-
-            overConstrained:boolean;
-
-            degreesOfFreedom:number;
-
-        }{
-
-        const dof =
-
-            this.calculateDOF();
-
-        return {
-
-            fullyConstrained:
-
-                dof===0,
-
-            underConstrained:
-
-                dof>0,
-
-            overConstrained:
-
-                dof<0,
-
-            degreesOfFreedom:
-
-                dof
-
-        };
-
-    }
-
-    /* ======================================================
-     * Debug
-     * ====================================================== */
 
     debugInfo(){
 
+
         return {
+
 
             state:
 
                 SolverState[this.state],
 
+
+
+
             entityCount:
 
                 this.entities.length,
+
+
+
 
             constraintCount:
 
                 this.constraints.length,
 
+
+
+
             statistics:
 
                 {
@@ -914,33 +1297,55 @@ export class Solver2D {
 
                 },
 
+
+
+
             entities:
 
                 this.entities.map(
 
-                    entity=>entity.debugInfo()
+                    entity =>
+
+                        entity.debugInfo()
 
                 ),
+
+
+
 
             constraints:
 
                 this.constraints.map(
 
-                    constraint=>constraint.debugInfo()
+                    constraint =>
+
+                        constraint.debugInfo()
 
                 )
 
+
+
         };
 
+
     }
+
+
+
+
+
+
 
     /* ======================================================
      * Serialization Helper
      * ====================================================== */
 
+
     exportState(){
 
+
         return {
+
 
             statistics:
 
@@ -950,107 +1355,45 @@ export class Solver2D {
 
                 },
 
+
+
+
             dof:
 
                 this.calculateDOF(),
+
+
+
 
             entities:
 
                 this.entities.map(
 
-                    entity=>entity.serialize()
+                    entity =>
+
+                        entity.serialize()
 
                 ),
+
+
+
 
             constraints:
 
                 this.constraints.map(
 
-                    constraint=>constraint.serialize()
+                    constraint =>
+
+                        constraint.serialize()
 
                 )
 
-        };
 
-    }
-
-}
-/* ======================================================
- * Public API
- * ====================================================== */
-
-    getEntities():
-
-        readonly SketchEntity[]{
-
-        return this.entities;
-
-    }
-
-    getConstraints():
-
-        readonly SketchConstraint[]{
-
-        return this.constraints;
-
-    }
-
-    getConstraintCount():
-
-        number{
-
-        return this.constraints.length;
-
-    }
-
-    getEntityCount():
-
-        number{
-
-        return this.entities.length;
-
-    }
-
-    isBusy():
-
-        boolean{
-
-        return this.state===SolverState.Solving;
-
-    }
-
-    isConverged():
-
-        boolean{
-
-        return this.statistics.converged;
-
-    }
-
-    reset():
-
-        void{
-
-        this.statistics={
-
-            iterations:0,
-
-            finalError:0,
-
-            converged:false,
-
-            degreesOfFreedom:0
 
         };
 
-        this.state=
-
-            SolverState.Idle;
 
     }
 
-}
 
-/* ======================================================
- * End Of File
- * ====================================================== */
+}
